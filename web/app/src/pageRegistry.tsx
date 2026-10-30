@@ -55,7 +55,11 @@ export function pageElement({ load, skeleton }: PageRoute) {
 
 /** Warms the chunk, and the first query, for whatever page `href` leads to. Safe to call repeatedly. */
 export function preloadRoute(href: string): void {
-  const pathname = href.split(/[?#]/)[0] ?? href;
+  let pathname = href.split(/[?#]/)[0] ?? href;
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+  if (base && pathname.startsWith(base)) {
+    pathname = pathname.slice(base.length) || '/';
+  }
   const page = pages.find((p) => matchPath(p.path, pathname));
   void page?.load().catch(() => {
     // A failed prefetch is retried by the real navigation.

@@ -6,7 +6,9 @@ import { queryClient } from '@/lib/queryClient';
 import { routes } from '@/routes';
 import '@/styles/global.css';
 
-const router = createBrowserRouter(routes);
+const router = createBrowserRouter(routes, {
+  basename: import.meta.env.BASE_URL,
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

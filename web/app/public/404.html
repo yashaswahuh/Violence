@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Violence</title>
+    <script>
+      (function () {
+        var path = window.location.pathname || '/';
+        var search = window.location.search || '';
+        var hash = window.location.hash || '';
+
+        // Handle violence://party/<CODE> web equivalents:
+        // /violence/party/<CODE> or /party/<CODE> -> /violence/invite/<CODE>
+        var partyMatch = path.match(/^(?:\/violence)?\/party\/([A-Za-z0-9]{6})(?:\/.*)?$/i);
+        if (partyMatch) {
+          path = '/violence/invite/' + partyMatch[1].toUpperCase();
+        } else if (!path.startsWith('/violence')) {
+          // Normalize any root-relative path to the /violence/ subpath
+          path = '/violence' + (path.startsWith('/') ? path : '/' + path);
+        }
+
+        sessionStorage.setItem('violence_redirect', path + search + hash);
+        window.location.replace('/violence/');
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

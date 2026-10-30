@@ -1,53 +1,78 @@
-name: Web
+name: Web Deploy
 
-# The web player (web/app), its browser extension (web/extension) and the code
-# they share (web/shared): typecheck, test and build all three, so a change
-# that only breaks the production build (Vite, WXT) is caught before it ships.
 on:
   push:
-    branches: [main]
+    branches: [violence-main]
     paths:
       - 'web/**'
       - '.github/workflows/web.yml'
-  pull_request:
-    paths:
-      - 'web/**'
-      - '.github/workflows/web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: web-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: github-pages
+  cancel-in-progress: false
 
 jobs:
-  web:
-    name: Web · typecheck, test, build
+  build:
+    name: Build Web Target
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # The pnpm version comes from web/package.json's packageManager.
-      - uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           package_json_file: web/package.json
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
 
-      - name: Install
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm typecheck
+      - name: Build web application and extension
+        run: pnpm build:site
+        env:
+          VITE_BASE_URL: /violence/
+          VITE_LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY || '' }}
+          VITE_JAM_SERVER_URL: ${{ vars.JAM_SERVER_URL || '' }}
 
-      - name: Test
-        run: pnpm test
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/app/dist
 
-      # The app's build runs tsc then vite; the extension's builds Chrome and Firefox.
-      - name: Build
-        run: pnpm build
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Write deployment summary
+        run: |
+          echo "### 🚀 Web App Deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed Page URL:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Custom URL:** https://yashaswahuh.is-a.dev/violence/" >> $GITHUB_STEP_SUMMARY
