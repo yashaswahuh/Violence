@@ -84,7 +84,7 @@ export const DEFAULT_DISCORD_OPTIONS: DiscordPresenceOptions = {
   button1Text: '',
   button1Visible: true,
   button2Text: '',
-  button2Visible: true,
+  button2Visible: false,
 };
 
 interface DiscordOptionsStore {

@@ -688,7 +688,7 @@ object AppSettings {
     val discordButton1Text = MutableStateFlow("")
     val discordButton1Visible = MutableStateFlow(true)
     val discordButton2Text = MutableStateFlow("")
-    val discordButton2Visible = MutableStateFlow(true)
+    val discordButton2Visible = MutableStateFlow(false)
 
     /** The notice about what connecting an account actually does has been read. */
     val discordInfoDismissed = MutableStateFlow(false)
@@ -962,7 +962,7 @@ object AppSettings {
         discordButton1Text.value = prefs.getString(KEY_DISCORD_BUTTON_1_TEXT, "").orEmpty()
         discordButton1Visible.value = prefs.getBoolean(KEY_DISCORD_BUTTON_1_VISIBLE, true)
         discordButton2Text.value = prefs.getString(KEY_DISCORD_BUTTON_2_TEXT, "").orEmpty()
-        discordButton2Visible.value = prefs.getBoolean(KEY_DISCORD_BUTTON_2_VISIBLE, true)
+        discordButton2Visible.value = prefs.getBoolean(KEY_DISCORD_BUTTON_2_VISIBLE, false)
         discordInfoDismissed.value = prefs.getBoolean(KEY_DISCORD_INFO_DISMISSED, false)
     }
 

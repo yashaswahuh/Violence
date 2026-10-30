@@ -63,7 +63,7 @@ class DiscordRPC(
         button1Text: String = "",
         button1Visible: Boolean = true,
         button2Text: String = "",
-        button2Visible: Boolean = true,
+        button2Visible: Boolean = false,
         activityType: String = "listening",
         activityName: String = "",
         audioQuality: String? = null,
@@ -149,7 +149,7 @@ class DiscordRPC(
         context.getString(R.string.app_name).removeSuffix(" Dev")
 
     companion object {
-        const val PROJECT_URL = "https://github.com/kushagrasinghx/BitChord"
+        const val PROJECT_URL = "https://github.com/yashaswahuh/Violence"
 
         const val DEFAULT_BUTTON_1 = "Listen on YouTube Music"
         const val DEFAULT_BUTTON_2 = "Visit BitChord"
