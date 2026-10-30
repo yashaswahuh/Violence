@@ -213,7 +213,7 @@ object AppUpdateChecker {
             }.isSuccess
             if (opened) return
         }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
         context.startActivity(
             Intent(Intent.ACTION_INSTALL_PACKAGE)
                 .setDataAndType(uri, "application/vnd.android.package-archive")

@@ -47,10 +47,12 @@ Every AI agent starting a new phase in this project **MUST** read and adhere str
 
 ## 6. Development Discipline & Build Verification
 - **Make Small, Atomic Commits:** Group related changes logically (e.g. one commit for string rebranding, one for package renaming). Write clear commit messages.
-- **Always Verify Builds Before Declaring Done:**
-  - If touching Android: run `./gradlew assembleDevDebug` (Windows: `.\gradlew.bat assembleDevDebug`).
-  - If touching TV: run `./gradlew :tv:assembleDevDebug` (Windows: `.\gradlew.bat :tv:assembleDevDebug`).
-  - If touching Web: run `corepack pnpm --dir web build:site`.
-  - If touching Backend: run `go test -v ./...` inside `backend/`.
-  - **Never declare a phase or task complete without successful build/test execution output.**
+- **BUILD TARGET RESTRICTION (STANDING USER DIRECTIVE):**
+  - **ONLY test/build Android Phone (`:app:assembleDevDebug`) and Web (`pnpm --dir web build:site`).**
+  - **DO NOT build or test WearOS or Android TV (`:tv`) under any circumstances, now or in future phases, unless the user explicitly asks to start doing it.**
+- **Build Verification Commands:**
+  - Android APP: run `.\gradlew.bat :app:assembleDevDebug`.
+  - Web: run `pnpm --dir web build:site` (or `corepack pnpm --dir web build:site`).
+  - Backend: run `go test -v ./...` inside `backend/`.
+  - **Never declare a phase or task complete without successful build/test execution output for the allowed targets.**
 - **Preserve Unrelated Documentation & Comments:** Maintain comments that explain subtle bug fixes (such as D8/R8 phi allocation notes or NewPipeExtractor Utils exclusion rules).

@@ -290,7 +290,7 @@ internal suspend fun cacheForSharing(
         // and a file per share would accumulate megabytes nobody ever looks at.
         val file = File(folder, fileName)
         FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     }.getOrNull()
 }
 

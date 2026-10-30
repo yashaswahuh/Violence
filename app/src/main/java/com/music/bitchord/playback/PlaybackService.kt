@@ -8678,7 +8678,7 @@ class PlaybackService : MediaLibraryService() {
         /** Length of a FLAC STREAMINFO block, which the format fixes at 34 bytes. */
         const val STREAM_INFO_BYTES = 34
 
-        const val CHANNEL_ID = "bitchord_playback"
+        const val CHANNEL_ID = "violence_playback"
         const val SESSION_ID = "BitChordPlayback"
 
         /** How often played-seconds are sampled off the player. */
