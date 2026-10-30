@@ -11,12 +11,26 @@
 
 <br/>
 
-[**Features**](#features) · [**Disclaimer**](#disclaimer) · [**Notice**](#notice) · [**License**](#license)
+[**About This Fork**](#about-this-fork) · [**Features**](#features) · [**Disclaimer**](#disclaimer) · [**License**](#license)
 
 </div>
 
-> [!IMPORTANT]
-> Violence is not affiliated with, endorsed by, or connected to YouTube or Google in any way. Use it at your own discretion.
+## About this fork
+
+**Violence** is an unofficial, privately maintained, modified fork of [BitChord](https://github.com/kushagrasinghx/BitChord) by Kushagra Singh.
+
+- **License:** The original BitChord project is licensed under the GNU General Public License v3.0 (GPL-3.0), and this fork stays licensed under the GNU General Public License v3.0 (GPL-3.0).
+- **Modifications:** This project has been modified from the original starting on October 30, 2026.
+- **Affiliation:** This fork is not affiliated with, endorsed by, or supported by the original author (Kushagra Singh).
+
+### Main Changes
+Based on fork documentation and logs (`/fork-docs`):
+- **Rebrand:** Renamed application identity and user-facing assets to Violence across Android, TV, Web, and companion extensions; updated package application IDs, URI schemes (`violence://`), and notification channels.
+- **Author-Hosted Services Disabled or Replaced:** Decoupled and disabled upstream author telemetry and presence pings (`api.bitchord.kushagrasingh.in/api/presence`), upstream update check polling, and donation/promotional links.
+- **New CI:** Configured automated GitHub Actions workflows for Android phone/TV debug builds and GitHub Pages web deployment with SPA routing.
+
+### Third-Party Disclaimer
+Violence is not affiliated with or endorsed by YouTube, Google, Spotify, Last.fm, or Apple. All trademarks, service marks, trade names, and logos belong to their respective owners. Users are solely responsible for complying with the terms of service of any third-party platforms they access through this software. The user interface of Violence is inspired by Apple Music.
 
 ---
 
@@ -70,15 +84,6 @@
 
 </div>
 
----
-
-<div align="center">
-
-<h1><a id="notice"></a>Notice</h1>
-
-Violence is a private modified fork of [BitChord](https://github.com/kushagrasinghx/BitChord) by kushagrasinghx, licensed under the [GNU General Public License v3.0](LICENSE). This fork is maintained for private use among a small group of friends and is not endorsed by or affiliated with the original author or upstream project.
-
-</div>
 
 ---
 
