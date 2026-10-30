@@ -116,7 +116,7 @@ android {
         create("dev") {
             dimension = "env"
             applicationId = "com.yashaswahuh.violencemusic.dev"
-            resValue("string", "app_name", "Violence Dev")
+            resValue("string", "app_name", "Violence")
         }
         create("prod") {
             dimension = "env"

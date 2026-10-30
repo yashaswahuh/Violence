@@ -108,3 +108,4 @@ When final artwork is ready, drop the assets into these exact paths:
 4. **Web Site & Extension Package Build:**
    - Command: `pnpm --dir web build:site`
    - Result: Clean build; produced `violence-extension-chrome (0.4.4).zip`, `violence-extension-firefox (0.4.4).zip`, and `app/dist/`.
+
