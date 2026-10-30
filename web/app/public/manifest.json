@@ -1,14 +1,14 @@
 {
   "name": "Violence",
   "short_name": "Violence",
-  "start_url": "/violence/",
-  "scope": "/violence/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#1f1f1f",
   "theme_color": "#1f1f1f",
   "icons": [
     {
-      "src": "/violence/favicon.svg",
+      "src": "favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }

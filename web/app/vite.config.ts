@@ -15,7 +15,7 @@ function devExtensionId(): string {
 }
 
 export default defineConfig({
-  base: process.env.VITE_BASE_URL || '/violence/',
+  base: process.env.VITE_BASE_URL || '/Violence/',
   plugins: [react(), tailwindcss()],
   define: {
     DEV_EXTENSION_ID: JSON.stringify(devExtensionId()),

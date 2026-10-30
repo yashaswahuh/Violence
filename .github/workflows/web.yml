@@ -41,6 +41,7 @@ jobs:
           cache-dependency-path: web/pnpm-lock.yaml
 
       - name: Configure GitHub Pages
+        id: pages
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
@@ -49,7 +50,7 @@ jobs:
       - name: Build web application and extension
         run: pnpm build:site
         env:
-          VITE_BASE_URL: /violence/
+          VITE_BASE_URL: ${{ steps.pages.outputs.base_path || '/Violence' }}/
           VITE_LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY || '' }}
           VITE_JAM_SERVER_URL: ${{ vars.JAM_SERVER_URL || '' }}
 
@@ -75,4 +76,4 @@ jobs:
           echo "### 🚀 Web App Deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployed Page URL:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Custom URL:** https://yashaswahuh.is-a.dev/violence/" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Custom URL:** https://yashaswahuh.is-a.dev/Violence/" >> $GITHUB_STEP_SUMMARY

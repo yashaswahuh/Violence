@@ -36,7 +36,7 @@ export function parseInvite(value: string): { code: string; serverUrl: string | 
     const code = cleanCode(url.pathname.replace(/^\/+|\/+$/g, '') || url.searchParams.get('code') || '');
     return code ? { code, serverUrl: server } : null;
   }
-  const match = url.pathname.match(/^(?:\/violence)?\/invite\/([A-Za-z0-9]{6})$/);
+  const match = url.pathname.match(/^(?:\/violence)?\/invite\/([A-Za-z0-9]{6})$/i);
   if ((url.protocol === 'https:' || url.protocol === 'http:') && match) return { code: match[1]!.toUpperCase(), serverUrl: server };
   return null;
 }

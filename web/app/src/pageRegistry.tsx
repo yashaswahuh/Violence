@@ -57,7 +57,7 @@ export function pageElement({ load, skeleton }: PageRoute) {
 export function preloadRoute(href: string): void {
   let pathname = href.split(/[?#]/)[0] ?? href;
   const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
-  if (base && pathname.startsWith(base)) {
+  if (base && pathname.toLowerCase().startsWith(base.toLowerCase())) {
     pathname = pathname.slice(base.length) || '/';
   }
   const page = pages.find((p) => matchPath(p.path, pathname));
