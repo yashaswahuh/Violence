@@ -167,6 +167,27 @@ export default function SettingsPage() {
             {present ? <LyricSourcesAccess /> : <span className={settingsUi.value}>Needs the extension</span>}
           </div>
         </section>
+
+        <h2 className={settingsUi.sectionHeader}>About This Fork</h2>
+        <section className={settingsUi.group}>
+          <div className={`${settingsUi.row} flex-col !items-start gap-1`}>
+            <p className="type-body text-primary">
+              Violence is an unofficial, privately maintained, modified fork of{' '}
+              <a
+                href="https://github.com/kushagrasinghx/BitChord"
+                target="_blank"
+                rel="noreferrer"
+                className="text-key underline hover:opacity-80"
+              >
+                BitChord
+              </a>{' '}
+              by Kushagra Singh.
+            </p>
+            <p className="type-callout text-secondary">
+              Licensed under GPL-3.0. Modifications began October 30, 2026. Not affiliated with, endorsed by, or supported by Kushagra Singh, YouTube, Google, Spotify, Last.fm, or Apple. UI inspired by Apple Music.
+            </p>
+          </div>
+        </section>
       </div>
       {lyrics && (
         <Suspense fallback={null}>
