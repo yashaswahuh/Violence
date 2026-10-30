@@ -106,6 +106,17 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 
 ---
 
+## Early CI (pre-Phase 3) [COMPLETED]
+
+- **Status:** **DONE**  
+- **Date:** 2026-10-30  
+- **Branch:** `violence-main`  
+- **Workflows Added / Reconfigured:**
+  - `.github/workflows/web.yml`: Automated GitHub Pages deploy (`pnpm build:site` publishing `web/app/dist` to `github-pages` environment with SPA deep-link routing and subpath support). Phase 6 will further refine the web deploy and custom domain integration.
+  - `.github/workflows/android.yml`: Automated debug build compiling Phone (`:app:assembleDevDebug`) and TV (`:tv:assembleDevDebug`) APKs without touching frozen modules (`-Pbitchord.bundleWear=false`) and uploading artifacts with 30-day retention.
+
+---
+
 ## Phase 3: Module Pruning (Wear OS & Desktop)
 
 - **Primary Goal:** Safely delete `:wearos`, `:desktopApp`, and `:desktopUi` along with all unused dependencies, shrinking project complexity and build times while preserving `/native/analyzer`.
