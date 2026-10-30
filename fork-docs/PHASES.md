@@ -38,23 +38,40 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 
 ---
 
-## Phase 1: Repository Hygiene, Upstream Remote & Author Decoupling
+## Phase 1: Repository Hygiene, Upstream Remote & Author Decoupling [COMPLETED]
 
-- **Primary Goal:** Establish upstream tracking, fast-forward branch, and completely eradicate hardcoded links to the original author's servers, analytics, domains, and donation accounts.
+- **Status:** **DONE**  
+- **Completion Date:** 2026-10-30  
+- **Branch:** `violence-main`  
+- **Commits:**
+  - `9381955`: chore: harden .gitignore and establish fork-docs documentation
+  - `fce6c69`: feat: disable open-app presence telemetry pings
+  - `010b9d2`: feat: cleanly disable author in-app update checker
+  - `742832e`: chore: remove author promotional and donation links from README and settings
+  - `9328228`: chore: disable default promotional button in Discord rich presence
+  - `a0b928f`: chore: suppress author release download links on web target
+- **Primary Goal:** Establish upstream tracking, gitignore hardening, and clean decoupling of author telemetry, analytics, update checks, and donation prompts, while keeping all music playback, search, and party/jam services operational.
+- **Differences from Initial Phase 1 Specification:**
+  - Retained party/jam networking (`bitchord-listen-together.onrender.com` / `api.bitchord.kushagrasingh.in`) untouched as **REPLACE-LATER** (to be replaced in Phase 5 by Firebase) as requested in Phase 1 directives, rather than clearing server defaults now.
+  - Branching targeted dedicated development branch `violence-main`.
+  - Upstream push disabled with `git remote set-url --push upstream DISABLED`.
+  - Added complete classification catalog in `/fork-docs/ALLOWED_EXTERNAL_SERVICES.md` and decoupling actions in `/fork-docs/DECOUPLING_LOG.md`.
 - **Files Touched:**
-  - Git configuration: Add `upstream` remote (`https://github.com/kushagrasinghx/BitChord.git`), fast-forward `main` with `origin/main`.
-  - `shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/presence/Presence.kt`: Nullify or redirect `ENDPOINT`.
-  - `app/build.gradle.kts` & `tv/build.gradle.kts`: Remove `https://bitchord-listen-together.onrender.com` default.
-  - `app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt`: Remove author links (lines 1569–1585).
-  - `README.md`: Strip Ko-fi, PayPal, Trendshift, FMHY, and live stats badge.
-  - Delete files: `/upi_support.jpg`, `.github/FUNDING.yml`, `.github/workflows/deploy-backend.yml`, `.github/workflows/close-issue.yml`.
-- **Definition of Done:**
-  - `git remote -v` shows both `origin` and read-only `upstream`.
-  - Zero outgoing network calls to `bitchord.kushagrasingh.in` or author personal endpoints remain in active code.
-  - Working tree is clean and compiles.
-- **Verification:**
-  - Run `git grep -i "kushagrasingh.in"` across project to confirm zero production references remain.
-  - Run `./gradlew assembleDevDebug` to confirm build integrity.
+  - `.gitignore`: Hardened with `google-services.json`, `*/google-services.json`, `.env`, `.env.*`, and `*service-account*.json`.
+  - `shared/.../Presence.kt`: Set `ENDPOINT = ""` and inserted early-return no-op guards.
+  - `app/.../AndroidPresence.kt` & `desktopApp/.../DesktopPresence.kt`: Made `install()` a clean no-op.
+  - `app/.../AppUpdateChecker.kt` & `desktopApp/.../DesktopUpdateChecker.kt`: Set `LATEST_RELEASE_URL = ""` with early returns.
+  - `app/.../SettingsSheet.kt` & `desktopApp/.../DesktopApp.kt`: Stripped promotional developer/Discord/website links.
+  - `README.md`: Stripped live stats badge, Trendshift/FMHY badges, and `# Support` donation section.
+  - Deleted files: `upi_support.jpg`, `.github/FUNDING.yml`, `.github/workflows/deploy-backend.yml`, `.github/workflows/close-issue.yml`.
+  - Discord RPC: Set default `button2Visible` to `false` across Android, Desktop, and Web.
+  - Web config: Suppressed author release APK download button when unconfigured.
+  - `gradle.properties`: Added compileSdk 37.0 suppression to silence AGP warning.
+- **Definition of Done Achieved:**
+  - `git remote -v` shows `origin` (`https://github.com/yashaswahuh/Violence.git`) and read-only `upstream` (`DISABLED` push).
+  - Zero outgoing network calls to author telemetry or update endpoints.
+  - Clean compilation and build verification across Android Phone (`:app:assembleDevDebug`), Android TV (`:tv:assembleDevDebug`), and Web (`build:site`).
+  - Unit tests verified (`:shared:jvmTest` passing, 1072 of 1074 unit tests passing with only pre-existing upstream Chinese strings failing).
 
 ---
 
