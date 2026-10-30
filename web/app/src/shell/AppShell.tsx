@@ -47,9 +47,11 @@ export function AppShell() {
         title="BitChord is better in the app."
         detail="Phone browsers can’t run the BitChord extension. The Android app has everything."
         action={
-          <a className={bannerButtonClass} href={config.androidAppUrl} target="_blank" rel="noreferrer">
-            Get the App
-          </a>
+          config.androidAppUrl ? (
+            <a className={bannerButtonClass} href={config.androidAppUrl} target="_blank" rel="noreferrer">
+              Get the App
+            </a>
+          ) : undefined
         }
       />
     );

@@ -177,10 +177,12 @@ export function Sidebar() {
           </PrefetchNavLink>
           <AccountButton />
           <div className="flex items-center justify-between">
-            <a className="inline-flex items-center gap-1 ps-1 type-callout text-primary hover:underline" href={config.androidAppUrl} target="_blank" rel="noreferrer">
-              <span>Get the Android app</span>
-              <ArrowUpRight size={14} strokeWidth={2} />
-            </a>
+            {config.androidAppUrl ? (
+              <a className="inline-flex items-center gap-1 ps-1 type-callout text-primary hover:underline" href={config.androidAppUrl} target="_blank" rel="noreferrer">
+                <span>Get the Android app</span>
+                <ArrowUpRight size={14} strokeWidth={2} />
+              </a>
+            ) : <span />}
             <PrefetchNavLink to="/settings" className="grid size-7 place-items-center rounded-nav text-secondary hover:bg-quinary hover:text-primary aria-[current=page]:bg-quinary aria-[current=page]:text-primary" aria-label="Settings" title="Settings" onClick={close}>
               <Settings size={17} strokeWidth={1.9} />
             </PrefetchNavLink>
