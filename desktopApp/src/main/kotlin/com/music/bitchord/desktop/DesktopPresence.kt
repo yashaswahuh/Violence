@@ -18,13 +18,7 @@ internal object DesktopPresence {
     private val preferences = Preferences.userRoot().node("com.music.bitchord.desktop")
 
     fun install() {
-        val presence = Presence(PresencePlatform.Pc, installId())
-        CoroutineScope(Dispatchers.Default).launch {
-            DesktopWindowVisibility.visible.collect(presence::setOpen)
-        }
-        // Covers both the window's close and the tray's Quit (exitProcess), so the
-        // count drops now rather than when the server's window runs out.
-        Runtime.getRuntime().addShutdownHook(Thread(presence::closeBlocking, "bitchord-presence-close"))
+        // Disabled in Violence fork: no open-app presence telemetry pings.
     }
 
     /** Random and local to this install: not the machine, and not the account. */
