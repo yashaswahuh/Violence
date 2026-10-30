@@ -56,3 +56,4 @@ Every AI agent starting a new phase in this project **MUST** read and adhere str
   - Backend: run `go test -v ./...` inside `backend/`.
   - **Never declare a phase or task complete without successful build/test execution output for the allowed targets.**
 - **Preserve Unrelated Documentation & Comments:** Maintain comments that explain subtle bug fixes (such as D8/R8 phi allocation notes or NewPipeExtractor Utils exclusion rules).
+- Always commit and push directly to main after every change.
