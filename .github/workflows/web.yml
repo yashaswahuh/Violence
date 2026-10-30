@@ -2,7 +2,7 @@ name: Web Deploy
 
 on:
   push:
-    branches: [violence-main]
+    branches: [violence-main, main]
     paths:
       - 'web/**'
       - '.github/workflows/web.yml'

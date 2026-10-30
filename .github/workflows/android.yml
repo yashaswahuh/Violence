@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: [violence-main]
+    branches: [violence-main, main]
     paths:
       - 'app/**'
       - 'tv/**'
@@ -14,14 +14,6 @@ on:
       - 'settings.gradle.kts'
       - 'gradle.properties'
       - '.github/workflows/android.yml'
-    paths-ignore:
-      - 'fork-docs/**'
-      - 'docs/**'
-      - 'web/**'
-      - 'desktopApp/**'
-      - 'desktopUi/**'
-      - 'wearos/**'
-      - '*.md'
   workflow_dispatch:
 
 permissions:
