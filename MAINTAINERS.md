@@ -1,10 +1,12 @@
 # Maintainers
 
-This document lists the maintainers responsible for BitChord.
+This document lists the maintainers responsible for Violence (private fork of BitChord).
 
 | Maintainer | GitHub | Responsibilities |
 |---|---|---|
-| Kushagra Singh | [@kushagrasinghx](https://github.com/kushagrasinghx) | Project creator, core architecture, release management, and PR reviews |
+| Yashaswa | [@yashaswahuh](https://github.com/yashaswahuh) | Private fork maintainer |
+
+Original BitChord project creator and upstream maintainer: Kushagra Singh ([@kushagrasinghx](https://github.com/kushagrasinghx)).
 
 ## Responsibilities
 
@@ -12,8 +14,4 @@ Maintainers oversee project direction, repository maintenance, review and mergin
 
 ## Contributors
 
-This list is automatically generated from GitHub repository contributor data.
-
-<!-- BEGIN CONTRIBUTORS -->
 - [@yashaswahuh](https://github.com/yashaswahuh)
-<!-- END CONTRIBUTORS -->

@@ -75,23 +75,34 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 
 ---
 
-## Phase 2: Visual Identity, Strings & Rebranding
+## Phase 2: Visual Identity, Strings & Rebranding [COMPLETED]
 
-- **Primary Goal:** Rebrand the application from "BitChord" to a new personal name (e.g. "Harmony", "Resonance", or chosen name). Update application IDs so fork installs independently.
+- **Status:** **DONE**  
+- **Completion Date:** 2026-10-30  
+- **Branch:** `violence-main`  
+- **Commits:**
+  - `f7a0813`: `feat(rebrand): update application IDs, schemes, authorities, manifests, and build config`
+  - `a21d8c2`: `feat(rebrand): replace BitChord branding and visual assets with Violence placeholder artwork`
+  - `35f55ee`: `feat(rebrand): update user-visible strings, labels, and service identifiers across Android and Web`
+  - Upcoming: `docs(rebrand): update README with GPL notice, update documentation and REBRAND_LOG`
+- **Primary Goal:** Rebrand every user-visible and identifier-level occurrence of BitChord to "Violence", without breaking the build and without removing Wear OS or desktop modules yet.
+- **Differences from Initial Phase 2 Specification:**
+  - **Internal Package Renaming:** Kept internal Kotlin packages (`com.music.bitchord`) and only changed `applicationId` (`com.yashaswahuh.violencemusic`), dev flavors, and resource IDs. This prevented `UnsatisfiedLinkError` issues with native JNI C++ methods (`DsdBlockDecoder.cpp`, `TrackFeatures.cpp`) and avoided touching 800+ files before Phase 3 module pruning.
+  - **Build/Test Targets:** Per user standing directive, testing and builds were strictly limited to Android App (`:app:assembleDevDebug`) and Web (`pnpm --dir web build:site`). No Wear OS or Android TV builds/tests were run.
+  - **Locale String Completeness:** Added 7 missing string keys in Chinese locales (`values-zh`, `values-zh-rTW`) that were missing upstream, allowing `LocaleStringsTest` to achieve 100% pass rate.
+  - **GPL Compliance:** Retained `LICENSE` and original copyright headers; added NOTICE in `README.md` acknowledging upstream BitChord by kushagrasinghx under GPL-3.0.
 - **Files Touched:**
-  - `app/build.gradle.kts`: Rename `applicationId` to `com.music.<forkname>` and `namespace`.
-  - `tv/build.gradle.kts`: Rename `applicationId` to `com.music.<forkname>.tv` and `namespace`.
-  - `app/src/main/res/values/strings.xml` & all `values-*/strings.xml`: Rename `app_name` and "BitChord" text across all language resource catalogs.
-  - `app/src/main/res/drawable/ic_launcher_*.xml` & `mipmap-*/`: Replace app launcher icons and status bar logo (`ic_notification_logo.xml`).
-  - `tv/src/main/res/drawable/tv_banner.png`: Replace Android TV launcher banner.
-  - `web/app/public/favicon.svg` & `index.html`: Update web icon and title.
-  - Manifests: Update URI scheme from `bitchord://` to `<forkname>://`.
-- **Definition of Done:**
-  - Application installs under new package name without replacing original BitChord APK.
-  - New launcher icon, banner, and strings appear consistently across Phone, TV, and Web.
-- **Verification:**
-  - Build dev APKs: `./gradlew assembleDevDebug :tv:assembleDevDebug`.
-  - Inspect output APK manifests via `aapt dump badging` or APK analyzer to confirm package ID and app label.
+  - `app/build.gradle.kts` & `tv/build.gradle.kts`: `applicationId` to `com.yashaswahuh.violencemusic`, `app_name` to `Violence` / `Violence TV`, `UPDATE_APK_PREFIX` to `Violence-`.
+  - Manifests: FileProvider authority `${applicationId}.provider`, deep link scheme `violence://`, host `yashaswahuh.is-a.dev`.
+  - `JamInviteLink.kt`, `invite.ts`, `backend/main.go`: Scheme `violence://`, origin `https://yashaswahuh.is-a.dev/violence`.
+  - Assets: `ic_launcher_foreground.xml`, `ic_launcher_background.xml`, `ic_notification_logo.xml`, `tv_banner.png`, `favicon.svg`, `Logo.svg`, `LogoTransparent.svg`, `Logo.png`, `Banner.png`, extension icons.
+  - Strings: 19 locale `strings.xml` files updated, Discord RPC, ListenBrainz, Last.fm scrobbling, web UI pages.
+  - Documentation: Created `fork-docs/REBRAND_LOG.md`, updated `README.md`, `MAINTAINERS.md`, `AGENT_RULES.md`, `PHASES.md`.
+- **Definition of Done Achieved:**
+  - Phone app label "Violence", TV app label "Violence TV".
+  - Application ID `com.yashaswahuh.violencemusic` installs independently of BitChord.
+  - Clean build for `:app:assembleDevDebug` and `pnpm --dir web build:site`.
+  - All unit tests passing: 1,074 Android unit tests (`:app:testDevDebugUnitTest`) and 119 web unit tests (`pnpm --dir web test`).
 
 ---
 
