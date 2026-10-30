@@ -1,0 +1,193 @@
+# Project Roadmap & Implementation Phases
+
+**Audit Date:** 2026-10-29  
+**Execution Model:** Phased implementation. Each phase is scoped to be executed independently in a fresh AI chat session.  
+**Strict Rule:** Every phase must end with working, verifiable code. No phase may leave the repository in a broken build state.
+
+---
+
+## Phase Summary Overview
+
+```
+Phase 0 (Current) ──► Phase 1: Repo Hygiene & Author Decoupling
+                   │
+                   ▼
+Phase 2: Complete Rebrand & Visual Identity
+                   │
+                   ▼
+Phase 3: Module Pruning (Wear OS & Desktop)
+                   │
+                   ▼
+Phase 4: Free Backend Deployment & Jam Binding
+                   │
+                   ▼
+Phase 5: Jam Resilience & Protocol Hardening
+                   │
+                   ▼
+Phase 6: Static Web & Extension Deployment (Cloudflare Pages)
+                   │
+                   ▼
+Phase 7: Android TV Target Verification & Remote Polish
+                   │
+                   ▼
+Phase 8: APK Update Distribution (GitHub Releases)
+                   │
+                   ▼
+Phase 9: Production Signing, Release Automation & End-to-End Audit
+```
+
+---
+
+## Phase 1: Repository Hygiene, Upstream Remote & Author Decoupling
+
+- **Primary Goal:** Establish upstream tracking, fast-forward branch, and completely eradicate hardcoded links to the original author's servers, analytics, domains, and donation accounts.
+- **Files Touched:**
+  - Git configuration: Add `upstream` remote (`https://github.com/kushagrasinghx/BitChord.git`), fast-forward `main` with `origin/main`.
+  - `shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/presence/Presence.kt`: Nullify or redirect `ENDPOINT`.
+  - `app/build.gradle.kts` & `tv/build.gradle.kts`: Remove `https://bitchord-listen-together.onrender.com` default.
+  - `app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt`: Remove author links (lines 1569–1585).
+  - `README.md`: Strip Ko-fi, PayPal, Trendshift, FMHY, and live stats badge.
+  - Delete files: `/upi_support.jpg`, `.github/FUNDING.yml`, `.github/workflows/deploy-backend.yml`, `.github/workflows/close-issue.yml`.
+- **Definition of Done:**
+  - `git remote -v` shows both `origin` and read-only `upstream`.
+  - Zero outgoing network calls to `bitchord.kushagrasingh.in` or author personal endpoints remain in active code.
+  - Working tree is clean and compiles.
+- **Verification:**
+  - Run `git grep -i "kushagrasingh.in"` across project to confirm zero production references remain.
+  - Run `./gradlew assembleDevDebug` to confirm build integrity.
+
+---
+
+## Phase 2: Visual Identity, Strings & Rebranding
+
+- **Primary Goal:** Rebrand the application from "BitChord" to a new personal name (e.g. "Harmony", "Resonance", or chosen name). Update application IDs so fork installs independently.
+- **Files Touched:**
+  - `app/build.gradle.kts`: Rename `applicationId` to `com.music.<forkname>` and `namespace`.
+  - `tv/build.gradle.kts`: Rename `applicationId` to `com.music.<forkname>.tv` and `namespace`.
+  - `app/src/main/res/values/strings.xml` & all `values-*/strings.xml`: Rename `app_name` and "BitChord" text across all language resource catalogs.
+  - `app/src/main/res/drawable/ic_launcher_*.xml` & `mipmap-*/`: Replace app launcher icons and status bar logo (`ic_notification_logo.xml`).
+  - `tv/src/main/res/drawable/tv_banner.png`: Replace Android TV launcher banner.
+  - `web/app/public/favicon.svg` & `index.html`: Update web icon and title.
+  - Manifests: Update URI scheme from `bitchord://` to `<forkname>://`.
+- **Definition of Done:**
+  - Application installs under new package name without replacing original BitChord APK.
+  - New launcher icon, banner, and strings appear consistently across Phone, TV, and Web.
+- **Verification:**
+  - Build dev APKs: `./gradlew assembleDevDebug :tv:assembleDevDebug`.
+  - Inspect output APK manifests via `aapt dump badging` or APK analyzer to confirm package ID and app label.
+
+---
+
+## Phase 3: Module Pruning (Wear OS & Desktop)
+
+- **Primary Goal:** Safely delete `:wearos`, `:desktopApp`, and `:desktopUi` along with all unused dependencies, shrinking project complexity and build times while preserving `/native/analyzer`.
+- **Files Touched:**
+  - `app/build.gradle.kts`: Delete Wear OS dependencies (`libadb-android`, `play-services-wearable`), delete `BundleWearApk` task, remove `../wearos/protocol` sourceSet.
+  - `app/src/main/java/com/music/bitchord/wear/`: Delete `WatchInstaller.kt` and `WearBridge.kt`.
+  - `tv/src/main/java/com/music/bitchord/wear/`: Delete stub files.
+  - `sharedUi/build.gradle.kts`: Remove `ui-desktop` and `CMP_DESKTOP`.
+  - `settings.gradle.kts`: Remove `:wearos`, `:desktopApp`, `:desktopUi`.
+  - CI workflows: Remove desktop jobs in `.github/workflows/check.yml` and `.github/workflows/release.yml`.
+  - File deletions: Delete directories `/wearos`, `/desktopApp`, `/desktopUi`, `/DESKTOP.md`, `/docs/DESKTOP_RELEASES.md`.
+- **Definition of Done:**
+  - Repository contains only `:app`, `:tv`, `:shared`, `:sharedUi`, `/native`, `/backend`, and `/web`.
+  - Phone and TV APK sizes reduced by ~5 MB.
+- **Verification:**
+  - Run `./gradlew assembleDevDebug` (Phone).
+  - Run `./gradlew :tv:assembleDevDebug` (TV).
+  - Run `corepack pnpm --dir web -r typecheck` (Web).
+  - Confirm all three targets compile cleanly.
+
+---
+
+## Phase 4: Free Backend Deployment & Jam Server Binding
+
+- **Primary Goal:** Deploy the Go backend to Render Free tier (or set up Firebase RTDB), configure automated free keepalive pings to prevent spin-down, and wire client defaults to the new backend.
+- **Files Touched:**
+  - `backend/render.yaml` or Render dashboard deployment configuration.
+  - Optional: Set up free uptime monitor (cron-job.org or GitHub Actions cron) pinging `/healthz` every 12 minutes.
+  - `app/build.gradle.kts` & `tv/build.gradle.kts`: Set `LISTEN_TOGETHER_SERVER` default to the new live Render URL.
+  - `web/app/src/party/listenTogether.ts`: Update default server URL.
+- **Definition of Done:**
+  - Backend is live over HTTPS with valid SSL certificate.
+  - `curl https://<backend>/healthz` returns `{"ok": true, ...}`.
+  - Android client and web client successfully create and join room codes.
+- **Verification:**
+  - Run `go test -v ./...` inside `backend/`.
+  - Open app, create a party room, verify 6-character code is minted by new backend.
+
+---
+
+## Phase 5: Jam Feature Resilience & Stalled-Track Isolation
+
+- **Primary Goal:** Enhance the Jam client synchronization layer to handle edge cases where a track is unavailable or region-restricted on one device without disrupting other listeners.
+- **Files Touched:**
+  - `app/src/main/java/com/music/bitchord/playback/PartySync.kt`: Add error trapping for ExoPlayer failures during Jam playback to prevent outgoing pause frames.
+  - `app/src/main/java/com/music/bitchord/data/listentogether/ListenTogether.kt`: Implement `playbackStalled` state and auto-resume on track advance.
+  - `app/src/main/java/com/music/bitchord/data/listentogether/JamInviteLink.kt`: Update deep link parsing for new domain.
+  - `shared/src/commonTest/kotlin/.../JamInviteTest.kt`: Update unit tests.
+- **Definition of Done:**
+  - When one device experiences a playback error on track $N$, it mutes locally and waits; when track $N+1$ begins, it automatically re-syncs and plays.
+- **Verification:**
+  - Run unit tests: `./gradlew testDevDebugUnitTest --tests "*Jam*"`.
+
+---
+
+## Phase 6: Web Target Static Deployment & Browser Extension
+
+- **Primary Goal:** Build and deploy the web player statically to Cloudflare Pages (or GitHub Pages) and package the companion browser extension.
+- **Files Touched:**
+  - `web/extension/wxt.config.ts`: Set `BITCHORD_SITE_ORIGINS` to the Cloudflare Pages URL.
+  - `web/app/.env.production`: Set release APK and backend server links.
+  - Deploy script / Cloudflare Pages integration: `pnpm build:site`.
+- **Definition of Done:**
+  - Web player loads cleanly over HTTPS on Cloudflare Pages.
+  - Browser extension zips are downloadable directly from `<site>/downloads/`.
+  - Loading unpacked extension enables YouTube Music audio streaming in the browser.
+- **Verification:**
+  - Run `corepack pnpm --dir web build:site`.
+  - Verify static output in `web/app/dist` (including `downloads/extension.json`).
+
+---
+
+## Phase 7: Android TV Target Optimization & Polish
+
+- **Primary Goal:** Verify all TV-specific features on an Android TV device or emulator.
+- **Files Touched:**
+  - `tv/src/main/java/com/music/bitchord/ui/tv/auth/TvAuthServer.kt`: Ensure QR code auth works with rebranded app.
+  - `tv/src/main/java/com/music/bitchord/ui/tv/dialogs/TvDialogs.kt`: Clean attribution strings in `TvAboutDialog`.
+  - `tv/src/main/java/com/music/bitchord/ui/tv/screens/TvNowPlayingScreen.kt`: Validate D-pad focus in Jam mode.
+- **Definition of Done:**
+  - Android TV APK installs and renders properly on a 1080p/4K Leanback display.
+  - Remote control d-pad navigation and QR-code login function without crash.
+- **Verification:**
+  - Run `./gradlew :tv:assembleDevDebug`.
+  - Install and launch on Android TV emulator or physical TV.
+
+---
+
+## Phase 8: In-App Self-Updating via GitHub Releases
+
+- **Primary Goal:** Reconfigure the sideloaded APK update mechanism to check the user's private/personal GitHub releases.
+- **Files Touched:**
+  - `app/src/main/java/com/music/bitchord/data/AppUpdateChecker.kt`:
+    Update `LATEST_RELEASE_URL` to `https://api.github.com/repos/<owner>/<repo>/releases/latest`.
+  - `tv/src/main/java/com/music/bitchord/data/TvStartup.kt`: Verify TV update checker uses same endpoint with TV prefix.
+- **Definition of Done:**
+  - When a new GitHub release tag is published with signed APKs, the app detects it on startup, prompts the user, downloads the APK, and prompts installation.
+- **Verification:**
+  - Mock or publish a draft release tag and verify update dialog appears in app.
+
+---
+
+## Phase 9: Release Keystore Setup & Automated GitHub Actions
+
+- **Primary Goal:** Generate a private release keystore, configure CI workflow to sign release APKs on tag push, and perform full end-to-end audit.
+- **Files Touched:**
+  - Generate `fork-release.jks` (local only, gitignored).
+  - Update `keystore.properties.example` with instructions.
+  - `.github/workflows/android.yml`: Set up automated signing using GitHub Secrets (`KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD`).
+  - `.github/workflows/tv.yml`: Add signed release build job for TV.
+- **Definition of Done:**
+  - Tagging `v1.0.0` in git automatically triggers GitHub Actions, compiles signed Phone and TV APKs, and publishes them as assets on GitHub Releases.
+  - Final signed APK installed and verified on personal devices.

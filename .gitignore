@@ -36,6 +36,15 @@ keystore.properties
 *.jks
 *.keystore
 
+# Secrets, environment variables, credentials, and service accounts
+google-services.json
+*/google-services.json
+.env
+.env.*
+!.env.example
+*service-account*.json
+*service_account*.json
+
 # Project scratch / debug artifacts
 .shots/
 .tmp_verify/
