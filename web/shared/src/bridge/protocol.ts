@@ -10,10 +10,10 @@
 export const BRIDGE_PROTOCOL = 1;
 
 /** Tags every window message so the relay ignores everything else on the page. */
-export const BRIDGE_CHANNEL = 'bitchord-bridge';
+export const BRIDGE_CHANNEL = 'violence-bridge';
 
 /** The long-lived port the extension pushes `BridgeEvent`s on. */
-export const EVENTS_PORT = 'bitchord-events';
+export const EVENTS_PORT = 'violence-events';
 
 /** What the installed extension can do; `ping` reports it. */
 export type Capability = 'yt' | 'yt.auth' | 'yt.stats' | 'addon' | 'lyrics' | 'spotify' | 'discord';
