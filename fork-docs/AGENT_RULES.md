@@ -1,4 +1,4 @@
-# Rules for Future AI Agents & Contributors
+![alt text](image.png)# Rules for Future AI Agents & Contributors
 
 **Applies to:** All future coding phases, sessions, and automated tasks in this repository.  
 **Location:** `/fork-docs/AGENT_RULES.md`

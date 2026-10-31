@@ -109,3 +109,14 @@ When final artwork is ready, drop the assets into these exact paths:
    - Command: `pnpm --dir web build:site`
    - Result: Clean build; produced `violence-extension-chrome (0.4.4).zip`, `violence-extension-firefox (0.4.4).zip`, and `app/dist/`.
 
+
+
+---
+
+## 6. Desktop App Rebrand (Phase 3)
+
+- **Packaging Metadata:** `packageName = "Violence"`, `bundleID = "com.yashaswahuh.violencemusic.desktop"`, `dockName = "Violence"`, `menuGroup = "Violence"`, fresh `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"`.
+- **UI & Window Title:** Set window title and Win32 frame lookup to `"Violence"`, updated tray tooltips, About text, license text, dialogs, and 51 localized desktop string XML catalogs without touching resource identifiers.
+- **Folders & Cache:** Rebranded download store (`Music/Violence`), media cache (`.cache/violence/media`), log directory (`.local/state/violence`), analysis cache (`.local/share/violence/analysis`), and web sign-in temp directory (`violence-sign-in-`).
+- **Branding Assets:** Generated `AppIcon.ico` (multi-res 16-256px), `AppIcon.png` (512px), and `AppIcon.icns` from `Logo.png`.
+- **Integrations & RPC:** Rebranded MPRIS bus/identity (`org.mpris.MediaPlayer2.violence`), Discord RPC presence activity name & buttons, ListenBrainz submission client (`Violence`), while preserving Discord application ID.

@@ -127,7 +127,7 @@ internal object DesktopWebSignIn {
         private fun load() {
             discard()
             DesktopWebCookies.reset()
-            val folder = Files.createTempDirectory("bitchord-sign-in-").also { storage = it }
+            val folder = Files.createTempDirectory("violence-sign-in-").also { storage = it }
             val next = WebView().also { view = it }
             val engine = next.engine
             engine.userDataDirectory = folder.toFile()
