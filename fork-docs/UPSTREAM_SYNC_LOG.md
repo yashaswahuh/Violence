@@ -48,8 +48,7 @@ Nothing new needing a decision: no analytics/telemetry/updater/donation code bes
 YT Music and Spotify login code (`auth/`, `data/canvas/SpotifyToken.kt`, `Innertube.kt`) is not in the upstream diff conflicts; compiled and unit-tested unchanged. No new code logs or sends session data elsewhere (checked added lines for new hosts). Interactive login not tested.
 
 ### Launcher icons
-`LauncherDefault` is the only `android:enabled="true"` alias; 23 aliases now. Our 12 Violence glass icons are intact. Upstream's 10 new icons (`LauncherMonochrome`, `LauncherNeon{Silver,Cyan,Violet}`, `LauncherSamsungNeon*`, `LauncherPixelNeon*`) are BitChord artwork (not inspected visually, UNCLEAR) and appear in the icon picker. Replace or hide them if unwanted.
-
+`LauncherDefault` is the only `android:enabled="true"` alias; 23 aliases now. Our 12 Violence glass icons are intact. Upstream's 10 new icons (`LauncherMonochrome`, `LauncherNeon{Silver,Cyan,Violet}`, `LauncherSamsungNeon*`, `LauncherPixelNeon*`) arrived with BitChord's three-bar mark. **Converted to Violence after the merge:** the three-bar mark was replaced with the Violence "V" (same glyph as the glass icons) in all 10 foregrounds x 5 densities (50 PNGs, same file names and pixel sizes). Tile shape, black body, coloured glow rim (silver/cyan/violet), Samsung squircle and Pixel circle shapes are untouched; the V uses the old bars' own highlight/shadow colours plus a soft glow, and the Monochrome icon keeps its dark glossy style with the soft drop shadow. The themed (monochrome-layer) icon for the Neon set was already the Violence V (`ic_glass_monochrome`). Generator script is not committed; the PNGs are the source of truth.
 ### Verification (explicit tasks, JDK 17.0.20, SDK platform 37.0 + 36, NDK 27, CMake 3.22.1)
 | Check | Result |
 |---|---|
@@ -69,6 +68,6 @@ Not built or tested (by rule): wearos, desktopApp, desktopUi.
 Installed: Temurin JDK 17 (`C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`), Android cmdline-tools, CMake 3.22.1, platform 36. Platform `android-37.0` builds fine with this AGP. In PowerShell, quote `'-Pbitchord.bundleWear=false'`. Web scripts need `pnpm` on PATH (corepack shim). Downloads from dl.google.com need `curl.exe -4`.
 
 ### UNCLEAR / owner follow-ups
-- Neon/Monochrome icon artwork; whether to keep them.
+- Neon/Monochrome icons are now Violence-branded (V); review them on a device.
 - Desktop compile state against v1.9 shared code.
 - Pre-existing, untouched: TV manifest still uses old `bitchord` scheme/host; `shared JamInvite.ORIGIN` still the author's domain; `/violence` vs `/Violence` casing in invite code (see PROJECT_STATE s.9 D1-D3).
