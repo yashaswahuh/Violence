@@ -73,7 +73,7 @@ Verified disabled: presence pings, author update checker, donation links/files, 
 ## 9. Discrepancies between docs and reality
 - **D1 (bug):** `tv/src/main/AndroidManifest.xml:246-257` still has host `bitchord.kushagrasingh.in` and scheme `bitchord`. REBRAND_LOG claims `:tv` was rebranded to `violence://`. TV invite links will not open the TV app. Comments there also still say BitChord.
 - **D2 (bug):** `shared/.../listentogether/JamInvite.kt:12` `ORIGIN` is still `https://bitchord.kushagrasingh.in`, while `JamInviteLink.kt` uses `https://yashaswahuh.is-a.dev/violence`. The two disagree on the invite format; `JamInvite` is also tested in `JamInviteTest`.
-- **D3:** Web path casing: `vite.config.ts` base and `web.yml` use `/Violence/`; docs, `JamInviteLink.ORIGIN`, the manifest `pathPattern` (`/violence/invite/...`) and `web/app/src/party/invite.ts` use `/violence/`. GitHub Pages is case sensitive, so the intended URL `https://yashaswahuh.is-a.dev/violence/` may 404 if the repo path is `/Violence/`. Which one is live: **UNCLEAR**.
+- **D3:** Web path casing: `vite.config.ts` base and `web.yml` use `/Violence/`; docs, `JamInviteLink.ORIGIN`, the manifest `pathPattern` (`/violence/invite/...`) and `web/app/src/party/invite.ts` use `/violence/`. GitHub Pages is case sensitive. **Owner confirmed: the live URL is `https://yashaswahuh.is-a.dev/Violence` and `yashaswahuh.is-a.dev` is the Pages custom domain.** So `vite.config.ts` and `web.yml` are right, while `JamInviteLink.ORIGIN`, the manifest `pathPattern` `/violence/invite/...` and `invite.ts` use the wrong casing (not changed; owner said to change nothing else).
 - **D4:** `backend/` still carries upstream branding: Go module `github.com/KabirSinghBhatia/BitChord/backend`, `backend/README.md`, `deploy/*` (Oracle domains, author's repo clone URL, `bitchord.in` origins), `render.yaml` service name `bitchord-listen-together`, and the invite HTML page's "Download" link to the author's releases (`main.go:752`). The healthz `service` is `violence-listen-together` but the Jam client test still expects `bitchord-listen-together` (whether the client checks this: **UNCLEAR**).
 - **D5:** `AGENT_RULES.md` says Wear OS and Desktop are "pruned" and tells agents to "commit and push directly to main" and never build TV. Reality: they are present (dormant), the branch rule is now `violence-nk`, and TV is ACTIVE. PHASES.md Phase 3 still plans deleting Wear/Desktop, which contradicts the "dormant, kept intact" decision. Do not run Phase 3 as written. Phase 3 in PHASES.md (prune) vs "Phase 3" in REBRAND_LOG (desktop rebrand) have clashing numbers.
 - **D6:** PHASES.md Phase 1 claims TV was built and passed, while AGENT_RULES forbids TV builds. TV build status: **UNCLEAR**.
@@ -111,7 +111,7 @@ Task paths (from build files and CI): phone `:app:assembleDevDebug`; TV `:tv:ass
 8. The owner's Windows machine cannot currently build Android (see 12).
 
 ## 14. Open questions for the owner
-1. Is the live web URL `/violence/` or `/Violence/`, and is `yashaswahuh.is-a.dev` verified as the Pages custom domain?
+1. ~~Live web URL~~ Answered: `https://yashaswahuh.is-a.dev/Violence`, custom domain confirmed.
 2. Install JDK 17, SDK 37, NDK and CMake (or use Android Studio's JBR) so baseline builds can run?
 3. Fix D1/D2 (TV manifest, `JamInvite.ORIGIN`) as a small Phase 2 follow-up?
 4. Phase 3 (pruning) conflicts with "dormant, kept intact". Should PHASES.md be rewritten to drop it? Should the desktop-only workflows (`check.yml`, `release.yml`) be disabled?

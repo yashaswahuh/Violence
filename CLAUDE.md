@@ -13,7 +13,7 @@ Read this first. Full verified state: `fork-docs/PROJECT_STATE.md`. Roadmap: `fo
 - Keep the original's playback APIs and services, even ones the author hosts, and the in-app YT Music and Spotify web logins (WebView session cookies/tokens captured and used locally).
 - Disabled: live listener stats, open-app presence pings, analytics, crash reporting, the author's update checker, donation prompts.
 - Jam (shared listening) will be re-pointed to a self-hosted copy of the Go backend in `/backend` on a free host. Firebase RTDB is only a documented fallback.
-- Web is hosted on GitHub Pages at https://yashaswahuh.is-a.dev/violence/ and needs the browser extension (`web/extension`).
+- Web is hosted on GitHub Pages at https://yashaswahuh.is-a.dev/Violence (capital V, confirmed by the owner; `yashaswahuh.is-a.dev` is the Pages custom domain) and needs the browser extension (`web/extension`).
 - Last.fm scrobbling stays; keys come from `local.properties` (`LASTFM_API_KEY`, `LASTFM_SECRET`).
 
 ## BRANCH RULE
@@ -63,7 +63,7 @@ Never remove or break playback, search, lyrics, metadata, artwork, downloads, La
 - Removing `NOTICE`, `LICENSE`, or attribution to Kushagra Singh.
 
 ## Known open issues (details in PROJECT_STATE.md s.9)
-TV manifest still has old `bitchord` scheme/host; `shared JamInvite.ORIGIN` still the author's domain; web base path casing `/Violence/` vs `/violence/`; backend still carries upstream branding; Jam default server is still the author's.
+TV manifest still has old `bitchord` scheme/host; `shared JamInvite.ORIGIN` still the author's domain; the live web path is `/Violence` (matches `vite.config.ts`/`web.yml`), but `JamInviteLink.ORIGIN`, the app manifest `pathPattern` and `invite.ts` still say `/violence` (not changed yet); backend still carries upstream branding; Jam default server is still the author's.
 
 ## Key docs (`fork-docs/`)
 PROJECT_STATE (verified snapshot), PHASES, AGENT_RULES, ALLOWED_EXTERNAL_SERVICES (KEEP/DISABLE/REPLACE-LATER), DECOUPLING_LOG, REBRAND_LOG, ARCHITECTURE, JAM_DESIGN, BACKEND_AUDIT, WEB_TARGET_AUDIT, TV_TARGET_AUDIT, MODULE_PRUNING_PLAN (do not execute), FREE_HOSTING_PLAN, CI_DEPLOY, EXTERNAL_DEPENDENCIES, REBRAND_CHECKLIST, OPEN_QUESTIONS, REPO_STATE. Also `NOTICE`, `README.md`, `web/README.md`, `backend/README.md`.
