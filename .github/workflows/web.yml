@@ -53,6 +53,8 @@ jobs:
           VITE_BASE_URL: ${{ steps.pages.outputs.base_path || '/Violence' }}/
           VITE_LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY || '' }}
           VITE_JAM_SERVER_URL: ${{ vars.JAM_SERVER_URL || '' }}
+          # Upstream v1.9 makes vite refuse a build without a party server. Same server the web app used before the sync; set repo variable JAM_SERVER_URL to override.
+          VITE_PARTY_SERVER_URL: ${{ vars.JAM_SERVER_URL || 'https://api.bitchord.kushagrasingh.in' }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

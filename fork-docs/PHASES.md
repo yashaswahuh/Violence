@@ -230,3 +230,11 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 - **Definition of Done:**
   - Tagging `v1.0.0` in git automatically triggers GitHub Actions, compiles signed Phone and TV APKs, and publishes them as assets on GitHub Releases.
   - Final signed APK installed and verified on personal devices.
+
+---
+
+## Upstream syncs
+
+| Date | Upstream version | Branch | Result | Details |
+|---|---|---|---|---|
+| 2026-10-31 | BitChord v1.9 (`04f64c9`) | `violence-nk` | DONE: phone + TV + web build, tests pass | `fork-docs/UPSTREAM_SYNC_LOG.md`, playbook in `fork-docs/UPSTREAM_SYNC.md`. Kept desktop (upstream deleted it). Version now `1.9.0-violence.1`. |

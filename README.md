@@ -76,6 +76,7 @@ Violence is not affiliated with or endorsed by YouTube, Google, Spotify, Last.fm
 - **Playback speed control** (0.5×–2.0×) and **skip silence**.
 - **Sleep timer** — fixed presets or "stop after this track".
 - **System equalizer** integration.
+- **Bit-perfect USB exclusive output** — sends lossless tracks to a USB DAC unchanged, at each track's own rate and bit depth. Thanks to [Mornye](https://github.com/mornyeapp/Mornye) for the reference.
 - **Stats for nerds** — codec, bit depth, sample rate, and more on the now-playing screen.
 
     </td>

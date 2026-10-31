@@ -1,0 +1,28 @@
+# Upstream sync playbook (BitChord -> Violence)
+
+Upstream: `https://github.com/kushagrasinghx/BitChord.git` (remote `upstream`, push `DISABLED`). Work only on `violence-nk`.
+
+## How a sync is done
+1. `git branch --show-current` must print `violence-nk`; tree clean; tag a backup `pre-upstream-<ver>-<date>` and push it.
+2. `git fetch upstream --tags`; find the official tag on `kushagrasinghx/BitChord`.
+3. `git merge-base HEAD <tag>` must print a commit. Since the sync of v1.9 it does (see below). If it ever prints nothing, STOP.
+4. `git merge --no-ff --no-commit <tag>`, resolve with the rules in `UPSTREAM_SYNC_LOG.md`, build with explicit module tasks, then commit and push.
+5. Update `UPSTREAM_SYNC_LOG.md` and the "Upstream syncs" table in `PHASES.md`.
+
+## History bridge (one-time, done 2026-10-31)
+This repo was created from a copy of BitChord's source (root commits `f27b7dc`, `a3944a7`), so it shared no history with upstream. A single `git merge -s ours --allow-unrelated-histories edc1e6f` recorded upstream commit `edc1e6f` (the tree the fork was copied from; only `.gitattributes`, `LICENSE`, `gradlew`, `appimage.sh` differed) as an ancestor without changing any file. Future syncs have a normal merge base. Do not repeat the bridge.
+
+## Files we customize: watch on every sync
+Keep OURS, re-apply on top of upstream if overwritten:
+- **Identity:** `app/build.gradle.kts` and `tv/build.gradle.kts` (`applicationId`, dev flavor IDs, `app_name`, `UPDATE_APK_PREFIX`, version name `X.Y.Z-violence.N`), both `AndroidManifest.xml` (labels, `violence` scheme, hosts, FileProvider, activity-aliases), `strings.xml` in all `app` locales and `sharedUi/.../composeResources` (every "BitChord" in text must read "Violence"), `README.md` (fork section, no badges, no donation), `NOTICE`, `MAINTAINERS.md`, `LICENSE` text.
+- **Icons:** `app/src/main/res/mipmap-*/ic_*` and `drawable/ic_launcher_*`, `ic_notification_logo`, `tv/.../tv_banner.png`, web favicon/logos, `web/extension/public/icon/*`, root `Logo.png`/`Banner.png`. Upstream's own icons (Neon, Monochrome) arrive as new aliases; they are BitChord artwork (see sync log).
+- **Disabled author services:** `shared/.../presence/Presence.kt` (`ENDPOINT = ""`), `AndroidPresence.kt`, `AppUpdateChecker.kt` (`LATEST_RELEASE_URL`), `web/app/src/playback/livePresence.ts` (`PRESENCE_ENABLED = false`), Discord promo button defaults, `SettingsSheet.kt` colophon (fork attribution block, no author links), `web/app/src/config.ts` (`androidAppUrl` empty).
+- **Web:** `web/app/vite.config.ts` (`base` = `/Violence/`, guard needing `VITE_PARTY_SERVER_URL`), `web/app/src/config.ts`, `.github/workflows/web.yml` (Pages deploy, `VITE_PARTY_SERVER_URL` from repo variable `JAM_SERVER_URL`, default = the current Jam server), `web/extension/site.config.ts`, `wxt.config.ts`.
+- **Jam:** `LISTEN_TOGETHER_SERVER` default in `app/build.gradle.kts`/`tv/build.gradle.kts`, `JamInviteLink.kt`, `shared/.../JamInvite.kt`, `backend/main.go` (scheme `violence://`, package id).
+- **Workflows:** `.github/workflows/android.yml`, `web.yml`, `tv.yml`, `check.yml`, `release.yml` (upstream deleted `release.yml`; we keep it because desktop is kept).
+- **Desktop (dormant, must survive):** all of `desktopApp/` and `desktopUi/`, `DESKTOP.md`, `docs/DESKTOP_RELEASES.md`, `settings.gradle.kts` includes. Upstream DELETED the desktop app in v1.9; we keep it. Never let a merge delete it. `desktopApp/build.gradle.kts`: `packageName="Violence"`, `bundleID`, `dockName`, `menuGroup`, and `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"`.
+- **Docs and rules:** `CLAUDE.md`, everything in `fork-docs/`, `.gitignore` additions, `.claude/` is removed upstream (we follow).
+- **Deliberately deleted by us (stay deleted):** `upi_support.jpg`, `.github/FUNDING.yml`, `.github/workflows/deploy-backend.yml`, `.github/workflows/close-issue.yml`.
+
+## After every merge, re-check
+`grep -r "BitChord"` in added user-visible text; new hosts in added lines; new presence/analytics/update/donation code; `Presence.kt` and `AppUpdateChecker.kt` still blank; exactly one `android:enabled="true"` launcher alias; Jam protocol files (`backend/protocol|party|hub`, `PartyModels.kt`, `ListenTogether.kt`, `web/app/src/party/*`) changed or not; build phone, TV, web with explicit tasks.

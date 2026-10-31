@@ -18,17 +18,17 @@ Read this first. Full verified state: `fork-docs/PROJECT_STATE.md`. Roadmap: `fo
 
 ## BRANCH RULE
 All work, commits, and pushes go to the branch violence-nk, never main and never violence-main. Never force-push, never rewrite history, never push to the upstream remote.
-(Remote `upstream` = BitChord, push URL is `DISABLED`. Latest upstream tag seen: v1.9; fork is at 1.8.1 and has not been synced.)
+(Remote `upstream` = BitChord, push URL is `DISABLED`. Upstream v1.9 was merged on 2026-10-31 (see `fork-docs/UPSTREAM_SYNC_LOG.md`; playbook and watch list in `UPSTREAM_SYNC.md`). Upstream deleted desktop; we keep it.)
 
 ## Environment
 - Owner is on Windows; use PowerShell (`.\gradlew.bat`). Git Bash is also available.
-- Android builds need JDK 17, Android SDK platform 37, NDK, CMake 3.22.1, and `ANDROID_HOME` or `local.properties sdk.dir`. `:app`, `:tv`, `:wearos` are only included in Gradle when an SDK is found. As of 2026-10-31 the owner's machine had only JDK 16/26 and no NDK/CMake, so baseline `:app:assembleDevDebug` failed (environment). Do not "fix" this unless asked.
+- Android builds need JDK 17, Android SDK platform 37, NDK, CMake 3.22.1, and `ANDROID_HOME` or `local.properties sdk.dir`. `:app`, `:tv`, `:wearos` are only included in Gradle when an SDK is found. JDK 17, SDK platforms 36 and 37.0, NDK 27, CMake 3.22.1 were installed on 2026-10-31 and phone/TV builds pass.
 - Explicit Gradle task paths (never root-level):
-  - Phone: `.\gradlew.bat :app:assembleDevDebug -Pbitchord.bundleWear=false`
-  - TV: `.\gradlew.bat :tv:assembleDevDebug -Pbitchord.bundleWear=false`
+  - Phone: `.\gradlew.bat :app:assembleDevDebug '-Pbitchord.bundleWear=false'`
+  - TV: `.\gradlew.bat :tv:assembleDevDebug '-Pbitchord.bundleWear=false'`
   - Web: `corepack pnpm --dir web build:site` (tests: `corepack pnpm --dir web test`)
   - Tests: `:app:testDevDebugUnitTest`, `:shared:jvmTest`; backend: `go test -v ./...` inside `backend/`
-- NEVER run root-level Gradle tasks (`build`, `assemble`, `check`, `test`, `clean`, or a bare `.\gradlew.bat`): they include the dormant modules.
+- PowerShell: quote the flag (`'-Pbitchord.bundleWear=false'`), or it is split at the dot. Use JDK 17: `$env:JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"` and `$env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"`. Web scripts need `pnpm` on PATH (corepack shim) and `VITE_PARTY_SERVER_URL` set for `build:site`.`n- NEVER run root-level Gradle tasks (`build`, `assemble`, `check`, `test`, `clean`, or a bare `.\gradlew.bat`): they include the dormant modules.
 - `AGENT_RULES.md` says "do not build TV". That is outdated: TV is active, build it only with the explicit `:tv:` task when relevant.
 - Secrets live in `local.properties`, `keystore.properties`, env vars. All gitignored.
 
