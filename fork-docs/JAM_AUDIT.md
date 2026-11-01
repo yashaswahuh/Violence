@@ -58,3 +58,23 @@ Severity: **HIGH** breaks sync or the main path, **MED** wrong or fragile, **LOW
 
 ## 3. Differences from `PHASES.md` Phase 5 and this prompt
 `PHASES.md` Phase 5 described only stalled-track isolation (`playbackStalled`) and the invite-domain update. This phase follows the prompt and adds: invite configuration and web landing page, paste-a-link join, TV Jam screen and manifest, 15-member rooms, deterministic host handover, web visibility/autoplay handling, tests and a two-device checklist. The protocol is **unchanged** except the `maxMembers` ceiling (10 to 15, client and Go backend together).
+
+## 4. Fix status at the end of Phase 5 (2026-11-02)
+"Fixed in code" means written, built and unit-tested where a test exists; **nothing was run on a phone, TV, browser or the deployed backend** (see `JAM_TEST_PLAN.md` sections 8-11 for the owner's checks).
+| # | Finding | Status |
+|---|---|---|
+| J1 | Unplayable track loops and drags the party | **Fixed in code, phone (and TV, same service) and web.** `PartySync.onTrackUnplayable` + `PlaybackService` hook; web `stalledVideoId`. Not run on devices. |
+| J2 | Join field destroys a pasted link | **Fixed in code**: `JamInviteLink.extractCode` (phone), `extractCode` (web, TV keypad needs no paste). Unit-tested (9 phone tests, 5 web tests). |
+| J3 | Invite link goes to a page that does not handle it | **Fixed in code**: `JAM_INVITE_BASE_URL` / `VITE_INVITE_BASE_URL`, empty = share only the code; share link / share code / copy code; QR holds `violence://party/<CODE>` when there is no base. |
+| J4 | No web landing page | **Fixed in code**: `/party/:code` (`PartyLandingPage.tsx`): code, Open in Violence app, Join in this browser, Copy code; no auto-redirect; site-wide `noindex` already in `index.html`. Web build/deploy workflows untouched. |
+| J5 | TV cannot take part; TV manifest still on the author's host and `bitchord` scheme; cold-start link dropped | **Fixed in code**: manifest to `violence`/owner host/`/Violence/party` etc., `JamInviteLink.consume` in `TvActivity.onCreate`, new `TvListenTogetherDialog` (key grid, start/join/leave, two-column members) opened from Settings or an incoming invite. **Not run on a TV or emulator (UNCLEAR).** |
+| J6 | Host handover arbitrary | **Fixed in Go** (oldest connected member) with 2 tests. **Go not run** (no Go on the PC). |
+| J7 | A room cannot hold 15 | **Fixed in code**: backend ceiling `config.MaxPartyMembers = 15` (validate, create, set size), `render.yaml` 15, phone/web steppers to 15, default party size 8. Go test added, not run. |
+| J8 | Web hidden tab drift, blocked autoplay | **Fixed in code**: `visibilitychange` and `online` call `resyncNow()` + `reconcile()`; blocked `play()` raises a "Tap to start" banner. Not run in browsers. |
+| J9 | Smaller items | Shared `JamInvite` points at the owner's site and reads `/party/` and `/invite/` (D2 resolved); QR fixed; web copy "up to 15 devices". |
+
+### Left as is, on purpose or for later
+- **The drift/reconcile engine was not refactored** and has no unit test (it mixes the player, the clock and coroutines; a pure-function extraction would risk the sync behaviour that already works). It remains covered only by reading and by the two-device checklist.
+- **TV invites carrying `?server=` for a custom Jam server are ignored** (the TV dialog uses the TV's own server setting).
+- **Process restart on the phone still ends the membership** (by design, see section 1).
+- The `/invite/<CODE>` page served by the Jam backend itself still works, but links no longer point at it.

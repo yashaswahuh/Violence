@@ -125,3 +125,9 @@ Task paths (from build files and CI): phone `:app:assembleDevDebug`; TV `:tv:ass
 - Empty address is a supported state: the phone shows "Jam is not set up in this build yet"; the web shows a note. Wake-up ("Waking up the Jam server...", 85 s retry) applies to the built-in server only.
 - Backend: stats/presence routes off by default (`JAM_ENABLE_STATS`), default allowed origins = owner's site + localhost, Go module renamed, author's `deploy/` kit deleted, `Dockerfile` added, display name no longer logged. Never compiled locally (no Go/Docker).
 - Still open (unchanged): TV manifest scheme/host, `shared JamInvite.ORIGIN`, `/violence` vs `/Violence` in invite code (D1-D3 above).
+
+## 16. Update after Phase 5 (2026-11-02): Jam reliability and invites
+- **Invites:** the link base is `JAM_INVITE_BASE_URL` (empty = share only the code); links are `<base>/party/<CODE>`; the web has a landing page at `/party/:code`; `violence://party/<CODE>` is handled by phone and TV (cold start and running). **D1 (TV manifest) and D2 (shared `JamInvite.ORIGIN`) are fixed**; D3 (`/violence` vs `/Violence`) is resolved by using the configured base and matching any base path.
+- **Sync:** a track that cannot play on one device no longer loops or moves the party (phone, TV, web). Host handover picks the oldest connected member. Rooms hold up to 15; default party size is 8.
+- **TV now has Listen Together** (Settings > Listen Together). Web has resync after a hidden tab and a blocked-audio banner.
+- **Not verified on devices or the real backend**: see `JAM_AUDIT.md` section 4 and `JAM_TEST_PLAN.md` sections 8-11.

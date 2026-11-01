@@ -155,20 +155,21 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 - **Verification (via the scripts, active targets only):** phone `:app:assembleDevDebug`, TV `:tv:assembleDevDebug`, web typecheck and `build:site` pass; `:app:testDevDebugUnitTest` 1209 tests, `:shared:jvmTest` 122, web 159: 0 failures (includes the locale test for the 2 new strings in 20 files). `scripts/jam-test.mjs` passes against a throwaway mock (18/18 with 2 clients, 57/57 with 15), which only validates the script. **Not run:** the Go tests, the Docker build, and the Jam test against the real backend (no Go/Docker installed; nothing was installed). Wear OS and desktop: dormant, not checked.
 - **Owner follow-ups:** deploy per `JAM_BACKEND_DEPLOY.md`, then run `jam-test.mjs` (2 and 15 clients) and fill in `JAM_TEST_PLAN.md`; set `JAM_BACKEND_URL` in `local.properties` and as the GitHub repo variable.
 
-## Phase 5: Jam Feature Resilience & Stalled-Track Isolation
+## Phase 5: Jam Reliability, Invites and TV/Web Parity [COMPLETED in code; real-device and deployed-backend testing pending the owner]
 
-- **Primary Goal:** Enhance the Jam client synchronization layer to handle edge cases where a track is unavailable or region-restricted on one device without disrupting other listeners.
-- **Files Touched:**
-  - `app/src/main/java/com/music/bitchord/playback/PartySync.kt`: Add error trapping for ExoPlayer failures during Jam playback to prevent outgoing pause frames.
-  - `app/src/main/java/com/music/bitchord/data/listentogether/ListenTogether.kt`: Implement `playbackStalled` state and auto-resume on track advance.
-  - `app/src/main/java/com/music/bitchord/data/listentogether/JamInviteLink.kt`: Update deep link parsing for new domain.
-  - `shared/src/commonTest/kotlin/.../JamInviteTest.kt`: Update unit tests.
-- **Definition of Done:**
-  - When one device experiences a playback error on track $N$, it mutes locally and waits; when track $N+1$ begins, it automatically re-syncs and plays.
-- **Verification:**
-  - Run unit tests: `./gradlew testDevDebugUnitTest --tests "*Jam*"`.
-
----
+- **Status:** **DONE in the repository** (2026-11-02). Never run on a phone, TV or browser, nor against the deployed backend, nor the new Go tests (no Go on the PC). The owner's checks: `JAM_TEST_PLAN.md` sections 8-11.
+- **Branch:** `violence-nk`. **Commits:** `ab920f7` (audit), then the backend, Android/TV, web and docs commits listed at the end of the final report of the session (see `git log` after `ab920f7`).
+- **Differences from the old Phase 5 text:** the old plan was stalled-track isolation plus a `JamInviteLink` domain update. This phase follows the larger brief: audit first (`JAM_AUDIT.md`), unplayable-track isolation, configurable invite base and share/copy code, paste-a-link join, a web landing page, the TV Jam dialog and manifest fix, 15-member rooms, host handover, web resync, tests and a manual checklist.
+- **Fixed (per `JAM_AUDIT.md`):**
+  - **Phone:** a track that cannot play on one device no longer loops or pulls the party to another song (`PartySync.onTrackUnplayable`, hook in `PlaybackService`; notice toast plus a line on the Jam screen); join field accepts a pasted link or share message; invite sheet offers Share link (only if `JAM_INVITE_BASE_URL` is set), Share code and Copy code; QR holds `violence://party/<CODE>` without a base; party size up to 15 (default 8); `violence://party/<CODE>` and the web paths handled by the manifest filters.
+  - **TV:** manifest now `violence`/owner host (was the author's host and the `bitchord` scheme); cold-start invites are consumed (`TvActivity.onCreate`, previously only `onNewIntent`); new Listen Together dialog in Settings with a D-pad key grid, start/join/leave, two-column member list, "waking up" and stalled-track notices, opened automatically by an incoming invite. **Not run on a TV.**
+  - **Web:** `/party/:code` landing page (Open in Violence app, Join in this browser, Copy code, no auto-redirect; `noindex` is site-wide); join field accepts links; "Copy code" always, "Copy invite link" only with `VITE_INVITE_BASE_URL`; stalled track no longer retries every tick; hidden-tab and `online` resync; blocked-autoplay banner anywhere in the app.
+  - **Backend:** host handover picks the oldest connected member (was random map order, maybe an offline member); party size ceiling 15 (`config.MaxPartyMembers`; validate, create, set size); `render.yaml` 15; tests added. **Not compiled or run.**
+  - **Shared:** `JamInvite` (dead code) points at the owner's site and `/party/`.
+- **Protocol:** unchanged except the `maxMembers` ceiling 10 to 15 (client and backend changed together). Backend invite page `/invite/<CODE>` still served.
+- **New config:** `JAM_INVITE_BASE_URL` (Android/TV `local.properties`/env/CI repo variable; web `VITE_INVITE_BASE_URL`), empty = share only the code. Web build and deploy workflows were **not** changed (the Pages workflow does not pass `VITE_INVITE_BASE_URL` yet: a later phase).
+- **Verification (active targets, via the scripts):** phone `:app:assembleDevDebug`, TV `:tv:assembleDevDebug`, web typecheck and `build:site` pass. Tests: phone 1222 (+9 `JamInviteCodeExtractionTest`, rewritten `JamInviteLinkTest`), shared 122, web 167 (+8 invite/extractCode tests): 0 failures. `jam-test.mjs` against the throwaway mock (2, 15 clients, one room of 15): passes (script logic only). Wear OS and desktop: dormant, not checked.
+- **Known limits:** drift/reconcile engine not refactored or unit-tested; TV ignores `?server=` custom servers in invites; TV UI untested; the first Render build is still the first Go compile.
 
 ## Phase 6: Web Target Static Deployment & Browser Extension
 
