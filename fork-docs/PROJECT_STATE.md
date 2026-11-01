@@ -131,3 +131,9 @@ Task paths (from build files and CI): phone `:app:assembleDevDebug`; TV `:tv:ass
 - **Sync:** a track that cannot play on one device no longer loops or moves the party (phone, TV, web). Host handover picks the oldest connected member. Rooms hold up to 15; default party size is 8.
 - **TV now has Listen Together** (Settings > Listen Together). Web has resync after a hidden tab and a blocked-audio banner.
 - **Not verified on devices or the real backend**: see `JAM_AUDIT.md` section 4 and `JAM_TEST_PLAN.md` sections 8-11.
+
+## 17. Update after Phase 6 (2026-11-02): web hosting and cloud builds
+- **Web:** `web.yml` builds for the `/Violence/` folder and deploys to GitHub Pages on pushes to `violence-nk`; the 404 fallback now keeps `/party/<CODE>` (the landing page) and handles every route; Automix models load from the base path. Checked locally with a Pages-like server and a real headless browser. **Not yet run on GitHub.**
+- **Android:** `android.yml` builds the phone and TV debug APKs on pushes to `violence-nk` and uploads them (30 days). Needs JDK 21 as well as 17 because the dormant desktop module is part of the Gradle build.
+- **Extension:** trusts exactly `https://yashaswahuh.is-a.dev` (plus localhost:5173 in dev builds). **Last.fm:** Android/TV only; keys from `local.properties` or `LASTFM_API_KEY`/`LASTFM_SECRET`; the web has none.
+- **Owner to do:** Pages source = GitHub Actions; add `violence-nk` to the `github-pages` environment's allowed branches; optional repo variables `JAM_BACKEND_URL`, `JAM_INVITE_BASE_URL` and secrets `LASTFM_API_KEY`, `LASTFM_SECRET`; confirm the custom domain (UNCLEAR).
