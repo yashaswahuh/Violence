@@ -88,10 +88,16 @@ server.listen(PORT, async () => {
   }
   const root = await get('/models/beat_this_final0_q8.onnx');
   check('a root-absolute /models/... would 404 here (why the code must use the base path)', root.status === 404);
-  for (const route of ['/party/AB12CD', '/invite/AB12CD', '/settings/listen-together', '/song/abc123', '/profile/me']) {
+  // The shapes the app, NFC tags and QR codes actually produce (Phase 9): the query must survive the hop.
+  const songLink = '/song/yt/dQw4w9WgXcQ?v=1&t=Never%20Gonna%20Give%20You%20Up&a=Rick%20Astley';
+  const profileLink = '/profile?v=1&id=123e4567-e89b-42d3-a456-426614174000&n=Alex&a=guitar&c=0a84ff';
+  for (const route of ['/party/AB12CD', '/invite/AB12CD', '/settings/listen-together', songLink, profileLink]) {
     const r = await get(`${BASE}${route}`);
-    check(`deep link ${route} gets 404.html (which redirects into the app)`, r.status === 404 && r.text.includes('violence_redirect'));
+    check(`deep link ${route.split('?')[0]} gets 404.html (which redirects into the app)`, r.status === 404 && r.text.includes('violence_redirect'));
   }
+  const fallback = await get(`${BASE}${songLink}`);
+  check('the 404.html redirect keeps the query string and fragment', fallback.text.includes('window.location.search') && fallback.text.includes('window.location.hash'));
+  check('404.html is noindex', fallback.text.includes('noindex'));
   check('wrong-case /violence/ is not the site', (await get('/violence/')).status === 404);
   server.close();
   process.exit(results.every(Boolean) ? 0 : 1);

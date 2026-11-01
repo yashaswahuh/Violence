@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.data.listentogether.ListenTogether
+import com.music.bitchord.share.ShareItem
 import com.music.bitchord.ui.tv.components.TvButton
 import com.music.bitchord.ui.tv.components.TvDialog
 import com.music.bitchord.ui.tv.components.TvDialogButton
@@ -62,6 +63,15 @@ fun TvListenTogetherDialog(
     var busy by remember { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }
     val arrivedByLink = initialCode != null
+    var showQr by remember { mutableStateOf(false) }
+
+    // A QR code of the invite for a phone to scan (the TV has no NFC and no camera).
+    val partyCode = state.code
+    if (showQr && partyCode != null) {
+        val customServer = ListenTogether.activePartyServerBase()?.takeIf { it != ListenTogether.defaultServer }
+        TvShareDialog(item = ShareItem.JamItem(partyCode, customServer), onDismiss = { showQr = false })
+        return
+    }
 
     val title = "Listen Together"
     val message = when {
@@ -108,6 +118,7 @@ fun TvListenTogetherDialog(
                     )
                 }
                 Spacer(Modifier.height(14.dp))
+                TvDialogButton(text = "Show QR Code", onClick = { showQr = true })
                 TvDialogButton(
                     text = "Leave Party",
                     destructive = true,

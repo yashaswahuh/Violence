@@ -176,6 +176,17 @@ import com.music.bitchord.data.profile.ProfileManager
 import com.music.bitchord.ui.screens.FriendsScreen
 import com.music.bitchord.ui.screens.ProfileScreen
 import com.music.bitchord.ui.screens.ProfileSuggestionDialog
+import com.music.bitchord.ui.screens.AddFriendDialog
+import com.music.bitchord.ui.screens.IncomingSongDialog
+import com.music.bitchord.ui.screens.ReceiveScreen
+import com.music.bitchord.ui.screens.ShareSheet
+import com.music.bitchord.ui.screens.noticeRes
+import com.music.bitchord.share.IncomingLinkHub
+import com.music.bitchord.share.ShareItem
+import com.music.bitchord.share.SharedSongResolver
+import com.music.bitchord.data.share.IncomingLink
+import com.music.bitchord.data.share.SongRef
+import com.music.bitchord.data.share.SongSource
 import com.music.bitchord.ui.screens.DiscordDialog
 import com.music.bitchord.ui.screens.DiscordDialogHost
 import com.music.bitchord.ui.screens.DiscordScreen
@@ -397,7 +408,7 @@ class MainActivity : AppCompatActivity() {
         // Before the composition, so a cold launch from a widget's artwork has
         // the request already standing by the time BitChordApp first reads it.
         PlayerDeepLink.consume(intent)
-        JamInviteLink.consume(intent)
+        IncomingLinkHub.consume(intent)
         // Likewise for a link tapped or shared from another app — see [MusicLink].
         MusicLink.consume(intent)
         setContent {
@@ -505,7 +516,7 @@ class MainActivity : AppCompatActivity() {
         // one that just arrived and not the one the task was started with.
         setIntent(intent)
         PlayerDeepLink.consume(intent)
-        JamInviteLink.consume(intent)
+        IncomingLinkHub.consume(intent)
         MusicLink.consume(intent)
     }
 }
@@ -670,6 +681,8 @@ private fun BitChordApp(
     var showSpotifyLogin by remember { mutableStateOf(false) }
     var discordDialog by remember { mutableStateOf<DiscordDialog?>(null) }
     var songActions by remember { mutableStateOf<Song?>(null) }
+    // What the Share sheet (Tap to share, QR, Copy link) is open for, if anything.
+    var shareItem by remember { mutableStateOf<ShareItem?>(null) }
     var showLyricsOffset by remember { mutableStateOf(false) }
     /**
      * Whether the track menu that is up was opened from the player.
@@ -3026,13 +3039,18 @@ private fun BitChordApp(
                                 onOpenSpotify = { navigator.push(AppRoute.Spotify) },
                                 contentPadding = listPadding,
                             )
+                        } else if (pageRoute == AppRoute.Receive) {
+                            ReceiveScreen(contentPadding = listPadding)
                         } else if (pageRoute == AppRoute.Profile) {
                             ProfileScreen(
                                 contentPadding = listPadding,
                                 onClose = { navigator.pop() },
                             )
                         } else if (pageRoute == AppRoute.Friends) {
-                            FriendsScreen(contentPadding = listPadding)
+                            FriendsScreen(
+                                contentPadding = listPadding,
+                                onReceive = { navigator.push(AppRoute.Receive) },
+                            )
                         } else if (pageRoute == AppRoute.Sources) {
                             SourcesScreen(
                                 contentPadding = listPadding,
@@ -3108,6 +3126,7 @@ private fun BitChordApp(
                                 onListenTogether = { navigator.push(AppRoute.ListenTogether) },
                                 onProfile = { navigator.push(AppRoute.Profile) },
                                 onFriends = { navigator.push(AppRoute.Friends) },
+                                onReceive = { navigator.push(AppRoute.Receive) },
                                 onWearOs = { navigator.push(AppRoute.WearOs) },
                                 onSpotifyCanvasAuth = { showSpotifyCanvasAuth = true },
                                 onAppLanguage = { showAppLanguage = true },
@@ -3768,6 +3787,7 @@ private fun BitChordApp(
                         AppRoute.ListenTogether -> stringResource(R.string.listen_together)
                         AppRoute.Profile -> stringResource(R.string.profile_title)
                         AppRoute.Friends -> stringResource(R.string.friends_title)
+                        AppRoute.Receive -> stringResource(R.string.receive_title)
                         AppRoute.WearOs -> stringResource(R.string.wear_os_page_title)
                         AppRoute.Equalizer -> stringResource(R.string.equalizer)
                         AppRoute.Settings -> stringResource(R.string.settings)
@@ -4275,11 +4295,17 @@ private fun BitChordApp(
                 )
             } ?: heldSong
             val share: () -> Unit = {
-                val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.videoId}")
+                val item = ShareItem.of(song)
+                if (item != null) {
+                    // Tap to share, QR, Copy link, and the old "share the YouTube Music link".
+                    shareItem = item
+                } else {
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.videoId}")
+                    }
+                    context.startActivity(Intent.createChooser(sendIntent, song.title))
                 }
-                context.startActivity(Intent.createChooser(sendIntent, song.title))
                 songActions = null
             }
             // Navigating has to take the player down with the sheet, or the
@@ -5373,6 +5399,63 @@ private fun BitChordApp(
                 }
             }
         }
+
+        // ---- A song or a profile that arrived by tap, QR or link: always asks first ----
+        val incoming by IncomingLinkHub.pending.collectAsStateWithLifecycle()
+        var incomingBusy by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            IncomingLinkHub.notices.collect { notice ->
+                Toast.makeText(context, context.getString(noticeRes(notice)), Toast.LENGTH_SHORT).show()
+            }
+        }
+        // The only network use of receiving a song, and only after the user chose an action
+        // (see SharedSongResolver).
+        val onIncomingSong: (SongRef, (Song) -> Unit) -> Unit = { ref, action ->
+            scope.launch {
+                incomingBusy = true
+                val resolved = SharedSongResolver.resolve(ref)
+                incomingBusy = false
+                if (resolved == null) {
+                    Toast.makeText(context, context.getString(R.string.incoming_song_failed), Toast.LENGTH_SHORT).show()
+                } else {
+                    action(resolved)
+                    IncomingLinkHub.handled()
+                }
+            }
+        }
+        if (onboardingComplete) {
+            when (val link = incoming) {
+                is IncomingLink.Song -> IncomingSongDialog(
+                    ref = link.ref,
+                    busy = incomingBusy,
+                    onPlayNow = {
+                        onIncomingSong(link.ref) { song ->
+                            playRadio(song, QueueSource(sharedLinkLabel, PlaybackSourceType.SHARED_LINK, song.videoId))
+                        }
+                    },
+                    onAddToQueue = {
+                        onIncomingSong(link.ref) { song ->
+                            addToQueue(song)
+                            Toast.makeText(context, context.getString(R.string.incoming_added_queue), Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onAddToPlaylist = {
+                        onIncomingSong(link.ref) { song ->
+                            viewModel.loadPlaylists()
+                            playlistTarget = song
+                        }
+                    },
+                    onDismiss = { IncomingLinkHub.dismiss() },
+                )
+                is IncomingLink.Profile -> AddFriendDialog(
+                    card = link.card,
+                    onFinished = { IncomingLinkHub.handled() },
+                    onCancel = { IncomingLinkHub.dismiss() },
+                )
+                else -> Unit
+            }
+        }
+        shareItem?.let { ShareSheet(item = it, onDismiss = { shareItem = null }) }
 
         // ---- Profile suggestion (once, skippable, never blocks playback) ----
         var suggestProfile by rememberSaveable { mutableStateOf(ProfileManager.shouldSuggest()) }

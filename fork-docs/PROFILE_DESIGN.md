@@ -149,6 +149,8 @@ Once, after setup/onboarding, if there is no profile: a small dialog "Make your 
 - Go: `JoinRequest.Validate` for the new optional fields (valid, invalid-and-dropped, absent) and member serialisation.
 - Manual: `JAM_TEST_PLAN.md` section "Profile in Jam".
 
+> **Phase 9 (2026-11-02):** the transports for this card are built: NFC tap (hard limit 250 bytes on the tag, so a long CJK card is shared by QR or link instead), QR codes and links, the `/Violence/profile` landing page and App Links prefix. See `SHARE_DESIGN.md`.
+
 ## 12. Implementation status (2026-11-01)
 Implemented as designed, on phone, TV and web. What was verified and what is still UNVERIFIED is in `PHASES.md` (Phase 8). Deviations and details that the design did not spell out:
 - **Strings:** the 56 new phone strings are English placeholders in all 17 other language files (the locale test only checks that the keys exist). The TV uses plain English text like the rest of the TV UI; the web too.

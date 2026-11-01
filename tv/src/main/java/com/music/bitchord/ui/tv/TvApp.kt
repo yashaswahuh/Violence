@@ -72,6 +72,7 @@ import com.music.bitchord.ui.tv.components.rememberDominantCardColor
 import com.music.bitchord.ui.tv.components.tvClick
 import com.music.bitchord.ui.tv.components.tvLift
 import com.music.bitchord.ui.tv.dialogs.TvAccountDialog
+import com.music.bitchord.ui.tv.dialogs.TvIncomingLinkDialogs
 import com.music.bitchord.ui.tv.dialogs.TvProfileDialog
 import com.music.bitchord.ui.tv.dialogs.TvProfileSuggestionDialog
 import com.music.bitchord.ui.tv.dialogs.TvUpdateDialog
@@ -278,6 +279,9 @@ fun TvApp(
         if (showProfileDialog) {
             TvProfileDialog(onDismiss = { showProfileDialog = false })
         }
+
+        // A song or a profile that arrived as a link: always asks first (Phase 9).
+        if (!isRunningSetup) TvIncomingLinkDialogs(mediaController)
     }
 }
 

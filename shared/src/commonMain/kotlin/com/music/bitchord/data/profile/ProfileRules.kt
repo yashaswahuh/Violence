@@ -47,7 +47,13 @@ object ProfileRules {
      * non-characters, tag characters, and runs of stacked combining marks. Too long is rejected,
      * never truncated, so a card cannot silently become someone else's name.
      */
-    fun checkName(raw: String): NameResult {
+    fun checkName(raw: String): NameResult = checkText(raw, NAME_MAX_CODE_POINTS)
+
+    /**
+     * [checkName] with a different length limit: the same character rules for any short piece
+     * of text that came from somebody else (a song title or artist hint in a shared link).
+     */
+    fun checkText(raw: String, maxCodePoints: Int): NameResult {
         val points = codePoints(raw) ?: return NameResult.Invalid(NameProblem.INVISIBLE_CHARACTER)
         val out = StringBuilder()
         val kept = ArrayList<Int>()
@@ -80,7 +86,7 @@ object ProfileRules {
             kept.add(cp)
         }
         if (kept.isEmpty()) return NameResult.Invalid(NameProblem.EMPTY)
-        if (kept.size > NAME_MAX_CODE_POINTS) return NameResult.Invalid(NameProblem.TOO_LONG)
+        if (kept.size > maxCodePoints) return NameResult.Invalid(NameProblem.TOO_LONG)
         return NameResult.Valid(out.toString())
     }
 

@@ -44,7 +44,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.session.MediaController
 import com.music.bitchord.data.LikeState
+import androidx.compose.material.icons.rounded.IosShare
 import com.music.bitchord.data.YtMusicRepository
+import com.music.bitchord.share.ShareItem
 import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.data.model.LikeStatus
 import com.music.bitchord.data.model.PlaylistPrivacy
@@ -133,6 +135,10 @@ fun TvSongActionMenuDialog(
             TvEqualizerDialog(onDismiss = onDismiss)
             return
         }
+        SongSheet.Share -> {
+            ShareItem.of(song)?.let { TvShareDialog(item = it, onDismiss = onDismiss) }
+            return
+        }
         SongSheet.Actions -> Unit
     }
 
@@ -200,6 +206,16 @@ fun TvSongActionMenuDialog(
                     onClick = { sheet = SongSheet.Playlist },
                 )
             }
+            // A QR code and the link, for a phone to scan (the TV has no NFC and no camera).
+            if (ShareItem.of(song) != null) {
+                item {
+                    TvListRow(
+                        title = "Share",
+                        trailingIcon = Icons.Rounded.IosShare,
+                        onClick = { sheet = SongSheet.Share },
+                    )
+                }
+            }
             if (onOpenAlbum != null) {
                 item {
                     TvListRow(
@@ -251,7 +267,7 @@ fun TvSongActionMenuDialog(
     }
 }
 
-private enum class SongSheet { Actions, Playlist, Sleep, Equalizer }
+private enum class SongSheet { Actions, Playlist, Sleep, Equalizer, Share }
 
 /**
  * A station seeded from [song], as the phone builds one: YouTube's radio for

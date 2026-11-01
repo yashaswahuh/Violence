@@ -41,6 +41,7 @@ import com.music.bitchord.data.profile.ProfileCardCodec
 import com.music.bitchord.data.profile.ProfileManager
 import com.music.bitchord.data.profile.ProfileRepository
 import com.music.bitchord.data.profile.ProfileRules
+import com.music.bitchord.share.ShareItem
 import com.music.bitchord.ui.profile.ProfileAvatar
 import com.music.bitchord.ui.profile.parseColor
 import com.music.bitchord.ui.tv.components.TvButton
@@ -71,6 +72,7 @@ fun TvProfileDialog(onDismiss: () -> Unit) {
     var avatarId by remember { mutableStateOf(saved?.avatarId ?: ProfileRules.DEFAULT_AVATAR_ID) }
     var color by remember { mutableStateOf(saved?.color ?: ProfileRules.DEFAULT_COLOR) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var sharing by remember { mutableStateOf(false) }
 
     val check = ProfileRules.checkName(name)
     val valid = check is ProfileRules.NameResult.Valid
@@ -80,6 +82,11 @@ fun TvProfileDialog(onDismiss: () -> Unit) {
         ProfileRules.NameProblem.INVISIBLE_CHARACTER,
         -> "That name has characters that cannot be used."
         else -> null
+    }
+
+    if (sharing) {
+        saved?.let { TvShareDialog(item = ShareItem.ProfileItem(it.toCard()), onDismiss = { sharing = false }) }
+        return
     }
 
     if (confirmDelete) {
@@ -156,6 +163,7 @@ fun TvProfileDialog(onDismiss: () -> Unit) {
                 },
             )
             if (saved != null) {
+                TvButton(text = "Share Profile", onClick = { sharing = true })
                 TvButton(text = "Delete Profile", destructive = true, onClick = { confirmDelete = true })
             }
             TvButton(text = "Cancel", onClick = onDismiss)

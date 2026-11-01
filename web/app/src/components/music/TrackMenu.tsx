@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, ListEnd, ListPlus, ListStart, MoreHorizontal, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ListEnd, ListPlus, ListStart, MoreHorizontal, Share2, Star } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Menu, MenuHeader, MenuItem, MenuSeparator, type MenuPlacement } from '@/components/Menu';
 import {
@@ -10,6 +10,8 @@ import {
 } from '@/data/music/queries';
 import type { Track } from '@/data/music/types';
 import { usePlayer } from '@/state/player';
+import { ShareDialog } from '@/share/ShareDialog';
+import { songToWebUrl, youtubeSong } from '@/share/songLinks';
 
 function PlaylistChoices({ videoId, onDone, onBack }: { videoId: string; onDone: () => void; onBack: () => void }) {
   const options = usePlaylistOptions(videoId, true);
@@ -76,7 +78,7 @@ function AccountItems({ track, onClose, onPlaylists }: { track: Track; onClose: 
   );
 }
 
-function TrackMenuItems({ track, onClose }: { track: Track; onClose: () => void }) {
+function TrackMenuItems({ track, onClose, onShare }: { track: Track; onClose: () => void; onShare: (() => void) | null }) {
   const [view, setView] = useState<'main' | 'playlists'>('main');
   const signedIn = useSignedIn();
   if (view === 'playlists') {
@@ -91,6 +93,11 @@ function TrackMenuItems({ track, onClose }: { track: Track; onClose: () => void 
       <MenuItem icon={<ListEnd size={15} />} onSelect={() => (onClose(), addToQueue([track]))}>
         Add to Queue
       </MenuItem>
+      {onShare && (
+        <MenuItem icon={<Share2 size={15} />} onSelect={() => (onClose(), onShare())}>
+          Share…
+        </MenuItem>
+      )}
       {signedIn && <AccountItems track={track} onClose={onClose} onPlaylists={() => setView('playlists')} />}
     </>
   );
@@ -114,7 +121,11 @@ export function TrackMenu({
   onOpenChange?: (open: boolean) => void;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [sharing, setSharing] = useState(false);
   const close = useCallback(() => setAnchor(null), []);
+  // A Violence song link needs a real YouTube video id; a row without one has nothing to share.
+  const artist = track.artists.map((a) => a.name).join(', ');
+  const shareRef = youtubeSong(track.videoId, track.title, artist);
   useEffect(() => {
     onOpenChange?.(anchor !== null);
   }, [anchor, onOpenChange]);
@@ -136,8 +147,11 @@ export function TrackMenu({
       </button>
       {anchor && (
         <Menu anchor={anchor} placement={placement} onClose={close} label={track.title}>
-          <TrackMenuItems track={track} onClose={close} />
+          <TrackMenuItems track={track} onClose={close} onShare={shareRef ? () => setSharing(true) : null} />
         </Menu>
+      )}
+      {sharing && shareRef && (
+        <ShareDialog title={track.title} subtitle={artist || null} link={songToWebUrl(shareRef)} onClose={() => setSharing(false)} />
       )}
     </>
   );
