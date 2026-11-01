@@ -22,10 +22,10 @@ services:
     healthCheckPath: /healthz
     numInstances: 1
     envVars:
-      # Core group is 4-6 people, friends and family bring it to 10-15 over a few
-      # rooms. The protocol allows up to 10 members in one room.
+      # Core group is 4-6 people, friends and family bring it to about 15. The protocol
+      # allows up to 15 members in one room (config.MaxPartyMembers); this is the default size.
       - key: JAM_MAX_MEMBERS
-        value: "10"
+        value: "15"
       - key: JAM_STATE_HEARTBEAT_MS
         value: "5000"
       - key: JAM_MAX_UPCOMING_QUEUE

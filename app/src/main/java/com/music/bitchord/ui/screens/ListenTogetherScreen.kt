@@ -155,7 +155,8 @@ fun ListenTogetherScreen(
     var busy by remember { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }
     var nickname by remember { mutableStateOf(ListenTogether.nickname()) }
-    var maxMembers by remember { mutableIntStateOf(5) }
+    // 8: room for the core group of 4-6 plus a couple of friends without the host touching the stepper.
+    var maxMembers by remember { mutableIntStateOf(8) }
     var pendingServerSwitchInvite by remember { mutableStateOf<Pair<String, String>?>(null) }
     var sheet by remember { mutableStateOf<PartySheet?>(null) }
 
@@ -187,32 +188,41 @@ fun ListenTogetherScreen(
         if (sheet == null) sheet = PartySheet.Invite
     }
 
-    /** The invite URL for a code, pointing at whichever server holds the party. */
-    val inviteLinkFor: (String) -> String = { partyCode ->
+    /** The Jam server holding the party when it is not the built-in one: invite links must carry it. */
+    val customServerForLinks: () -> String? = {
         val host = ListenTogether.activePartyServerBase()
-        if (host == null || host == ListenTogether.defaultServer) {
-            JamInviteLink.url(partyCode, null)
-        } else {
-            JamInviteLink.url(partyCode, host)
+        if (host == null || host == ListenTogether.defaultServer) null else host
+    }
+
+    /** The web link for a code, or null when no JAM_INVITE_BASE_URL is configured (share only the code). */
+    val webLinkFor: (String) -> String? = { partyCode ->
+        JamInviteLink.webLink(partyCode, customServerForLinks())
+    }
+
+    val sendText: (String) -> Unit = { message ->
+        context.startActivity(
+            Intent.createChooser(
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, message)
+                },
+                null,
+            ),
+        )
+    }
+
+    /** The system chooser: the web link (when one is configured) with the spoken-aloud code, else just the code. */
+    val shareInvite: () -> Unit = {
+        state.code?.let { partyCode ->
+            val text = context.getString(R.string.listen_together_share_text, partyCode)
+            val link = webLinkFor(partyCode)
+            sendText(if (link != null) link + System.lineSeparator() + System.lineSeparator() + text else text)
         }
     }
 
-    /** The system chooser, with the link and the spoken-aloud code together. */
-    val shareInvite: () -> Unit = {
-        state.code?.let { partyCode ->
-            val message = inviteLinkFor(partyCode) +
-                System.lineSeparator() + System.lineSeparator() +
-                context.getString(R.string.listen_together_share_text, partyCode)
-            context.startActivity(
-                Intent.createChooser(
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, message)
-                    },
-                    null,
-                ),
-            )
-        }
+    /** Only the code, in a sentence: always available, needs no web address. */
+    val shareCode: () -> Unit = {
+        state.code?.let { partyCode -> sendText(context.getString(R.string.listen_together_share_text, partyCode)) }
     }
 
     /**
@@ -363,7 +373,7 @@ fun ListenTogetherScreen(
                         ListenTogether.setNickname(nickname)
                     },
                     maxMembers = maxMembers,
-                    onMaxMembersChange = { maxMembers = it.coerceIn(2, 10) },
+                    onMaxMembersChange = { maxMembers = it.coerceIn(2, ListenTogether.MAX_PARTY_MEMBERS) },
                     busy = busy,
                     enabled = signedIn && ListenTogether.hasServer,
                     error = failure,
@@ -382,9 +392,12 @@ fun ListenTogetherScreen(
                 PartySheet.JoinCode -> JoinPartySheet(
                     code = codeInput,
                     onCodeChange = { typed ->
-                        codeInput = typed.filter(Char::isLetterOrDigit)
-                            .uppercase()
-                            .take(ListenTogether.CODE_LENGTH)
+                        // A pasted invite link (or a whole share message) is reduced to its code;
+                        // anything else is typed text, kept to letters and digits as before.
+                        codeInput = JamInviteLink.extractCode(typed)
+                            ?: typed.filter(Char::isLetterOrDigit)
+                                .uppercase()
+                                .take(ListenTogether.CODE_LENGTH)
                         // Typing is the retry. Keeping "no party with that
                         // code" on screen while the code is being corrected
                         // makes it read as a verdict on what is there now.
@@ -452,10 +465,15 @@ fun ListenTogetherScreen(
 
                 PartySheet.Invite -> InviteSheet(
                     code = state.code.orEmpty(),
-                    link = inviteLinkFor(state.code.orEmpty()),
+                    link = webLinkFor(state.code.orEmpty()),
+                    qrContent = JamInviteLink.qrContent(state.code.orEmpty(), customServerForLinks()),
                     onShareLink = {
                         sheet = null
                         shareInvite()
+                    },
+                    onShareCode = {
+                        sheet = null
+                        shareCode()
                     },
                     onCopyCode = {
                         clipboard.setText(AnnotatedString(state.code.orEmpty()))
@@ -514,6 +532,16 @@ fun ListenTogetherScreen(
                 )
             }
         } else {
+            // A song this device cannot play: said once, small. It rejoins on the next one by itself.
+            val stalledTrack by ListenTogether.stalledTrack.collectAsStateWithLifecycle()
+            stalledTrack?.let { title ->
+                Text(
+                    text = stringResource(R.string.listen_together_track_unavailable, title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = GROUP_INSET + 4.dp, end = GROUP_INSET + 4.dp, bottom = 12.dp),
+                )
+            }
             InAParty(
                 state = state,
                 onCopy = { clipboard.setText(AnnotatedString(state.code.orEmpty())) },
@@ -906,7 +934,7 @@ private fun InAParty(
                 }
                 TextButton(onClick = { onSetCapacity(state.maxMembers - 1) }, enabled = state.maxMembers > maxOf(2, state.members.size)) { Text("−", color = MaterialTheme.colorScheme.onSurface) }
                 Text("${state.maxMembers}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
-                TextButton(onClick = { onSetCapacity(state.maxMembers + 1) }, enabled = state.maxMembers < 10) { Text("+", color = MaterialTheme.colorScheme.onSurface) }
+                TextButton(onClick = { onSetCapacity(state.maxMembers + 1) }, enabled = state.maxMembers < ListenTogether.MAX_PARTY_MEMBERS) { Text("+", color = MaterialTheme.colorScheme.onSurface) }
             }
             RowDivider()
             SettingsRow(

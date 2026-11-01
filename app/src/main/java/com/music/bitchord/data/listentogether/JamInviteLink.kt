@@ -1,6 +1,7 @@
 package com.music.bitchord.data.listentogether
 
 import android.content.Intent
+import com.music.bitchord.BuildConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,20 +14,33 @@ data class ParsedJamInvite(
     val serverUrl: String? = null,
 )
 
-/** Relays a Violence web or scheme invite from [com.music.bitchord.MainActivity] to Compose. */
+/**
+ * Violence party invites: building them, reading them back, and relaying one that arrived from
+ * outside ([com.music.bitchord.MainActivity], [com.music.bitchord.TvActivity]) to Compose.
+ *
+ * Shapes, all carrying the same six-character code:
+ *  - `violence://party/<CODE>[?server=<jam server>]`: opens the app. What a QR code holds when no
+ *    web base is configured, and what the web landing page's "Open in Violence" button uses.
+ *  - `<JAM_INVITE_BASE_URL>/party/<CODE>[?server=...]`: the web landing page. Only built when the
+ *    owner configured a base; **empty means "share only the code"** (there is no built-in address).
+ *  - `<anything>/invite/<CODE>`: the older web shape, still read (the Jam server itself serves one).
+ */
 object JamInviteLink {
 
-    const val ORIGIN = "https://yashaswahuh.is-a.dev/violence"
-
     private const val EXTRA_CONSUMED = "violence.jamInviteConsumed"
-    private const val HOST = "yashaswahuh.is-a.dev"
     private const val CUSTOM_SCHEME = "violence"
     private const val CUSTOM_HOST = "party"
+
+    /** The letters and digits the Jam server mints codes from (no I, L or O). */
+    private const val CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTUVWXYZ"
 
     private val _pending = MutableStateFlow<ParsedJamInvite?>(null)
     val pending: StateFlow<ParsedJamInvite?> = _pending.asStateFlow()
 
-    /** Reads a web invite from a cold launch or a new intent on the existing task. */
+    /** The configured web base for shared links (`JAM_INVITE_BASE_URL`), or "" when none. */
+    val inviteBaseUrl: String get() = normalizeBase(BuildConfig.JAM_INVITE_BASE_URL)
+
+    /** Reads an invite from a cold launch or a new intent on the existing task. */
     fun consume(intent: Intent?): Boolean {
         if (
             intent == null ||
@@ -44,22 +58,21 @@ object JamInviteLink {
         _pending.value = null
     }
 
-    /** Returns the normalized party code only for the public invite URL shape. */
+    /** Returns the normalized party code only for a recognised invite URL. */
     fun parse(value: String?): String? = parseInvite(value)?.code
 
     /**
-     * Parses an incoming invite:
-     * 1. violence://party/<CODE>?server=<SERVER> (or legacy bitchord://party/<CODE>)
-     * 2. https://yashaswahuh.is-a.dev/violence/invite/<CODE>?server=<SERVER>
+     * Parses one invite URL:
+     *  1. violence://party/<CODE>?server=<SERVER> (or the legacy bitchord:// scheme)
+     *  2. https://<host>/<any base path>/party/<CODE>?server=<SERVER> or .../invite/<CODE>
      */
     fun parseInvite(value: String?): ParsedJamInvite? {
-        val uri = runCatching { URI(value ?: return null) }.getOrNull() ?: return null
+        val uri = runCatching { URI(value?.trim() ?: return null) }.getOrNull() ?: return null
         val scheme = uri.scheme?.lowercase() ?: return null
         val host = uri.host?.lowercase() ?: return null
         val query = uri.rawQuery
         val server = extractQueryParam(query, "server")?.let { sanitizeServerUrl(it) }
 
-        // 1. Custom scheme: violence://party/<CODE> (or legacy bitchord://party/<CODE>)
         if ((scheme == CUSTOM_SCHEME || scheme == "bitchord") && host == CUSTOM_HOST) {
             val pathPart = uri.path.orEmpty().trim('/').takeIf { it.isNotBlank() }
             val candidate = pathPart ?: extractQueryParam(query, "code") ?: return null
@@ -67,40 +80,82 @@ object JamInviteLink {
             return ParsedJamInvite(code = code, serverUrl = server)
         }
 
-        // 2. Official web domain: https://yashaswahuh.is-a.dev/violence/invite/<CODE> or legacy bitchord.kushagrasingh.in
-        if (scheme == "https" && (host == HOST || host == "bitchord.kushagrasingh.in")) {
+        // https only: a plain http link is not an invite (a join is an action taken on someone's behalf).
+        if (scheme == "https") {
             val match = INVITE_PATH.matchEntire(uri.path.orEmpty()) ?: return null
-            val code = match.groupValues[1].uppercase()
-            return ParsedJamInvite(code = code, serverUrl = server)
+            return ParsedJamInvite(code = match.groupValues[1].uppercase(), serverUrl = server)
         }
-
         return null
     }
 
-    fun url(code: String, customServer: String? = null): String {
-        val base = customServer?.trim()?.trimEnd('/')
-        return if (!base.isNullOrBlank() && !base.equals(ORIGIN, ignoreCase = true)) {
-            "$base/invite/${code.uppercase()}"
-        } else {
-            "$ORIGIN/invite/${code.uppercase()}"
+    /**
+     * The party code inside whatever somebody pasted or typed, or null.
+     *
+     * Accepts a bare code (in any case, with spaces or hyphens), a full invite link, or a whole
+     * share message that contains either. Free text is only trusted when it holds exactly one
+     * six-character token made of code letters, so ordinary words in a message are not mistaken
+     * for a code.
+     */
+    fun extractCode(text: String?): String? {
+        val input = text?.trim().orEmpty()
+        if (input.isEmpty()) return null
+        input.split(WHITESPACE).forEach { token ->
+            if (token.contains("://")) {
+                parseInvite(token.trim('<', '>', '(', ')', '"', '\'', ',', '.'))?.let { return it.code }
+            }
         }
+        val squashed = input.filter { it.isLetterOrDigit() }.uppercase()
+        if (squashed.length == ListenTogether.CODE_LENGTH && !input.contains("://")) return squashed
+        val candidates = input.split(NON_ALPHANUMERIC)
+            .map { it.uppercase() }
+            .filter { it.length == ListenTogether.CODE_LENGTH && it.all { c -> c in CODE_ALPHABET } }
+            .distinct()
+        return candidates.singleOrNull()
     }
 
+    /**
+     * The web link to share, or null when no base is configured (share only the code).
+     * [customServer] is the Jam server holding the party when it is not the built-in one.
+     */
+    fun webLink(code: String, customServer: String? = null, base: String = inviteBaseUrl): String? {
+        val origin = normalizeBase(base)
+        if (origin.isEmpty()) return null
+        val link = "$origin/party/${code.uppercase()}"
+        val server = customServer?.trim()?.trimEnd('/')
+        return if (server.isNullOrBlank()) link else "$link?server=${encode(server)}"
+    }
+
+    /** `violence://party/<CODE>`, which opens the app. Carries the Jam server when it is a custom one. */
     fun schemeUrl(code: String, customServer: String? = null): String {
         val normalizedCode = code.uppercase()
-        val base = customServer?.trim()?.trimEnd('/')
-        return if (!base.isNullOrBlank()) {
-            val encoded = runCatching { URLEncoder.encode(base, "UTF-8") }.getOrDefault(base)
-            "violence://party/$normalizedCode?server=$encoded"
+        val server = customServer?.trim()?.trimEnd('/')
+        return if (!server.isNullOrBlank()) {
+            "violence://party/$normalizedCode?server=${encode(server)}"
         } else {
             "violence://party/$normalizedCode"
         }
     }
 
+    /** What a QR code should hold: the web link when there is one, else the app link. */
+    fun qrContent(code: String, customServer: String? = null, base: String = inviteBaseUrl): String =
+        webLink(code, customServer, base) ?: schemeUrl(code, customServer)
+
     private fun cleanCode(raw: String): String? {
         val cleaned = raw.filter { it.isLetterOrDigit() }.uppercase()
         return if (cleaned.length == ListenTogether.CODE_LENGTH) cleaned else null
     }
+
+    private fun normalizeBase(raw: String?): String {
+        val trimmed = raw?.trim()?.trimEnd('/').orEmpty()
+        if (trimmed.isEmpty()) return ""
+        return if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
+            trimmed
+        } else {
+            "https://$trimmed"
+        }
+    }
+
+    private fun encode(value: String): String = runCatching { URLEncoder.encode(value, "UTF-8") }.getOrDefault(value)
 
     private fun extractQueryParam(query: String?, paramName: String): String? {
         if (query.isNullOrBlank()) return null
@@ -124,6 +179,8 @@ object JamInviteLink {
         return withScheme
     }
 
-    private val INVITE_PATH = Regex("""(?:/violence)?/invite/([A-Za-z0-9]{${ListenTogether.CODE_LENGTH}})""")
+    /** `.../party/<CODE>` or `.../invite/<CODE>` under any base path (the site lives under /Violence/). */
+    private val INVITE_PATH = Regex("""(?:/[^/]+)*/(?:party|invite)/([A-Za-z0-9]{${ListenTogether.CODE_LENGTH}})/?""")
+    private val WHITESPACE = Regex("""\s+""")
+    private val NON_ALPHANUMERIC = Regex("""[^A-Za-z0-9]+""")
 }
-

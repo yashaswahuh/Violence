@@ -8,7 +8,7 @@
 // Needs Node 22+ (built-in fetch and WebSocket), nothing to install. Sends only made-up test
 // identities and fake track ids; no login data. Exit code 0 = every check passed.
 //
-// Options: --url <base> (required), --clients <n> (default 2), --room-size <n> (default 5, max 10),
+// Options: --url <base> (required), --clients <n> (default 2), --room-size <n> (default 5, max 15),
 //          --wake-seconds <n> (wait this long for a sleeping host, default 90), --out <file.json>
 
 const args = Object.fromEntries(
@@ -20,7 +20,7 @@ const args = Object.fromEntries(
 
 const BASE = String(args.url || '').replace(/\/+$/, '');
 const CLIENTS = Math.max(2, Number(args.clients || 2));
-const ROOM_SIZE = Math.min(10, Math.max(2, Number(args['room-size'] || 5)));
+const ROOM_SIZE = Math.min(15, Math.max(2, Number(args['room-size'] || 5))); // 15 = the backend's config.MaxPartyMembers
 const WAKE_SECONDS = Number(args['wake-seconds'] || 90);
 if (!BASE || !/^https?:\/\//.test(BASE)) {
   console.error('Usage: node scripts/jam-test.mjs --url http://localhost:8000 --clients 2|15');

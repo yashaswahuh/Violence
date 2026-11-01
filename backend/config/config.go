@@ -74,6 +74,10 @@ func IsAllowedOrigin(origin string) bool {
 	return false
 }
 
+// MaxPartyMembers is the largest party size the protocol allows (the owner's group is 4-6 people,
+// with friends and family about 15). A host may set a party anywhere from 2 up to this.
+const MaxPartyMembers = 15
+
 // Browsers that may use the Jam server unless JAM_ALLOWED_ORIGINS says otherwise:
 // the owner's web player and local development. Native apps send no Origin.
 const defaultAllowedOrigins = "https://yashaswahuh.is-a.dev,http://localhost,http://localhost:5173"

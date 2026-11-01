@@ -9,20 +9,21 @@ package com.music.bitchord.data.listentogether
  */
 object JamInvite {
 
-    const val ORIGIN = "https://bitchord.kushagrasingh.in"
+    /** The owner's web player (GitHub Pages is case sensitive: the path is /Violence/). */
+    const val ORIGIN = "https://yashaswahuh.is-a.dev/Violence"
 
     /** How many characters a party code carries. */
     const val CODE_LENGTH = 6
 
-    /** The normalized party code, for the public invite URL shape only. */
+    /** The normalized party code, for the public landing-page shapes only (`/party/` and the older `/invite/`). */
     fun parse(value: String?): String? {
         val text = value?.trim() ?: return null
-        val prefix = "$ORIGIN/invite/"
-        if (!text.startsWith(prefix, ignoreCase = true)) return null
-        val code = text.removePrefix(prefix).substringBefore('?').substringBefore('#')
+        val prefix = listOf("$ORIGIN/party/", "$ORIGIN/invite/").firstOrNull { text.startsWith(it, ignoreCase = true) }
+            ?: return null
+        val code = text.substring(prefix.length).substringBefore('?').substringBefore('#')
         if (code.length != CODE_LENGTH || !code.all(Char::isLetterOrDigit)) return null
         return code.uppercase()
     }
 
-    fun url(code: String): String = "$ORIGIN/invite/${code.uppercase()}"
+    fun url(code: String): String = "$ORIGIN/party/${code.uppercase()}"
 }

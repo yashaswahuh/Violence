@@ -49,3 +49,54 @@ Then wait 20 minutes (the service sleeps) and run `--clients 2` again: the first
 - Render free-plan limits other than those on its docs page (CPU/RAM, outbound bandwidth cap, private repo support, rollback wording) are UNVERIFIED.
 - Phone-side wake-up and reconnect logic is covered by builds and by reading the code, not by an automated device test; section 4 is the real test.
 - Desktop (dormant) has its own Jam client and was not touched. It has no built-in server unless `LISTEN_TOGETHER_SERVER` (the old name) is set in `local.properties` at its build; it does not read `JAM_BACKEND_URL`. Logged in `FROZEN_TARGETS.md`.
+
+---
+
+# Phase 5 additions: manual checklists (owner, real devices)
+
+Written 2026-11-02. Nothing below has been run on a phone, TV or browser by the agent; the automated parts are listed in section 7.
+
+## 7. What was run automatically in Phase 5
+| Check | Result |
+|---|---|
+| Phone, TV, web builds via `scripts/build-active.ps1` | see `PHASES.md` Phase 5 |
+| Unit tests via `scripts/test-active.ps1`: new `JamInviteCodeExtractionTest` (9), rewritten `JamInviteLinkTest`, 8 new web tests (`extractCode`, `inviteLink`, `appLink`, link shapes) | see `PHASES.md` Phase 5 |
+| Go tests for host handover and 15-member rooms (`backend/party/party_test.go`, `backend/protocol/protocol_test.go`) | **NOT RUN** (no Go on the PC). They are reviewed by hand and will run the first time `go test ./...` runs anywhere. |
+| `scripts/jam-test.mjs` against the real backend | **NOT RUN**: the backend is not deployed yet. After deploying, run `--clients 2` and `--clients 15` (3 rooms of 5), and also `--clients 15 --room-size 15` (one room of 15, needs the Phase 5 backend). |
+
+## 8. Two-device checklist (phone A, phone B; later add the web player and a TV)
+Prerequisites: backend deployed, both phones on a build with `JAM_BACKEND_URL` set, both signed in to YT Music, `JAM_INVITE_BASE_URL` set on A if you want to test the web link.
+1. **Start.** A: Listen Together > Start a Party (size 8). The invite sheet appears with a code.
+2. **Share.** On the sheet: **Share code** always; **Share link** only if `JAM_INVITE_BASE_URL` is set. Tap **Copy code** and check the clipboard.
+3. **Join by code.** B: Join, type the code. B sees the member preview, confirms, joins. Both lists show 2.
+4. **Join by pasted link or message.** B leaves. Paste the whole shared message (or the link) into B's code field: it must turn into the 6-character code. Join.
+5. **Join by link (app).** Open `violence://party/<CODE>` on B (for example from a note or `adb shell am start -a android.intent.action.VIEW -d violence://party/<CODE>`), once with the app closed (cold start) and once with it already running: both land on Listen Together with the code ready.
+6. **Join by link (web).** With `JAM_INVITE_BASE_URL` set, open `<base>/party/<CODE>` in a phone browser: the landing page shows the code, **Open in Violence app** opens the app, **Join in this browser** goes to the join card, **Copy code** works. No page loops.
+7. **Play.** A plays a song: B starts within about a second, same position.
+8. **Pause, seek.** Either phone pauses and seeks; the other follows without audible hopping.
+9. **Queue add.** A adds two songs; B's queue shows them; B skips; both move.
+10. **Skip next/previous, track change.** From either phone.
+11. **Notification controls.** Pause/skip from the phone's notification shade and a headset button on B: A follows.
+12. **Unplayable song on one device.** Queue a song that is blocked on one phone (a region-locked video, or turn that phone's network off just as the song starts). That phone shows a small "Can't play ... You'll rejoin on the next song" notice, stays quiet, and does **not** move the other phone; on the next song it rejoins by itself.
+13. **Late join.** C joins mid-song: it starts at the right position (within about 1.5 s).
+14. **Drop and reconnect.** B toggles airplane mode for 20 s: the Jam screen goes to reconnecting and comes back live; playback resyncs without leaving the party.
+15. **Host leaves.** A leaves. B becomes host (the longest-standing connected member) and the party continues. With three or more members, the new host is the one who joined first.
+16. **Rejoin.** A joins again with the code; it gets the current track and queue.
+17. **Sleeping server.** Leave everything idle 20+ minutes, then start a party: "Waking up the Jam server..." shows, then it proceeds (or says it did not wake).
+18. **Not set up.** Build with `JAM_BACKEND_URL` empty: the Jam screen says Jam is not set up; no crash.
+
+## 9. Larger room (about 15)
+1. Run `node scripts/jam-test.mjs --url <backend> --clients 15 --room-size 15` (one room of 15; **needs the Phase 5 backend**, whose party size ceiling is 15). All checks must pass.
+2. With real devices (or the web player in several browser profiles), have the host set the party size to 15 (the stepper goes to 15) and join with as many as you have. The member list on phone and web must stay scrollable and readable; the TV shows names in two columns.
+3. Watch the Render dashboard memory/CPU while 15 sockets are open: it should stay far below the free limits (the backend needs a few MB).
+
+## 10. Web player checks
+1. Open the party page in a browser tab, put the tab in the background for 3+ minutes, come back: it resyncs within a couple of seconds (and re-opens the socket if it dropped).
+2. Join a party in a fresh tab without touching the page first: if the browser blocks autoplay, a banner says "Tap to start the party's audio"; **Start audio** begins playback in sync.
+3. Queue a song the browser cannot play: banner says it can't play it here, the tab stops retrying, and it rejoins on the next song.
+
+## 11. TV checks (not tested by the agent; no TV or emulator available)
+1. Settings > Listen Together opens the dialog. Signed out: it says to sign in. Signed in: Start a Party / Join with a Code.
+2. Join with a Code: D-pad to the keys, OK enters a character, Delete/Clear work, Join becomes available at 6 characters.
+3. `adb shell am start -a android.intent.action.VIEW -d violence://party/<CODE>` on the TV, cold and warm: Settings opens with Listen Together filled in and Join focused.
+4. In a party the dialog shows the code and members in two columns; Leave Party works.

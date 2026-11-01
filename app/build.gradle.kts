@@ -58,6 +58,18 @@ val listenTogetherServer: String = (
         ?: ""
     ).trim().trimEnd('/')
 
+/*
+ * The web address that shared Jam invite links point at (the landing page is `<base>/party/<CODE>`),
+ * from JAM_INVITE_BASE_URL in local.properties or the environment. A public URL, not a credential.
+ * Empty (the default) means "share only the code": the apps then offer the code and a
+ * violence://party/<CODE> link, and no web link at all.
+ */
+val jamInviteBaseUrl: String = (
+    localProps.getProperty("JAM_INVITE_BASE_URL")
+        ?: System.getenv("JAM_INVITE_BASE_URL")
+        ?: ""
+    ).trim().trimEnd('/')
+
 // See the root build.gradle.kts: one version for the phone and its watch app.
 val betaSuffix = rootProject.extra["bitchordBetaSuffix"] as String
 
@@ -84,6 +96,11 @@ android {
             "String",
             "LISTEN_TOGETHER_SERVER",
             "\"${listenTogetherServer.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
+        )
+        buildConfigField(
+            "String",
+            "JAM_INVITE_BASE_URL",
+            "\"${jamInviteBaseUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
         )
         // Which release assets are this app's: the phone and TV APKs ship in
         // the same GitHub release, told apart by file name. See

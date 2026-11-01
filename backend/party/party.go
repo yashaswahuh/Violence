@@ -543,7 +543,7 @@ func NewParty(code string) *Party {
 }
 
 func NewPartyWithMaxMembers(code string, maxMembers int) *Party {
-	if maxMembers < 2 || maxMembers > 10 {
+	if maxMembers < 2 || maxMembers > config.MaxPartyMembers {
 		maxMembers = 5
 	}
 	now := clock.NowMs()
@@ -619,8 +619,8 @@ func (p *Party) SetMaxMembers(member *Member, maxMembers int) error {
 	if !member.IsHost {
 		return NewPartyError(403, "host_only", "Only the host can change the party size.")
 	}
-	if maxMembers < 2 || maxMembers > 10 {
-		return NewPartyError(422, "invalid_capacity", "Party size must be between 2 and 10.")
+	if maxMembers < 2 || maxMembers > config.MaxPartyMembers {
+		return NewPartyError(422, "invalid_capacity", fmt.Sprintf("Party size must be between 2 and %d.", config.MaxPartyMembers))
 	}
 	if maxMembers < len(p.Members) {
 		return NewPartyError(409, "party_too_small", "Party size cannot be smaller than the current member count.")
@@ -671,14 +671,36 @@ func (p *Party) Remove(memberId string) *Member {
 	}
 	delete(p.Members, memberId)
 	if m.IsHost && len(p.Members) > 0 {
-		for _, next := range p.Members {
+		if next := p.longestStandingMember(); next != nil {
 			next.IsHost = true
-			break
 		}
 	}
 	p.Touch()
 	p.refreshEmptiness()
 	return m
+}
+
+// longestStandingMember is who becomes host when the host leaves: the member who joined first among
+// those still connected or, when nobody is connected, the one who joined first overall. Picking "any
+// survivor" (Go's map order is random) could hand the room to a member who had already dropped off.
+func (p *Party) longestStandingMember() *Member {
+	var best *Member
+	for _, candidate := range p.Members {
+		if best == nil || preferredHost(candidate, best) {
+			best = candidate
+		}
+	}
+	return best
+}
+
+func preferredHost(a, b *Member) bool {
+	if a.Connected != b.Connected {
+		return a.Connected
+	}
+	if a.JoinedAtMs != b.JoinedAtMs {
+		return a.JoinedAtMs < b.JoinedAtMs
+	}
+	return a.MemberId < b.MemberId
 }
 
 func (p *Party) SpendControlBudget(member *Member) bool {

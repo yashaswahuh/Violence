@@ -1439,4 +1439,6 @@
     <string name="bit_perfect_status_unavailable">Indisponible pour ce morceau (%1$s)</string>
     <string name="listen_together_server_waking">Waking up the Jam server… this can take up to a minute.</string>
     <string name="listen_together_not_configured">Jam is not set up in this build yet. Add a party server address under Use your own server, or ask the owner for a build that has one.</string>
+    <string name="listen_together_track_unavailable">Can\'t play %1$s on this device. You\'ll rejoin the party on the next song.</string>
+    <string name="listen_together_share_code">Share code</string>
 </resources>

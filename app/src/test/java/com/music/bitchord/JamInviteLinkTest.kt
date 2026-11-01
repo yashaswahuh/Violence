@@ -40,42 +40,71 @@ class JamInviteLinkTest {
     }
 
     @Test
-    fun `rejects other hosts schemes paths and malformed codes`() {
+    fun `rejects plain http, other paths and malformed codes`() {
         assertNull(JamInviteLink.parse("http://yashaswahuh.is-a.dev/invite/ABC123"))
-        assertNull(JamInviteLink.parse("https://example.com/invite/ABC123"))
         assertNull(JamInviteLink.parse("https://yashaswahuh.is-a.dev/"))
         assertNull(JamInviteLink.parse("https://yashaswahuh.is-a.dev/download"))
-        assertNull(JamInviteLink.parse("https://yashaswahuh.is-a.dev/violence/invite/ABC123/"))
-        assertNull(JamInviteLink.parse("https://yashaswahuh.is-a.dev/violence/invite/ABC123/extra"))
-        assertNull(JamInviteLink.parse("https://yashaswahuh.is-a.dev/violence/invite/TOO-LONG"))
+        assertNull(JamInviteLink.parse("https://yashaswahuh.is-a.dev/Violence/party/ABC123/extra"))
+        assertNull(JamInviteLink.parse("https://yashaswahuh.is-a.dev/Violence/party/TOO-LONG"))
+        assertNull(JamInviteLink.parse("https://yashaswahuh.is-a.dev/Violence/party/ABC12"))
     }
 
     @Test
-    fun `builds the canonical share URL`() {
+    fun `reads the party landing page under the capital V base path and a trailing slash`() {
+        assertEquals("ABC123", JamInviteLink.parse("https://yashaswahuh.is-a.dev/Violence/party/abc123"))
+        assertEquals("ABC123", JamInviteLink.parse("https://yashaswahuh.is-a.dev/Violence/party/ABC123/"))
+        assertEquals("ABC123", JamInviteLink.parse("https://yashaswahuh.is-a.dev/party/ABC123"))
+        assertEquals("ABC123", JamInviteLink.parse("https://yashaswahuh.is-a.dev/Violence/invite/ABC123"))
+    }
+
+    @Test
+    fun `another https host with the same path is read, the base is configurable`() {
+        assertEquals("ABC123", JamInviteLink.parse("https://example.com/party/ABC123"))
+    }
+
+    @Test
+    fun `there is no web link without a configured base, only the code`() {
+        assertNull(JamInviteLink.webLink("abc123", null, ""))
+        assertNull(JamInviteLink.webLink("abc123", null, "   "))
+    }
+
+    @Test
+    fun `builds the web link from the configured base`() {
         assertEquals(
-            "https://yashaswahuh.is-a.dev/violence/invite/ABC123",
-            JamInviteLink.url("abc123"),
+            "https://yashaswahuh.is-a.dev/Violence/party/ABC123",
+            JamInviteLink.webLink("abc123", null, "https://yashaswahuh.is-a.dev/Violence"),
+        )
+        assertEquals(
+            "https://yashaswahuh.is-a.dev/Violence/party/ABC123",
+            JamInviteLink.webLink("abc123", "", "https://yashaswahuh.is-a.dev/Violence/"),
+        )
+        assertEquals(
+            "https://site.example/party/ABC123",
+            JamInviteLink.webLink("abc123", null, "site.example"),
         )
     }
 
     @Test
-    fun `builds the custom server share URL`() {
+    fun `a custom jam server rides along as an encoded query parameter`() {
         assertEquals(
-            "https://my-party.onrender.com/invite/ABC123",
-            JamInviteLink.url("abc123", "https://my-party.onrender.com"),
+            "https://yashaswahuh.is-a.dev/Violence/party/ABC123?server=https%3A%2F%2Fmy-party.onrender.com",
+            JamInviteLink.webLink("abc123", "https://my-party.onrender.com/", "https://yashaswahuh.is-a.dev/Violence"),
         )
+        // and reads back as the same code and server
+        val back = JamInviteLink.parseInvite(
+            "https://yashaswahuh.is-a.dev/Violence/party/ABC123?server=https%3A%2F%2Fmy-party.onrender.com",
+        )
+        assertEquals("ABC123", back?.code)
+        assertEquals("https://my-party.onrender.com", back?.serverUrl)
+    }
+
+    @Test
+    fun `the qr code holds the web link when there is one, else the app link`() {
         assertEquals(
-            "https://my-party.onrender.com/invite/ABC123",
-            JamInviteLink.url("abc123", "https://my-party.onrender.com/"),
+            "https://yashaswahuh.is-a.dev/Violence/party/ABC123",
+            JamInviteLink.qrContent("abc123", null, "https://yashaswahuh.is-a.dev/Violence"),
         )
-        assertEquals(
-            "https://yashaswahuh.is-a.dev/violence/invite/ABC123",
-            JamInviteLink.url("abc123", ""),
-        )
-        assertEquals(
-            "https://yashaswahuh.is-a.dev/violence/invite/ABC123",
-            JamInviteLink.url("abc123", null),
-        )
+        assertEquals("violence://party/ABC123", JamInviteLink.qrContent("abc123", null, ""))
     }
 
     @Test
@@ -139,28 +168,21 @@ class JamInviteLinkTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `invariant 1 default server generates canonical invite`() {
+    fun `invariant 1 default server generates the canonical invite`() {
         val code = "JAM001"
-        val activePartyHost = ListenTogether.defaultServer
-        val link = if (activePartyHost == ListenTogether.defaultServer) {
-            JamInviteLink.url(code, null)
-        } else {
-            JamInviteLink.url(code, activePartyHost)
-        }
-        assertEquals("https://yashaswahuh.is-a.dev/violence/invite/JAM001", link)
+        val base = "https://yashaswahuh.is-a.dev/Violence"
+        val link = JamInviteLink.webLink(code, null, base)
+        assertEquals("https://yashaswahuh.is-a.dev/Violence/party/JAM001", link)
     }
 
     @Test
     fun `invariant 2 custom server does not masquerade as default`() {
         val code = "JAM002"
+        val base = "https://yashaswahuh.is-a.dev/Violence"
         val customHost = "https://custom.jam.example.com"
-        val link = if (customHost == ListenTogether.defaultServer) {
-            JamInviteLink.url(code, null)
-        } else {
-            JamInviteLink.url(code, customHost)
-        }
-        assertEquals("https://custom.jam.example.com/invite/JAM002", link)
-        assertNotEquals("https://yashaswahuh.is-a.dev/violence/invite/JAM002", link)
+        val link = JamInviteLink.webLink(code, customHost, base)
+        assertEquals("https://yashaswahuh.is-a.dev/Violence/party/JAM002?server=https%3A%2F%2Fcustom.jam.example.com", link)
+        assertNotEquals(JamInviteLink.webLink(code, null, base), link)
     }
 
     @Test

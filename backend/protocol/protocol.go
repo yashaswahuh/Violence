@@ -2,7 +2,10 @@ package protocol
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+
+	"github.com/yashaswahuh/Violence/backend/config"
 )
 
 // Server -> Client frame types
@@ -103,8 +106,8 @@ func (r *JoinRequest) Validate() error {
 			r.AvatarUrl = &trimmed
 		}
 	}
-	if r.MaxMembers != nil && (*r.MaxMembers < 2 || *r.MaxMembers > 10) {
-		return errors.New("maxMembers must be between 2 and 10")
+	if r.MaxMembers != nil && (*r.MaxMembers < 2 || *r.MaxMembers > config.MaxPartyMembers) {
+		return fmt.Errorf("maxMembers must be between 2 and %d", config.MaxPartyMembers)
 	}
 	return nil
 }

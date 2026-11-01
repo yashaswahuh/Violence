@@ -4126,6 +4126,21 @@ class PlaybackService : MediaLibraryService() {
             // the middle of the last one. Releasing the choice without dropping
             // the bytes would trade one stuck track for a corrupt one.
             if (givingUp) {
+                // In a party this track is not this device's to move past: the party is still on it,
+                // and skipping would reload it (a loop) and, on the next pause or seek, tell
+                // everybody else to follow this phone to a different song. PartySync keeps the
+                // device quiet and rejoins on the party's next track; here only a small notice.
+                val stalled = withContext(Dispatchers.Main) { partySync?.onTrackUnplayable(mediaId) }
+                if (stalled != null) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            applicationContext,
+                            getString(R.string.listen_together_track_unavailable, stalled.title.ifBlank { stalled.videoId }),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                    return@launch
+                }
                 // A track nobody can play must not leave the player parked in
                 // IDLE on it. Nothing else in this service calls prepare() again,
                 // so before this the queue simply stopped: the notification kept

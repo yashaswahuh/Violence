@@ -402,6 +402,8 @@ export interface PartyHooks {
   onLockedTransport(playing: boolean): boolean;
   /** In a party, AutoPlay is the party's: one elected member tops up the shared queue. */
   inParty(): boolean;
+  /** The browser's autoplay policy refused a play() the party asked for (needs a tap). */
+  onPlayBlocked?(): void;
 }
 
 let partyHooks: PartyHooks | null = null;
@@ -1104,7 +1106,12 @@ export const partyPlayer = {
   },
   play(): void {
     const audio = getAudio();
-    if (audio?.paused) void audio.play().catch((e: unknown) => trackLog.w(`party play() refused: ${String(e)}`));
+    if (audio?.paused) {
+      void audio.play().catch((e: unknown) => {
+        trackLog.w(`party play() refused: ${String(e)}`);
+        if (e instanceof DOMException && e.name === 'NotAllowedError') partyHooks?.onPlayBlocked?.();
+      });
+    }
   },
   pause(): void {
     const audio = getAudio();

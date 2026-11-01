@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.music.bitchord.BuildConfig
 import com.music.bitchord.data.AppUpdateChecker
+import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.TvSettings
 import com.music.bitchord.ui.MainViewModel
@@ -38,6 +40,7 @@ import com.music.bitchord.ui.tv.components.TvListHeader
 import com.music.bitchord.ui.tv.components.TvListRow
 import com.music.bitchord.ui.tv.dialogs.TvAboutDialog
 import com.music.bitchord.ui.tv.dialogs.TvEqualizerDialog
+import com.music.bitchord.ui.tv.dialogs.TvListenTogetherDialog
 import com.music.bitchord.ui.tv.dialogs.TvLyricsSourcesDialog
 import com.music.bitchord.ui.tv.dialogs.TvRefreshRateDialog
 import com.music.bitchord.ui.tv.dialogs.TvScrobbleDialog
@@ -51,7 +54,7 @@ import com.music.bitchord.ui.tv.theme.TvGlass
 import com.music.bitchord.ui.tv.theme.TvType
 
 // Discord Rich Presence is hidden on TV for now; TvDiscordDialog is kept for when it returns.
-private enum class SettingsSheet { Theme, RefreshRate, Equalizer, Scrobbling, LyricsSources, Update, About }
+private enum class SettingsSheet { Theme, RefreshRate, Equalizer, Scrobbling, LyricsSources, Update, About, Jam }
 
 private const val DefaultBlurb = "Playback, sound and display preferences for Violence on this TV."
 
@@ -66,8 +69,12 @@ fun TvSettingsScreen(
     onOpenAccount: () -> Unit,
     onRunSetupAgain: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A Listen Together code that arrived as a violence://party/<CODE> link: opens the Jam dialog filled in. */
+    jamInviteCode: String? = null,
+    onJamInviteHandled: () -> Unit = {},
 ) {
     TvChromePinned()
+    val jamState by ListenTogether.state.collectAsState()
     val signedIn by viewModel.signedIn.collectAsState()
     val account by viewModel.account.collectAsState()
 
@@ -94,6 +101,9 @@ fun TvSettingsScreen(
     var blurb by remember { mutableStateOf(DefaultBlurb) }
     var sheet by remember { mutableStateOf<SettingsSheet?>(null) }
     val update by AppUpdateChecker.available.collectAsState()
+    LaunchedEffect(jamInviteCode) {
+        if (jamInviteCode != null) sheet = SettingsSheet.Jam
+    }
 
     Row(
         modifier = modifier
@@ -321,6 +331,16 @@ fun TvSettingsScreen(
                 )
             }
 
+            item { TvListHeader("Listen Together") }
+            item {
+                TvListRow(
+                    title = "Listen Together",
+                    value = if (jamState.inParty) "In party ${jamState.code.orEmpty()}" else "Start or Join",
+                    onFocused = { blurb = "Listen to the same music at the same moment as friends: start a party, or join one with its code." },
+                    onClick = { sheet = SettingsSheet.Jam },
+                )
+            }
+
             item { TvListHeader("Connections") }
             item {
                 TvListRow(
@@ -367,6 +387,13 @@ fun TvSettingsScreen(
         SettingsSheet.LyricsSources -> TvLyricsSourcesDialog(onDismiss = { sheet = null })
         SettingsSheet.Update -> update?.let { TvUpdateDialog(update = it, onDismiss = { sheet = null }) }
         SettingsSheet.About -> TvAboutDialog(onDismiss = { sheet = null })
+        SettingsSheet.Jam -> TvListenTogetherDialog(
+            initialCode = jamInviteCode,
+            onDismiss = {
+                sheet = null
+                onJamInviteHandled()
+            },
+        )
         null -> Unit
     }
 }

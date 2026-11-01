@@ -27,7 +27,7 @@ Never put real URLs or secrets in the repository. The server holds no secrets; t
 4. **Environment variables** (Advanced -> Add Environment Variable). Values are in `backend/render.yaml`:
    | Key | Value |
    |---|---|
-   | `JAM_MAX_MEMBERS` | `10` |
+   | `JAM_MAX_MEMBERS` | `15` |
    | `JAM_ALLOWED_ORIGINS` | `https://yashaswahuh.is-a.dev,http://localhost,http://localhost:5173` |
    | `JAM_TRUST_PROXY` | `true` |
    | `JAM_CREATE_RATE_PER_MINUTE` | `6` |
@@ -55,6 +55,7 @@ All checks must pass; paste the summary lines into `JAM_TEST_PLAN.md` ("Results"
   then `.\scripts\build-active.ps1 -Target phone` (or `tv`). It becomes the built-in default; anything typed under "Use your own server" in the app still wins. The old name `LISTEN_TOGETHER_SERVER` is still read if `JAM_BACKEND_URL` is absent.
 - **Web (GitHub Pages):** GitHub -> repo **Settings** -> **Secrets and variables** -> **Actions** -> **Variables** -> **New repository variable**: name `JAM_BACKEND_URL`, value `https://<your-service>.onrender.com`. Then Actions -> "Web Deploy" -> Run workflow. (`web.yml` maps it to `VITE_PARTY_SERVER_URL`.) Local web build: `$env:VITE_PARTY_SERVER_URL='https://...'` then `.\scripts\build-active.ps1 -Target web`.
 - **CI-built Android/TV APKs:** the same GitHub variable `JAM_BACKEND_URL` is written into `local.properties` by `android.yml`, `check.yml` and `tv.yml`.
+- **Invite links (optional, Phase 5):** `JAM_INVITE_BASE_URL` is where shared links point. Set it to your web player, for example `https://yashaswahuh.is-a.dev/Violence` (capital V: Pages is case sensitive), in `local.properties` (`JAM_INVITE_BASE_URL=...`) and as a GitHub repo variable of the same name (Android/TV CI reads it). Links then look like `https://yashaswahuh.is-a.dev/Violence/party/<CODE>` and open the web landing page. **Leave it empty to share only the code** (the invite sheet then offers *Share code* and *Copy code*, and the QR code opens the app via `violence://party/<CODE>`). For the web build the variable is `VITE_INVITE_BASE_URL`; wiring it into the Pages workflow is a later phase, so until then only set it for a local web build.
 - **Everyone's app:** install the new build. Old builds (and a build with no URL) show "Jam is not set up in this build yet" instead of failing; the user can also type the address under **Use your own server**. **Everyone in a party must use the same server.**
 
 ## 5. How the apps behave with a sleeping server
