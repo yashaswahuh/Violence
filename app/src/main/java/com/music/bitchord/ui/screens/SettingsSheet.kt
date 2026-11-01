@@ -203,6 +203,7 @@ fun SettingsScreen(
     onListenTogether: () -> Unit,
     onProfile: () -> Unit,
     onFriends: () -> Unit,
+    onReceive: () -> Unit,
     onWearOs: () -> Unit,
     onSpotifyCanvasAuth: () -> Unit,
     onAppLanguage: () -> Unit,
@@ -483,6 +484,15 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.friends_row_subtitle),
                         badge = friendCount.size.takeIf { it > 0 }?.toString(),
                         onClick = onFriends,
+                    )
+                }
+                val receiveTitle = stringResource(R.string.receive_title)
+                row(receiveTitle, "nfc", "qr", "scan", "tap", "share", "link") {
+                    SettingsRow(
+                        icon = SfIcons.Add,
+                        title = receiveTitle,
+                        subtitle = stringResource(R.string.receive_row_subtitle),
+                        onClick = onReceive,
                     )
                 }
                 val accountTitle = stringResource(R.string.account_integrations)

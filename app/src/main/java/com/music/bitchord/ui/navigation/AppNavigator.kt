@@ -22,6 +22,7 @@ sealed interface AppRoute {
     data object ListenTogether : AppRoute
     data object Profile : AppRoute
     data object Friends : AppRoute
+    data object Receive : AppRoute
     data object WearOs : AppRoute
     data object Equalizer : AppRoute
     data object Replay : AppRoute

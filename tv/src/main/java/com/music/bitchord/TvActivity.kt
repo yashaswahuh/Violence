@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
 import com.music.bitchord.data.listentogether.JamInviteLink
+import com.music.bitchord.share.IncomingLinkHub
 import com.music.bitchord.playback.MusicLink
 import com.music.bitchord.playback.PlayerDeepLink
 import com.music.bitchord.playback.rememberMediaController
@@ -35,7 +36,7 @@ class TvActivity : ComponentActivity() {
         // An invite that *started* the app (a cold launch from violence://party/<CODE>). The phone does
         // this in its onCreate; here only onNewIntent did, so a link opened on a TV that was not
         // already running was dropped.
-        JamInviteLink.consume(intent)
+        IncomingLinkHub.consume(intent)
 
         // Make window full edge-to-edge for 1080p/4K television screens
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -67,7 +68,7 @@ class TvActivity : ComponentActivity() {
 
     private fun consumeLinks(intent: Intent) {
         PlayerDeepLink.consume(intent)
-        JamInviteLink.consume(intent)
+        IncomingLinkHub.consume(intent)
         MusicLink.consume(intent)
     }
 

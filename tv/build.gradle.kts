@@ -395,6 +395,16 @@ dependencies {
     // the rest of the app rather than a stock black-and-white bitmap.
     implementation("com.google.zxing:core:3.5.3")
 
+    // ---- QR scanning, for receiving a shared song, profile or Jam invite ----
+    // CameraX (Apache-2.0) gives the preview and the frames; ZXing `core` above decodes them
+    // ([com.music.bitchord.share.QrDecoder]). No Play Services / ML Kit. The phone asks for the
+    // camera permission only when the scan screen opens. The TV has no camera and never shows the
+    // scanner, but it compiles the phone's sources, so it needs the same classes.
+    implementation("androidx.camera:camera-core:1.6.2")
+    implementation("androidx.camera:camera-camera2:1.6.2")
+    implementation("androidx.camera:camera-lifecycle:1.6.2")
+    implementation("androidx.camera:camera-view:1.6.2")
+
     // ---- Markdown rendering (release notes in the update dialog) ----
     // Pure Compose, not an AndroidView wrapper — needed so the text composes
     // correctly under the dialog's Haze blur.

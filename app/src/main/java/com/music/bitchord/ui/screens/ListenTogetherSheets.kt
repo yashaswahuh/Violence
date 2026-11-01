@@ -699,10 +699,10 @@ internal fun JoinConfirmSheet(
 /**
  * How somebody else gets in: a link to send, or a square to point a camera at.
  *
- * No tap-to-join over NFC, which the obvious reference for this sheet has.
- * Android's side of that is a foreground-dispatch dance that needs both phones
- * awake, unlocked, and in the app, which is a lot of explaining for something
- * slower than reading six characters aloud.
+ * Tap to share (Phase 9) is offered on phones with NFC: the sheet opens the
+ * Tap to share screen, and the other phone reads the invite from its Receive
+ * screen or straight from the system when the app is closed. Phones without NFC
+ * simply do not see the option; the link, the code and the QR code stay.
  */
 @Composable
 internal fun InviteSheet(
@@ -714,6 +714,8 @@ internal fun InviteSheet(
     onShareLink: () -> Unit,
     onShareCode: () -> Unit,
     onCopyCode: () -> Unit,
+    /** Opens Tap to share for this invite, or null on a phone with no NFC (the option is hidden). */
+    onTapToShare: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -753,6 +755,14 @@ internal fun InviteSheet(
                     text = stringResource(R.string.listen_together_share_code),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        if (onTapToShare != null) {
+            TextButton(onClick = onTapToShare, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                Text(
+                    text = stringResource(R.string.share_tap),
+                    style = MaterialTheme.typography.titleMedium,
                 )
             }
         }

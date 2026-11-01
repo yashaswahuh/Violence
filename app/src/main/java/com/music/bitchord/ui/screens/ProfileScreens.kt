@@ -56,6 +56,9 @@ import com.music.bitchord.data.profile.ProfileCardCodec
 import com.music.bitchord.data.profile.ProfileManager
 import com.music.bitchord.data.profile.ProfileRepository
 import com.music.bitchord.data.profile.ProfileRules
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.IosShare
+import com.music.bitchord.share.ShareItem
 import com.music.bitchord.ui.components.PillTextField
 import com.music.bitchord.ui.icons.SfIcons
 import com.music.bitchord.ui.profile.ProfileAvatar
@@ -85,6 +88,7 @@ fun ProfileScreen(
     var color by rememberSaveable(saved?.id) { mutableStateOf(saved?.color ?: ProfileRules.DEFAULT_COLOR) }
     var photoStamp by remember { mutableIntStateOf(0) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var sharing by remember { mutableStateOf(false) }
 
     val photo = remember(photoStamp, saved?.id) { ProfileManager.photo() }
     val check = ProfileRules.checkName(name)
@@ -246,6 +250,17 @@ fun ProfileScreen(
             }
         }
 
+        if (saved != null) {
+            SettingsGroup(topSpacing = 0.dp) {
+                SettingsRow(
+                    icon = Icons.Rounded.IosShare,
+                    title = stringResource(R.string.share_my_profile),
+                    subtitle = stringResource(R.string.share_tap_subtitle),
+                    onClick = { sharing = true },
+                )
+            }
+        }
+
         SettingsGroup(
             header = stringResource(R.string.profile_photo_header),
             footer = stringResource(R.string.profile_photo_footer),
@@ -279,6 +294,10 @@ fun ProfileScreen(
         Spacer(Modifier.height(24.dp))
     }
 
+    if (sharing) {
+        saved?.let { me -> ShareSheet(item = ShareItem.ProfileItem(me.toCard()), onDismiss = { sharing = false }) }
+    }
+
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
@@ -310,6 +329,7 @@ private const val MAX_TYPED = 60
 @Composable
 fun FriendsScreen(
     contentPadding: PaddingValues,
+    onReceive: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -334,6 +354,14 @@ fun FriendsScreen(
                 icon = SfIcons.Add,
                 title = stringResource(R.string.friends_paste),
                 onClick = { showPaste = true },
+            )
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+            // Tap phones, scan a QR code, paste a link: all of them end in the same confirmation.
+            SettingsRow(
+                icon = SfIcons.Groups,
+                title = stringResource(R.string.receive_title),
+                subtitle = stringResource(R.string.receive_row_subtitle),
+                onClick = onReceive,
             )
         }
 
@@ -395,33 +423,7 @@ fun FriendsScreen(
     }
 
     candidate?.let { card ->
-        AlertDialog(
-            onDismissRequest = { candidate = null },
-            title = { Text(stringResource(R.string.friends_add_title, card.displayName)) },
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ProfileAvatar(card.avatarId, card.color, card.displayName, 48.dp)
-                    Spacer(Modifier.width(14.dp))
-                    // Plain text, always: the name came from somebody else.
-                    Text(card.displayName, style = MaterialTheme.typography.titleMedium)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    candidate = null
-                    val message = when (ProfileManager.addFriend(card)) {
-                        is Friends.AddResult.Added -> context.getString(R.string.friends_added, card.displayName)
-                        is Friends.AddResult.Updated -> context.getString(R.string.friends_updated, card.displayName)
-                        Friends.AddResult.IsYou -> context.getString(R.string.friends_is_you)
-                        Friends.AddResult.ListFull -> context.getString(R.string.friends_full)
-                    }
-                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                }) { Text(stringResource(R.string.friends_add_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { candidate = null }) { Text(stringResource(R.string.cancel)) }
-            },
-        )
+        AddFriendDialog(card = card, onFinished = { candidate = null }, onCancel = { candidate = null })
     }
 
     editing?.let { friend ->
@@ -562,5 +564,39 @@ fun ProfileSuggestionDialog(
         dismissButton = {
             TextButton(onClick = onSkip) { Text(stringResource(R.string.profile_suggest_skip)) }
         },
+    )
+}
+
+/**
+ * "Add <name> as a friend?": the confirmation for a profile card, wherever it came from (a pasted
+ * link, an NFC tap, a QR code, a link). The name is somebody else's text and is shown as plain
+ * text. Adding the same person again only refreshes their details.
+ */
+@Composable
+fun AddFriendDialog(card: ProfileCard, onFinished: () -> Unit, onCancel: () -> Unit) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.friends_add_title, card.displayName)) },
+        text = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ProfileAvatar(card.avatarId, card.color, card.displayName, 48.dp)
+                Spacer(Modifier.width(14.dp))
+                Text(card.displayName, style = MaterialTheme.typography.titleMedium)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val message = when (ProfileManager.addFriend(card)) {
+                    is Friends.AddResult.Added -> context.getString(R.string.friends_added, card.displayName)
+                    is Friends.AddResult.Updated -> context.getString(R.string.friends_updated, card.displayName)
+                    Friends.AddResult.IsYou -> context.getString(R.string.friends_is_you)
+                    Friends.AddResult.ListFull -> context.getString(R.string.friends_full)
+                }
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                onFinished()
+            }) { Text(stringResource(R.string.friends_add_confirm)) }
+        },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },
     )
 }

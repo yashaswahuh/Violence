@@ -90,6 +90,8 @@ import coil3.compose.AsyncImage
 import com.music.bitchord.R
 import com.music.bitchord.data.listentogether.JamInviteLink
 import com.music.bitchord.data.listentogether.ListenTogether
+import com.music.bitchord.nfc.NfcSendState
+import com.music.bitchord.nfc.NfcShareSession
 import com.music.bitchord.ui.profile.ProfileAvatar
 import com.music.bitchord.data.listentogether.PartyActivity
 import com.music.bitchord.data.listentogether.PartyMember
@@ -160,6 +162,9 @@ fun ListenTogetherScreen(
     var maxMembers by remember { mutableIntStateOf(8) }
     var pendingServerSwitchInvite by remember { mutableStateOf<Pair<String, String>?>(null) }
     var sheet by remember { mutableStateOf<PartySheet?>(null) }
+    // Tap to share for the invite: only on a phone with NFC (the option is hidden elsewhere).
+    var tapSharing by remember { mutableStateOf(false) }
+    val tapToShareAvailable = remember { NfcShareSession.sendState(context) != NfcSendState.NO_NFC }
 
     // Hoisted so a sheet can be *animated* away rather than dropped out of the
     // composition, which is the only way one sheet can hand over to another:
@@ -353,6 +358,13 @@ fun ListenTogetherScreen(
         )
     }
 
+    if (tapSharing) {
+        TapToShareDialog(
+            uri = JamInviteLink.schemeUrl(state.code.orEmpty(), customServerForLinks()),
+            onDismiss = { tapSharing = false },
+        )
+    }
+
     sheet?.let { open ->
         ModalBottomSheet(
             onDismissRequest = {
@@ -479,6 +491,14 @@ fun ListenTogetherScreen(
                     onShareCode = {
                         sheet = null
                         shareCode()
+                    },
+                    onTapToShare = if (tapToShareAvailable) {
+                        {
+                            sheet = null
+                            tapSharing = true
+                        }
+                    } else {
+                        null
                     },
                     onCopyCode = {
                         clipboard.setText(AnnotatedString(state.code.orEmpty()))

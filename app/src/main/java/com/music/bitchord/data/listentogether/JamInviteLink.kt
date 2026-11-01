@@ -58,6 +58,16 @@ object JamInviteLink {
         _pending.value = null
     }
 
+    /**
+     * An invite that arrived through the shared incoming-link handler (an NFC tap, a QR scan, a
+     * pasted link), already validated by [com.music.bitchord.share.IncomingLinkHub]. It joins the
+     * same path as a tapped link: the Listen Together screen opens with the code ready, previews
+     * the party and asks before joining.
+     */
+    fun offer(invite: ParsedJamInvite) {
+        _pending.value = invite
+    }
+
     /** Returns the normalized party code only for a recognised invite URL. */
     fun parse(value: String?): String? = parseInvite(value)?.code
 
