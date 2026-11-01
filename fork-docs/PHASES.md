@@ -187,47 +187,26 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 - **Verification:** web built with `VITE_BASE_URL=/Violence/` and with every optional value missing; the CI sanity checks pass on the real output; `serve-pages-local.mjs --check`: 16/16 (assets, manifest, robots, models, deep links get 404.html, wrong-case folder is not the site); a real headless Edge run through the 404 redirect rendered the landing page for `/Violence/party/AB12CD` (with and without `?server=`), `/invite/..`, `/settings/listen-together` and the home page; both workflows parse as YAML with every action pinned and no secret inside a script; phone and TV debug builds via `scripts/build-active.ps1` pass; web typecheck and 167 web tests pass. Wear OS and desktop: dormant, not checked.
 - **UNVERIFIED until the first GitHub run:** `setup-android@v3` + `sdkmanager` on the runner, JDK 21 discovery through `JAVA_HOME_21_X64`, private-repo Pages deployment, the `github-pages` environment branch rule, and whether `yashaswahuh.is-a.dev` is the user site's custom domain.
 
-## Phase 7: Android TV Target Optimization & Polish
+## Phase 7: TV Verification, Release Signing, Private In-App Updates and App Links [COMPLETED in the repo; real-device and GitHub testing pending the owner]
 
-- **Primary Goal:** Verify all TV-specific features on an Android TV device or emulator.
-- **Files Touched:**
-  - `tv/src/main/java/com/music/bitchord/ui/tv/auth/TvAuthServer.kt`: Ensure QR code auth works with rebranded app.
-  - `tv/src/main/java/com/music/bitchord/ui/tv/dialogs/TvDialogs.kt`: Clean attribution strings in `TvAboutDialog`.
-  - `tv/src/main/java/com/music/bitchord/ui/tv/screens/TvNowPlayingScreen.kt`: Validate D-pad focus in Jam mode.
-- **Definition of Done:**
-  - Android TV APK installs and renders properly on a 1080p/4K Leanback display.
-  - Remote control d-pad navigation and QR-code login function without crash.
-- **Verification:**
-  - Run `./gradlew :tv:assembleDevDebug`.
-  - Install and launch on Android TV emulator or physical TV.
+- **Status:** **DONE in the repository** (2026-11-02). Nothing was run on a phone, TV, or on GitHub.
+- **Branch:** `violence-nk`. **Commits:** `bed8fda5` (update check), `a0dc30e1` (App Links), `25405c72` (signing template, `release.ps1`, `web.yml` update files), `661c3cdc` (TV Jam focus), `60610ba4` (per-CPU update APKs), `92715997` (TV plan, App Links, release guide), `8259f288` (project docs).
+- **Differences from the old PHASES text:** this phase **merges the old Phase 7 (TV polish), Phase 8 (updates via GitHub Releases) and Phase 9 (keystore + CI signing)**. Changed on purpose: updates do **not** use the GitHub API (a private repo's release assets need a login); the app reads an `update.json` that the web workflow copies from the newest release onto GitHub Pages. Signing stays on the owner's machine (`scripts/release.ps1`); **no keystore or password goes into GitHub Secrets or CI**, so there is no signed-release CI job. The App Links prefix is `/Violence/party/` (capital V), not `/violence/party/`. Old Phase 9's "install on personal devices" remains the owner's.
+- **What changed:** see `RELEASE_GUIDE.md` (keystore, releasing, installing), `APP_LINKS.md`, `TV_TEST_PLAN.md`, `PROJECT_STATE.md` section 18. Version is read from the root `build.gradle.kts` by phone and TV; TV release no longer falls back to the debug key; `UPDATE_INFO_URL` (local.properties/env, empty = off) and `UPDATE_APK_KEY` replace `UPDATE_APK_PREFIX`.
+- **Verification:** `scripts/release.ps1` built the phone and TV release variants (R8 minified, `-dontobfuscate`) signed with a **throwaway keystore created outside the repo for the test only (deleted afterwards)**; `apksigner` verified all 8 APKs; `apkanalyzer` shows the Jam, Last.fm, login, lyrics, Ktor, NewPipe and Rhino classes present in both release dex files and the merged manifest has the verified invite filter, `REQUEST_INSTALL_PACKAGES` and the `com.yashaswahuh.violencemusic.provider` FileProvider. Sizes: universal 183 MB (phone) / 170 MB (TV); per-CPU 65 to 92 MB. `scripts/build-active.ps1` (phone and TV dev debug) and `test-active.ps1` (phone incl. 9 new update tests, shared, 167 web) pass. The dev flavor was built as debug only, not as minified release. Dormant modules: not touched or built.
+- **UNVERIFIED:** class presence is not runtime behavior (Jam, Last.fm, playback, search, lyrics, downloads and both logins in a release build need a device); TV focus (static review only); installer flow; the release-triggered site deploy and the `v*` environment rule; Pages per-file limit; assetlinks verification; whether `yashaswahuh.is-a.dev` is the user site's custom domain.
 
 ---
 
-## Phase 8: In-App Self-Updating via GitHub Releases
+## Phase 8: In-App Self-Updating via GitHub Releases [MERGED into Phase 7, done differently]
 
-- **Primary Goal:** Reconfigure the sideloaded APK update mechanism to check the user's private/personal GitHub releases.
-- **Files Touched:**
-  - `app/src/main/java/com/music/bitchord/data/AppUpdateChecker.kt`:
-    Update `LATEST_RELEASE_URL` to `https://api.github.com/repos/<owner>/<repo>/releases/latest`.
-  - `tv/src/main/java/com/music/bitchord/data/TvStartup.kt`: Verify TV update checker uses same endpoint with TV prefix.
-- **Definition of Done:**
-  - When a new GitHub release tag is published with signed APKs, the app detects it on startup, prompts the user, downloads the APK, and prompts installation.
-- **Verification:**
-  - Mock or publish a draft release tag and verify update dialog appears in app.
+See Phase 7: the update flow reads `update.json` from the owner's GitHub Pages site instead of the GitHub API.
 
 ---
 
-## Phase 9: Release Keystore Setup & Automated GitHub Actions
+## Phase 9: Release Keystore Setup & Automated GitHub Actions [MERGED into Phase 7, partly]
 
-- **Primary Goal:** Generate a private release keystore, configure CI workflow to sign release APKs on tag push, and perform full end-to-end audit.
-- **Files Touched:**
-  - Generate `fork-release.jks` (local only, gitignored).
-  - Update `keystore.properties.example` with instructions.
-  - `.github/workflows/android.yml`: Set up automated signing using GitHub Secrets (`KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD`).
-  - `.github/workflows/tv.yml`: Add signed release build job for TV.
-- **Definition of Done:**
-  - Tagging `v1.0.0` in git automatically triggers GitHub Actions, compiles signed Phone and TV APKs, and publishes them as assets on GitHub Releases.
-  - Final signed APK installed and verified on personal devices.
+Keystore setup, `keystore.properties.example` and signed builds are in Phase 7 (local, by `scripts/release.ps1`). A CI job that signs with secrets was deliberately **not** added. The final end-to-end audit on personal devices is still the owner's.
 
 ---
 
