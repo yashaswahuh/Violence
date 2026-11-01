@@ -149,5 +149,11 @@ Once, after setup/onboarding, if there is no profile: a small dialog "Make your 
 - Go: `JoinRequest.Validate` for the new optional fields (valid, invalid-and-dropped, absent) and member serialisation.
 - Manual: `JAM_TEST_PLAN.md` section "Profile in Jam".
 
-## 12. Implementation status
-See `PHASES.md` (Phase 8) for the date, commits and what was verified.
+## 12. Implementation status (2026-11-01)
+Implemented as designed, on phone, TV and web. What was verified and what is still UNVERIFIED is in `PHASES.md` (Phase 8). Deviations and details that the design did not spell out:
+- **Strings:** the 56 new phone strings are English placeholders in all 17 other language files (the locale test only checks that the keys exist). The TV uses plain English text like the rest of the TV UI; the web too.
+- **Suggestion dialog (phone):** shown once to existing users after the update too (they have never had a profile), but never during onboarding or while an update dialog is up.
+- **Web suggestion:** a dismissible banner at the bottom, lowest priority after the extension, update and party banners.
+- **Jam gate:** the phone, TV and web Jam screens treat "has a profile" like "signed in to YouTube Music".
+- **Backup:** `violence_profile.xml` and `files/profile/` are excluded from cloud backup (`backup_rules.xml`, `data_extraction_rules.xml`); device-to-device transfer keeps them.
+- **Invisible-character list:** besides Unicode categories, eight look-alikes (Hangul filler, braille blank, combining grapheme joiner and similar) are rejected; stacks of more than four combining marks are rejected. Unicode data differs slightly between the JVM and the browser for very new characters.

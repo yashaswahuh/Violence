@@ -18,7 +18,7 @@ Both manifests (`app/src/main/AndroidManifest.xml`, `tv/src/main/AndroidManifest
 
 **The folder is `/Violence/` with a capital V.** The Phase 7 brief wrote `/violence/party/`; GitHub Pages serves the project under the repository's exact name and Android path prefixes are case sensitive, so the prefix has to match what the link really contains. The link builder (`JamInviteLink`) produces `.../Violence/party/<CODE>`, and the reader accepts any base path.
 
-It is built to grow: later features (a shared song, a profile) are one more line each in **both** manifests, for example `<data android:pathPrefix="/Violence/song/" />`, plus the page for it on the website. **No change to assetlinks.json is needed** for new prefixes (it covers the whole domain).
+It is built to grow: later features (a shared song, a profile) are one more line each in **both** manifests, for example `<data android:pathPrefix="/Violence/song/" />`, plus the page for it on the website. **Phase 9 (profile sharing) adds `/Violence/profile`** (the https form of the profile card, `PROFILE_DESIGN.md` section 4); until then a profile link is only accepted by pasting it into Friends, and the manifests are unchanged. **No change to assetlinks.json is needed** for new prefixes (it covers the whole domain).
 
 Verification covers the **release** apps only: `com.yashaswahuh.violencemusic` (phone) and `com.yashaswahuh.violencemusic.tv` (TV), signed with your release key. The `.dev` flavors and debug/CI builds are signed differently and are simply not verified (their links fall back to the landing page).
 

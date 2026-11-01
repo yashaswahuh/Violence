@@ -30,6 +30,11 @@ The website cannot reach YouTube by itself. A small add-on called **Violence** d
 2. Come back to the Violence website and search or browse, then press play.
 3. **Spotify** (optional): sign in to Spotify in the same browser to use your playlists.
 
+## Your Violence profile (optional)
+- **Settings > Create your profile** lets you pick a name, a picture and a colour. People in your Listen Together party see them instead of your YouTube Music name and picture. You can skip it: everything works without one.
+- It is kept only in this browser and has nothing to do with your YouTube Music or Spotify sign-in. With a profile you can start or join a party without signing in to YouTube Music.
+- **Settings > Friends** keeps a list of people you added by pasting their profile link. Clear it or delete the profile any time from the same pages.
+
 ## Listening together
 - Open **Listen Together** from the menu. **Start a party** gives you a 6-character code; **Join** takes a code. You can paste a whole invite link or message into the box and it picks out the code.
 - If someone sends you a link that looks like `.../Violence/party/ABC123`, open it and press **Join in this browser** (or **Open in Violence app** if you are on Android).

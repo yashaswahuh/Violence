@@ -84,3 +84,15 @@ Build (versionName):
 Step number and what happened:
 Which buttons were pressed before it happened:
 ```
+
+## 9. Profile and Friends on the TV (Phase 8)
+Settings > "Violence Profile" has two rows: **Profile** and **Friends**. Remote only; the name is typed on the TV keyboard (press OK on the field). UNVERIFIED on real hardware.
+- [ ] **First run.** After setup (and after any update dialog), "Make Your Violence Profile?" appears once, with focus on **Not Now**. Back or Not Now dismisses it and it never returns; **Create Profile** opens the editor.
+- [ ] **Editor focus.** Name field is focused first. Down moves to the 24 picture cells (3 rows of 8), then the 10 colour cells, then **Save**. Left/Right/Up/Down never lose focus in the grids; the selected cell has a ring, the focused cell a brighter ring.
+- [ ] **Emoji.** Every one of the 24 pictures shows as a picture (not an empty box) on this TV. If some show as boxes, the TV has no colour-emoji font: report which ones.
+- [ ] **Save** is dimmed until the name is valid (1 to 24 characters, no odd characters); a bad name shows a reason. Saving closes the dialog and Settings shows the name on the Profile row.
+- [ ] **Delete Profile** asks first, focus on **Cancel**; deleting returns the row to "Create".
+- [ ] **Jam.** Listen Together with a profile but no YouTube Music sign-in lets you start/join (it used to demand a sign-in). The message without either says to make a profile or sign in.
+- [ ] **Friends.** "Add From Profile Link" opens a field: type or use **Paste From Clipboard**, **Check Link** shows "Add <name> as a friend?" with focus on **Add Friend**. A wrong link shows a plain reason. Adding yourself says it is your own profile.
+- [ ] **Friend list.** Each friend opens an editor with a nickname field, **Save**, **Remove Friend**, **Back**. **Clear Friends List** asks first (focus on Cancel). Back from every sub-screen returns to the list, never leaves the dialog stuck.
+- [ ] No photo option is shown on the TV (by design).

@@ -1,5 +1,7 @@
 # Jam test plan and results
 
+> **Update (Phase 8, 2026-11-01):** Go 1.27.3 was run from a portable zip (not installed), so the Go tests and the real backend ran for the first time. Sections 1 and 7 below describe the earlier state; the current results are in **section 12**, and the Phase 8 manual checklist is **section 13**.
+
 ## 1. What could and could not be run on the owner's PC (2026-11-01)
 | Check | Run? | Why |
 |---|---|---|
@@ -100,3 +102,40 @@ Prerequisites: backend deployed, both phones on a build with `JAM_BACKEND_URL` s
 2. Join with a Code: D-pad to the keys, OK enters a character, Delete/Clear work, Join becomes available at 6 characters.
 3. `adb shell am start -a android.intent.action.VIEW -d violence://party/<CODE>` on the TV, cold and warm: Settings opens with Listen Together filled in and Join focused.
 4. In a party the dialog shows the code and members in two columns; Leave Party works.
+
+
+---
+
+# Phase 8 additions: profile identity in Jam
+
+## 12. What was run in Phase 8 (2026-11-01, on the build PC, local only)
+Go 1.27.3 (the version `backend/go.mod` names) was downloaded from go.dev as a zip, checked against the published SHA-256, and extracted into a scratch folder: nothing was installed system-wide and nothing from it is in the repo.
+
+| Check | Result |
+|---|---|
+| `go vet ./...` | clean |
+| `go test ./...` (all packages, including the Phase 5 host-handover and 15-member tests that had never run, and the new profile tests) | **all packages pass** (`backend`, `codes`, `config`, `party`, `presence`, `protocol`) |
+| `go test -race` | **not run**: the race detector needs a working C compiler, which this PC does not have |
+| `go build` of the real server, run locally on a spare port | works |
+| `scripts/jam-test.mjs --clients 2` (old-style clients, no profile fields) against the real server | **18/18** |
+| `scripts/jam-test.mjs --clients 4 --profiles` (mixed old and profile clients) | **23/23**, including: profile fields come back in the member list, members without a profile carry none, the preview shows avatar and colour but never the profile id |
+| `scripts/jam-test.mjs --clients 15 --room-size 15 --profiles` (one room of 15) | **34/34**, play fan-out latency median 1 ms on localhost |
+| Same script against the server **built from the commit before Phase 8** (old server) | mixed clients **21/23**: only the two profile-display checks fail, as expected (an old server ignores the fields: 0 of 2 members come back with a profile); old-style clients **18/18**. So **old server + new client works, it just shows no avatars** |
+| Server log during the runs | nothing with a name, avatar id, colour or profile id |
+
+Found on the first real run, not caused by Phase 8: `scripts/jam-test.mjs` expected the current track to be inside the queue; the server keeps it apart (a queue of the two added tracks). The two checks were wrong, not the server, and were corrected.
+
+Not run: the Dockerfile and a Render build (no Docker), the deployed server, any phone/TV/browser (sections 8 to 11 and 13 are yours).
+
+## 13. Profile in Jam: manual checks (owner, real devices)
+Prerequisites: backend redeployed with the Phase 8 code (steps in `JAM_BACKEND_DEPLOY.md` section 6) for steps 1 to 4 and 7; the old server is enough for step 5.
+1. **Profile shown.** Phone A: Settings > Profile, make a profile (name, a picture, a colour), Save. Start a party. A's own page shows the picture on its colour, not the YouTube Music picture.
+2. **Other phone sees it.** Phone B (with or without a profile) joins: B's member list shows A as the coloured picture and A's profile name. The join-confirm sheet's face row shows the same.
+3. **Web.** Join from the web player: A shows as the same picture on its colour (web member list), and a web profile shows on the phones.
+4. **TV.** Settings > Profile on the TV, make one, then Listen Together > Start/Join. The phones show the TV member's picture; the TV list shows names.
+5. **Old protocol.** Point the apps at the old (not redeployed) server, or just use a build from before Phase 8 on phone B. Joining works; B or the old server shows an initial instead of the picture; nothing errors.
+6. **No profile, previous behaviour.** Delete the profile (Settings > Profile > Delete profile), then start a party signed in to YouTube Music: it uses the YouTube Music name and picture exactly as before. Signed out and without a profile it says to make a profile or sign in.
+7. **Jam without signing in.** On a phone that is signed out of YouTube Music but has a profile, Listen Together creates/joins. (UNVERIFIED: whether playback of every track works signed out; the party only needs identity.)
+8. **Nickname.** Type a nickname in the create/join sheet: it replaces the profile name for that party; clear it and the profile name returns.
+9. **Rejoin after editing.** Change the profile picture while in a party, leave, rejoin: the new picture shows. Delete the profile, rejoin: the YouTube Music identity shows.
+10. **Privacy.** In a party, nothing about the Google account appears anywhere; a photo set on the phone never appears on another device.
