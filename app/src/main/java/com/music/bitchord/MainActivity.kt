@@ -172,6 +172,10 @@ import com.music.bitchord.ui.screens.SettingsChoicePage
 import com.music.bitchord.ui.components.SpotifyImportAlert
 import com.music.bitchord.ui.screens.WearOsScreen
 import com.music.bitchord.ui.screens.AccountAndScrobblingScreen
+import com.music.bitchord.data.profile.ProfileManager
+import com.music.bitchord.ui.screens.FriendsScreen
+import com.music.bitchord.ui.screens.ProfileScreen
+import com.music.bitchord.ui.screens.ProfileSuggestionDialog
 import com.music.bitchord.ui.screens.DiscordDialog
 import com.music.bitchord.ui.screens.DiscordDialogHost
 import com.music.bitchord.ui.screens.DiscordScreen
@@ -866,6 +870,9 @@ private fun BitChordApp(
         override = AppSettings.streamCeilingOverride.collectAsStateWithLifecycle().value,
     )
     val signedIn by viewModel.signedIn.collectAsStateWithLifecycle()
+    // A Violence profile is enough to jam: it needs no YouTube Music sign-in.
+    val myProfile by ProfileManager.profile.collectAsStateWithLifecycle()
+    val canJam = signedIn || myProfile != null
     val incomingJamInvite by JamInviteLink.pending.collectAsStateWithLifecycle()
     var activeJamInviteCode by rememberSaveable { mutableStateOf<String?>(null) }
     var activeJamInviteServer by rememberSaveable { mutableStateOf<String?>(null) }
@@ -884,8 +891,8 @@ private fun BitChordApp(
         navigator.reset(AppRoute.Settings, AppRoute.ListenTogether)
         JamInviteLink.handled()
     }
-    LaunchedEffect(signedIn, activeJamInviteCode) {
-        if (signedIn && activeJamInviteCode != null) {
+    LaunchedEffect(canJam, activeJamInviteCode) {
+        if (canJam && activeJamInviteCode != null) {
             navigator.pushAll(AppRoute.Settings, AppRoute.ListenTogether)
         }
     }
@@ -3019,6 +3026,13 @@ private fun BitChordApp(
                                 onOpenSpotify = { navigator.push(AppRoute.Spotify) },
                                 contentPadding = listPadding,
                             )
+                        } else if (pageRoute == AppRoute.Profile) {
+                            ProfileScreen(
+                                contentPadding = listPadding,
+                                onClose = { navigator.pop() },
+                            )
+                        } else if (pageRoute == AppRoute.Friends) {
+                            FriendsScreen(contentPadding = listPadding)
                         } else if (pageRoute == AppRoute.Sources) {
                             SourcesScreen(
                                 contentPadding = listPadding,
@@ -3036,7 +3050,7 @@ private fun BitChordApp(
                             WearOsScreen(contentPadding = listPadding)
                         } else if (pageRoute == AppRoute.ListenTogether) {
                             ListenTogetherScreen(
-                                signedIn = signedIn,
+                                signedIn = canJam,
                                 inviteCode = activeJamInviteCode,
                                 inviteServer = activeJamInviteServer,
                                 onInviteHandled = {
@@ -3092,6 +3106,8 @@ private fun BitChordApp(
                                 onTranslationLanguage = { showTranslationLanguage = true },
                                 onSources = { navigator.push(AppRoute.Sources) },
                                 onListenTogether = { navigator.push(AppRoute.ListenTogether) },
+                                onProfile = { navigator.push(AppRoute.Profile) },
+                                onFriends = { navigator.push(AppRoute.Friends) },
                                 onWearOs = { navigator.push(AppRoute.WearOs) },
                                 onSpotifyCanvasAuth = { showSpotifyCanvasAuth = true },
                                 onAppLanguage = { showAppLanguage = true },
@@ -3750,6 +3766,8 @@ private fun BitChordApp(
                         AppRoute.AccountScrobbling -> stringResource(R.string.account_scrobbling)
                         AppRoute.Sources -> stringResource(R.string.sources)
                         AppRoute.ListenTogether -> stringResource(R.string.listen_together)
+                        AppRoute.Profile -> stringResource(R.string.profile_title)
+                        AppRoute.Friends -> stringResource(R.string.friends_title)
                         AppRoute.WearOs -> stringResource(R.string.wear_os_page_title)
                         AppRoute.Equalizer -> stringResource(R.string.equalizer)
                         AppRoute.Settings -> stringResource(R.string.settings)
@@ -5354,6 +5372,22 @@ private fun BitChordApp(
                     )
                 }
             }
+        }
+
+        // ---- Profile suggestion (once, skippable, never blocks playback) ----
+        var suggestProfile by rememberSaveable { mutableStateOf(ProfileManager.shouldSuggest()) }
+        if (suggestProfile && onboardingComplete && !showUpdateDialog && myProfile == null) {
+            ProfileSuggestionDialog(
+                onCreate = {
+                    suggestProfile = false
+                    ProfileManager.markSuggestionHandled()
+                    navigator.pushAll(AppRoute.Settings, AppRoute.Profile)
+                },
+                onSkip = {
+                    suggestProfile = false
+                    ProfileManager.markSuggestionHandled()
+                },
+            )
         }
 
         // ---- Update available (once per launch; held until the welcome is done) ----

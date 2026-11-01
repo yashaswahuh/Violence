@@ -8,6 +8,8 @@ import android.net.Network
 import com.music.bitchord.BitChordApplication
 import com.music.bitchord.BuildConfig
 import com.music.bitchord.data.DebugLog as Log
+import com.music.bitchord.data.profile.ProfileManager
+import com.music.bitchord.data.profile.JamProfileIdentity
 import com.music.bitchord.data.settings.AppSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -155,9 +157,11 @@ val ServerConnectionState.health: ListenTogether.Health
  *
  * ## Identity
  *
- * Creating or joining requires a signed-in account — that is what puts real
- * names and faces in the member list on every device — and [identity] is where
- * that is enforced on this side. The server cannot verify the claim; what it
+ * Creating or joining requires an identity: a Violence profile (made in
+ * Settings, needs no sign-in) or, failing that, a signed-in YT Music account.
+ * That is what puts real names and faces in the member list on every device,
+ * and [identity] is where it is enforced on this side. A profile always wins
+ * over the account, so nothing about the Google account is sent once one exists. The server cannot verify the claim; what it
  * can do is refuse anyone without the token it minted, which is why the token
  * is stored and never shown.
  */
@@ -872,6 +876,7 @@ object ListenTogether {
             JoinRequest(
                 who.userId, who.deviceId, who.name, who.avatar, maxMembers,
                 autoplayEnabled = AppSettings.autoplay.value,
+                profileId = who.profileId, avatarId = who.avatarId, avatarColor = who.avatarColor,
             ),
         )
 
@@ -930,7 +935,10 @@ object ListenTogether {
         refuseIfRecentlyKicked(cleaned)
         val membership = post(
             "$serverBase/api/parties/$cleaned/join",
-            JoinRequest(who.userId, who.deviceId, who.name, who.avatar),
+            JoinRequest(
+                who.userId, who.deviceId, who.name, who.avatar,
+                profileId = who.profileId, avatarId = who.avatarId, avatarColor = who.avatarColor,
+            ),
         )
 
         withContext(NonCancellable) {
@@ -1036,7 +1044,10 @@ object ListenTogether {
             val targetJoinResult = runCatching {
                 post(
                     "$targetBase/api/parties/$cleanedTargetCode/join",
-                    JoinRequest(who.userId, who.deviceId, who.name, who.avatar),
+                    JoinRequest(
+                who.userId, who.deviceId, who.name, who.avatar,
+                profileId = who.profileId, avatarId = who.avatarId, avatarColor = who.avatarColor,
+            ),
                 )
             }
 
@@ -1518,6 +1529,10 @@ object ListenTogether {
         val deviceId: String,
         val name: String,
         val avatar: String?,
+        /** Set only when the identity comes from the in-app profile. */
+        val profileId: String? = null,
+        val avatarId: String? = null,
+        val avatarColor: String? = null,
     )
 
     /**
@@ -1534,6 +1549,21 @@ object ListenTogether {
      * real account identifiers would be holding something it has no use for.
      */
     private fun identity(nickname: String = nickname()): Identity? {
+        // A Violence profile, when the user made one, is who they jam as, and it needs no
+        // sign-in. The userId is derived from the profile id alone, so nothing about the
+        // Google account is sent; no email, no photo, no Google avatar.
+        ProfileManager.current()?.let { profile ->
+            val fields = JamProfileIdentity.of(profile, nickname)
+            return Identity(
+                userId = sha256(fields.userIdSeed).take(32),
+                deviceId = deviceId(),
+                name = fields.name,
+                avatar = null,
+                profileId = fields.profileId,
+                avatarId = fields.avatarId,
+                avatarColor = fields.avatarColor,
+            )
+        }
         val store = BitChordApplication.authStore
         if (!store.isSignedIn) return null
         val account = store.activeSession ?: return null
@@ -1620,6 +1650,11 @@ object ListenTogether {
      * — including answering null in the cases a party cannot be joined at all.
      */
     fun myAvatarUrl(): String? = identity()?.avatar
+
+    /** The preset avatar and colour this device will jam with, or null without a profile. */
+    fun myAvatarId(): String? = identity()?.avatarId
+
+    fun myAvatarColor(): String? = identity()?.avatarColor
 
     /**
      * This install's identity to the party, independent of who is signed in.

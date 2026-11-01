@@ -157,6 +157,8 @@ import com.music.bitchord.data.LocalMediaRepository
 import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.scrobbling.LastFM
 import com.music.bitchord.data.listentogether.ListenTogether
+import com.music.bitchord.data.profile.ProfileManager
+import com.music.bitchord.ui.profile.ProfileAvatar
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.OutputPcmMode
 import com.music.bitchord.data.settings.BitPerfectMode
@@ -199,6 +201,8 @@ fun SettingsScreen(
     onTranslationLanguage: () -> Unit,
     onSources: () -> Unit,
     onListenTogether: () -> Unit,
+    onProfile: () -> Unit,
+    onFriends: () -> Unit,
     onWearOs: () -> Unit,
     onSpotifyCanvasAuth: () -> Unit,
     onAppLanguage: () -> Unit,
@@ -448,6 +452,39 @@ fun SettingsScreen(
             )
 
             SearchableSettingsGroup(search) {
+                // The Violence profile: a name and picture of your own, independent of the
+                // YouTube Music and Spotify sign-ins that sit just below.
+                val myProfile by ProfileManager.profile.collectAsStateWithLifecycle()
+                val friendCount by ProfileManager.friends.collectAsStateWithLifecycle()
+                val profileTitle = stringResource(R.string.profile_title)
+                row(profileTitle, "violence", "name", "avatar", "picture", "jam") {
+                    val me = myProfile
+                    SettingsRow(
+                        icon = SfIcons.Person,
+                        title = profileTitle,
+                        subtitle = me?.displayName ?: stringResource(R.string.profile_row_create_subtitle),
+                        onClick = onProfile,
+                        trailing = if (me != null) {
+                            {
+                                ProfileAvatar(me.avatarId, me.color, me.displayName, 32.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Chevron()
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                }
+                val friendsTitle = stringResource(R.string.friends_title)
+                row(friendsTitle, "contacts", "people", "profile link") {
+                    SettingsRow(
+                        icon = SfIcons.Groups,
+                        title = friendsTitle,
+                        subtitle = stringResource(R.string.friends_row_subtitle),
+                        badge = friendCount.size.takeIf { it > 0 }?.toString(),
+                        onClick = onFriends,
+                    )
+                }
                 val accountTitle = stringResource(R.string.account_integrations)
                 // What the row opens is the scrobbling screen, so the services it
                 // signs into are worth typing at this field even though none of

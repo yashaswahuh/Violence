@@ -90,6 +90,7 @@ import coil3.compose.AsyncImage
 import com.music.bitchord.R
 import com.music.bitchord.data.listentogether.JamInviteLink
 import com.music.bitchord.data.listentogether.ListenTogether
+import com.music.bitchord.ui.profile.ProfileAvatar
 import com.music.bitchord.data.listentogether.PartyActivity
 import com.music.bitchord.data.listentogether.PartyMember
 import com.music.bitchord.data.listentogether.ServerConnectionState
@@ -367,6 +368,8 @@ fun ListenTogetherScreen(
             when (open) {
                 PartySheet.Create -> CreatePartySheet(
                     avatarUrl = ListenTogether.myAvatarUrl(),
+                    avatarId = ListenTogether.myAvatarId(),
+                    avatarColor = ListenTogether.myAvatarColor(),
                     nickname = nickname,
                     onNicknameChange = {
                         nickname = it.take(80)
@@ -412,6 +415,8 @@ fun ListenTogetherScreen(
                 is PartySheet.Confirm -> JoinConfirmSheet(
                     preview = open.preview,
                     avatarUrl = ListenTogether.myAvatarUrl(),
+                    avatarId = ListenTogether.myAvatarId(),
+                    avatarColor = ListenTogether.myAvatarColor(),
                     nickname = nickname,
                     onNicknameChange = {
                         nickname = it.take(80)
@@ -510,6 +515,8 @@ fun ListenTogetherScreen(
         if (!state.inParty) {
             PartyLanding(
                 avatarUrl = ListenTogether.myAvatarUrl(),
+                avatarId = ListenTogether.myAvatarId(),
+                avatarColor = ListenTogether.myAvatarColor(),
                 enabled = signedIn && ListenTogether.hasServer && !busy,
                 // The last attempt's message does not belong on the next one.
                 onCreate = {
@@ -1064,27 +1071,13 @@ private fun MemberRow(member: PartyMember, isYou: Boolean, canKick: Boolean = fa
             .padding(horizontal = ROW_INSET, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (member.avatarUrl != null) {
-                AsyncImage(
-                    model = member.avatarUrl,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp).clip(CircleShape),
-                )
-            } else {
-                Text(
-                    text = member.displayName.take(1).uppercase(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        ProfileAvatar(
+            avatarId = member.avatarId,
+            color = member.avatarColor,
+            name = member.displayName,
+            size = 32.dp,
+            imageUrl = member.avatarUrl,
+        )
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
