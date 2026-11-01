@@ -96,3 +96,11 @@ Settings > "Violence Profile" has two rows: **Profile** and **Friends**. Remote 
 - [ ] **Friends.** "Add From Profile Link" opens a field: type or use **Paste From Clipboard**, **Check Link** shows "Add <name> as a friend?" with focus on **Add Friend**. A wrong link shows a plain reason. Adding yourself says it is your own profile.
 - [ ] **Friend list.** Each friend opens an editor with a nickname field, **Save**, **Remove Friend**, **Back**. **Clear Friends List** asks first (focus on Cancel). Back from every sub-screen returns to the list, never leaves the dialog stuck.
 - [ ] No photo option is shown on the TV (by design).
+
+## 10. Sharing on the TV (Phase 9)
+The TV shows QR codes and links and confirms incoming links; it has no NFC and no camera. UNVERIFIED on real hardware (`SHARE_TEST_PLAN.md` section 5).
+- [ ] **Share a song.** A song's menu has **Share**; it opens a QR code and the link in words, with **Done** focused. Back closes it.
+- [ ] **Share the profile / Jam invite.** Settings > Profile has **Share Profile**; Listen Together in a party has **Show QR Code**. Both open the same dialog.
+- [ ] **Incoming song.** `adb shell am start -a android.intent.action.VIEW -d "violence://song/yt/dQw4w9WgXcQ?v=1&t=Test" com.yashaswahuh.violencemusic.tv` shows "Open This Song?" with **Play Now** focused; nothing plays before a choice; **Play Now**, **Add to Queue** and **Cancel** are all reachable with the arrows.
+- [ ] **Incoming profile.** The same with a `violence://profile?...` link shows "Add ... as a Friend?" with **Add Friend** focused.
+- [ ] **Bad links.** A malformed link shows a short message (a toast) and nothing else.

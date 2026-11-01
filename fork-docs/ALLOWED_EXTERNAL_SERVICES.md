@@ -73,3 +73,6 @@ No music playback, search, lyrics, metadata, or download services are hosted by 
 
 ## 4. Phase 8 addendum (2026-11-01): in-app profiles add no external service
 The Violence profile and friends list are stored only on the device (phone/TV preferences, browser `localStorage`). Nothing is uploaded or fetched for them. The only network path that carries profile data is the existing **Jam** join call to the owner's own Jam server (REPLACE-LATER, self-hosted): name, preset avatar id, colour, opaque profile id. No third-party service, SDK, analytics or account was added.
+
+## 5. Phase 9 addendum (2026-11-02): sharing adds no external service
+Tap to share (NFC), QR codes, links and the landing pages use no server, account or analytics. NFC and QR scanning are entirely on the device (CameraX and ZXing, Apache-2.0; no Google Play Services / ML Kit). The web landing pages are static pages on the existing GitHub Pages site; QR drawing on the web is the MIT library `uqr`. The only network use is the **existing** YouTube Music lookup of a shared song after the user chose to play, queue or save it.

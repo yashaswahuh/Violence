@@ -29,7 +29,7 @@ https://yashaswahuh.is-a.dev/Violence/song/<source>/<id>?v=1&t=<title>&a=<artist
 
 The hints are **display text only**. They are shown as plain text in the confirmation and used for a `q`/`sp` search; a `yt` song is always resolved from its id, so the title in a link can never change what plays.
 
-Size: the fixed part of a `yt` link is 34 bytes (`violence://song/yt/<11>?v=1`), leaving about 160 bytes for hints. Latin text: about 50 characters of title plus artist after `&t=`/`&a=`; CJK is 9 encoded bytes per character, so about 17.
+Size: the fixed part of a `yt` link is 34 bytes (`violence://song/yt/<11>?v=1`), leaving about 160 bytes for hints. Latin text: about 160 bytes of hints, so roughly 120 letters of title plus artist together (a space costs 3 bytes once encoded, "Never Gonna Give You Up" by "Rick Astley" is 84 bytes in all); CJK is 9 encoded bytes per character, so about 17 characters.
 
 ### 2.2 Profile
 The Phase 8 card, unchanged: `violence://profile?v=1&id=<uuid>&n=<name>&a=<avatarId>&c=<hex6>` and `https://yashaswahuh.is-a.dev/Violence/profile?...` (`PROFILE_DESIGN.md` section 4; `ProfileCardCodec`). Latin names fit 200 bytes; a 24-character CJK name does not (about 310 bytes). For NFC the hard limit is 250 bytes (section 3.4); a longer card is shared by QR or link only and the NFC row says so.
@@ -197,5 +197,17 @@ Apache-2.0 and MIT are compatible with GPL-3.0. Nothing from Google Play Service
 - `required="false"` for the `.nfc.hce` feature, Secure NFC behaviour on each phone, the Android 17 `DISPATCH_NFC_MESSAGE` requirement.
 - Camera scanning speed/quality across phones; App Links verification for the new prefixes (needs `assetlinks.json`, `APP_LINKS.md`).
 
-## 16. Implementation status
-See `PHASES.md` (Phase 9) for the date, commits and what was verified.
+## 16. Implementation status (2026-11-02)
+Implemented as designed on phone, TV and web; **nothing has run on a real NFC chip or camera** (section 15 and `SHARE_TEST_PLAN.md`). What was built, and how it differs from the plan above:
+- **Shared** (`shared/.../data/share/`): `SongLinks`, `ShareText`, `PartyLinks`, `IncomingLinks`, `IncomingLinkGate`; `ProfileRules.checkText` generalises the name rules for song hints. Pure Kotlin, tested in `commonTest`.
+- **App** (`app/.../nfc/`): `NdefUri`, `Type4TagEmulator`/`Type4TagReader`, `ShareHostApduService`, `NfcShareSession`, `NfcReceiver`; (`app/.../share/`): `IncomingLinkHub`, `ShareItem`, `QrDecoder`, `SharedSongResolver`; (`ui/screens/ShareScreens.kt`): `ShareSheet`, `TapToShareDialog`, `ReceiveScreen`, `QrScannerDialog`, `IncomingSongDialog`; `AddFriendDialog` (in `ProfileScreens.kt`) is the one "Add <name> as a friend?" dialog used by paste, tap, QR and link.
+- **The reader is stricter than section 4.2 says:** it also requires the capability-container answer to be exactly the 15 bytes asked for, and caps the message at 512 bytes and at the tag's own advertised maximum.
+- **Entry points as built:** song menu **Share** (also reached from Now Playing's menu) opens the Share sheet; **Share my profile** on the profile screen; **Tap to share** on the Jam invite sheet (hidden without NFC); **Receive** in Settings and on the Friends screen. There is no separate "home menu" in the app.
+- **Jam invites:** the Share/QR link keeps the app's existing rule: the web link only when `JAM_INVITE_BASE_URL` is set, otherwise the `violence://party/<CODE>` link.
+- **Song actions:** Play now (starts that song and lets AutoPlay carry on), Add to queue, Add to playlist on the phone. On the TV: Play Now (replaces the queue with this song) and Add to Queue only; no playlist picker on the TV.
+- **`sp` links** are accepted on input and searched by title; nothing emits them.
+- **TV:** QR + link dialog from the song menu, the profile dialog and the Jam dialog; incoming `violence://` links get Play Now / Add to Queue or Add Friend. No scanner, no NFC.
+- **Web:** `/song/:source/:id` and `/profile` landing pages (plain-text card, Open in Violence app, Copy link, no redirect), a share dialog with a QR code (track menu, profile page), and the Friends page now accepts any Violence link. No scanner, no NFC.
+- **App Links:** both manifests' verified filter now lists `/Violence/song/` and `/Violence/profile` as well; the violence:// filter lists the hosts `party`, `song`, `profile`; the phone also has the NDEF_DISCOVERED filter. The HCE service is declared **disabled** and enabled only by the Tap to share screen.
+- **Dependencies as added:** `androidx.camera:camera-core|camera-camera2|camera-lifecycle|camera-view:1.6.2` (Apache-2.0) in `:app` and `:tv` (the TV compiles the phone's sources), and `uqr` 0.1.3 (MIT) for the web. ZXing `core` 3.5.3 was already present.
+- **Strings:** the new phone strings are English placeholders in the 17 other language files (the locale test only needs the keys); the TV and web texts are plain English.

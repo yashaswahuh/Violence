@@ -35,6 +35,11 @@ The website cannot reach YouTube by itself. A small add-on called **Violence** d
 - It is kept only in this browser and has nothing to do with your YouTube Music or Spotify sign-in. With a profile you can start or join a party without signing in to YouTube Music.
 - **Settings > Friends** keeps a list of people you added by pasting their profile link. Clear it or delete the profile any time from the same pages.
 
+## Sharing a song or your profile
+- In a track's **three dots** menu choose **Share…**: you get a QR code to point a phone camera at, and **Copy link**. The same on **Settings > Profile > Share my profile**.
+- A shared song or profile link opens a small page with **Open in Violence app** (on Android) and **Copy link**; nothing plays or is added until you choose. On the **Friends** page you can paste any Violence link.
+- A link holds only the song, profile or party it is for. It never contains your account.
+
 ## Listening together
 - Open **Listen Together** from the menu. **Start a party** gives you a 6-character code; **Join** takes a code. You can paste a whole invite link or message into the box and it picks out the code.
 - If someone sends you a link that looks like `.../Violence/party/ABC123`, open it and press **Join in this browser** (or **Open in Violence app** if you are on Android).
