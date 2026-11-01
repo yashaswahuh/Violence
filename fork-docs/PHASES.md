@@ -174,7 +174,7 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 ## Phase 6: Web on GitHub Pages, Cloud APK Builds, Extension Origin and Last.fm [COMPLETED in the repo; first GitHub run pending the owner]
 
 - **Status:** **DONE in the repository** (2026-11-02). The workflows have never run on GitHub (they cannot run from here); everything that could be checked locally was (below). The first real run is the owner's, see `CI_DEPLOY.md`.
-- **Branch:** `violence-nk`. **Commits:** see the hashes listed with the final report (`git log` after the Phase 5 hashes).
+- **Branch:** `violence-nk`. **Commits:** `a3bf609` (web base path and 404 fallback), `b7fef4a` (workflows), `2963051` (local Pages check script), `905a04e` (docs).
 - **Refines the earlier "Early CI" work** (`web.yml`, `android.yml` added on 2026-10-30): both files were rewritten in place, not recreated.
 - **Differences from the Phase 6 brief and the old PHASES text:** the old text said Cloudflare Pages; the owner chose GitHub Pages. The brief wrote the folder as `/violence/`; GitHub Pages names it after the repository and is case sensitive, so the real, owner-confirmed folder is **`/Violence/`** (the workflow takes it from `actions/configure-pages`). The brief says "if Gradle builds the web target": it does not, the web is built with pnpm (`pnpm build:site`), so no Java is set up in `web.yml`.
 - **What changed:**
