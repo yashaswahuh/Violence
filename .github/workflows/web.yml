@@ -1,8 +1,19 @@
 name: Web Deploy
 
+# Builds the web player (and packages the browser extension zips it offers for download) and
+# deploys it to GitHub Pages. Runs on a push to violence-nk that touches the web code, or by hand
+# (the "Run workflow" button only shows for workflow files on the default branch; until this file is
+# merged there, the push trigger on violence-nk is what runs it). See fork-docs/CI_DEPLOY.md.
+#
+# Optional repository variables (Settings -> Secrets and variables -> Actions -> Variables). The
+# build succeeds with every one of them missing:
+#   JAM_BACKEND_URL      the Jam server the site defaults to   (empty = the site says Jam is not set up)
+#   JAM_INVITE_BASE_URL  where shared party links point        (empty = share only the code)
+# No secrets are used: anything baked into a public web page is public.
+
 on:
   push:
-    branches: [violence-nk, violence-main, main]
+    branches: [violence-nk]
     paths:
       - 'web/**'
       - '.github/workflows/web.yml'
@@ -19,7 +30,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build Web Target
+    name: Build web target
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,12 +39,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
+      - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
           package_json_file: web/package.json
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -47,14 +58,33 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build web application and extension
+      - name: Typecheck and test
+        run: |
+          pnpm typecheck
+          pnpm test
+
+      - name: Build site and extension zips
         run: pnpm build:site
         env:
+          # The folder the site is served from (configure-pages reports it: /Violence for this repository).
           VITE_BASE_URL: ${{ steps.pages.outputs.base_path || '/Violence' }}/
-          VITE_LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY || '' }}
-          # The Jam server this site uses by default: repo variable JAM_BACKEND_URL
-          # (Settings -> Secrets and variables -> Actions -> Variables). Empty = the site says Jam is not set up.
+          # A published build never answers pages on localhost (web/extension/site.config.ts).
+          BITCHORD_STORE_BUILD: '1'
+          # Optional, empty when the variables are not set.
           VITE_PARTY_SERVER_URL: ${{ vars.JAM_BACKEND_URL || '' }}
+          VITE_INVITE_BASE_URL: ${{ vars.JAM_INVITE_BASE_URL || '' }}
+
+      - name: Check the build is ready for its folder
+        env:
+          BASE: ${{ steps.pages.outputs.base_path || '/Violence' }}
+        run: |
+          test -f app/dist/index.html || { echo "::error::no index.html in app/dist"; exit 1; }
+          test -f app/dist/404.html || { echo "::error::no 404.html (deep links and refresh need it)"; exit 1; }
+          test -f app/dist/robots.txt || { echo "::error::no robots.txt"; exit 1; }
+          grep -q 'name="robots" content="noindex' app/dist/index.html || { echo "::error::index.html lost its noindex tag"; exit 1; }
+          grep -q "${BASE}/assets/" app/dist/index.html || { echo "::error::index.html does not load its assets from ${BASE}/ (wrong base path)"; exit 1; }
+          if grep -qE '(src|href)="/assets/' app/dist/index.html; then echo "::error::index.html has root-absolute asset URLs"; exit 1; fi
+          ls app/dist/downloads | sed 's/^/download: /'
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -73,9 +103,17 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Write deployment summary
+      - name: Write job summary
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
-          echo "### 🚀 Web App Deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployed Page URL:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Custom URL:** https://yashaswahuh.is-a.dev/Violence/" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Web player deployed"
+            echo ""
+            echo "- **URL:** ${PAGE_URL}"
+            echo "- **Intended address:** https://yashaswahuh.is-a.dev/Violence/ (only if yashaswahuh.is-a.dev is the custom domain of your user Pages site; otherwise use the URL above)"
+            echo "- **Invite page:** ${PAGE_URL}party/<CODE>"
+            echo ""
+            echo "> Playback needs the Violence browser extension (see the Extension page on the site)."
+            echo "> A Pages site is reachable by anyone who has the URL, even though the repository is private."
+          } >> "$GITHUB_STEP_SUMMARY"
