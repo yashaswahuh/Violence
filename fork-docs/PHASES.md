@@ -158,7 +158,7 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 ## Phase 5: Jam Reliability, Invites and TV/Web Parity [COMPLETED in code; real-device and deployed-backend testing pending the owner]
 
 - **Status:** **DONE in the repository** (2026-11-02). Never run on a phone, TV or browser, nor against the deployed backend, nor the new Go tests (no Go on the PC). The owner's checks: `JAM_TEST_PLAN.md` sections 8-11.
-- **Branch:** `violence-nk`. **Commits:** `ab920f7` (audit), then the backend, Android/TV, web and docs commits listed at the end of the final report of the session (see `git log` after `ab920f7`).
+- **Branch:** `violence-nk`. **Commits:** `ab920f7` (audit), `6d17044` (backend), `39bc1ea` (phone and TV), `ae76291` (web), `8cdfc60` (docs).
 - **Differences from the old Phase 5 text:** the old plan was stalled-track isolation plus a `JamInviteLink` domain update. This phase follows the larger brief: audit first (`JAM_AUDIT.md`), unplayable-track isolation, configurable invite base and share/copy code, paste-a-link join, a web landing page, the TV Jam dialog and manifest fix, 15-member rooms, host handover, web resync, tests and a manual checklist.
 - **Fixed (per `JAM_AUDIT.md`):**
   - **Phone:** a track that cannot play on one device no longer loops or pulls the party to another song (`PartySync.onTrackUnplayable`, hook in `PlaybackService`; notice toast plus a line on the Jam screen); join field accepts a pasted link or share message; invite sheet offers Share link (only if `JAM_INVITE_BASE_URL` is set), Share code and Copy code; QR holds `violence://party/<CODE>` without a base; party size up to 15 (default 8); `violence://party/<CODE>` and the web paths handled by the manifest filters.
