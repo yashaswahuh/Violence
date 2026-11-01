@@ -8,6 +8,8 @@ import { useDiscord } from '@/extension/useDiscord';
 import { useExtension } from '@/extension/useExtension';
 import { useYtAuth } from '@/extension/useYtAuth';
 import { useParty } from '@/party/useParty';
+import { ProfileAvatar } from '@/profile/ProfileAvatar';
+import { useProfile } from '@/profile/store';
 import { useHistorySettings } from '@/playback/historyReporting';
 import { Select } from '@/components/Select';
 import { AUTOMIX_BARS } from '@/playback/automix/choices';
@@ -58,6 +60,8 @@ export default function SettingsPage() {
   const yt = useYtAuth();
   const discord = useDiscord();
   const party = useParty();
+  const myProfile = useProfile((s) => s.profile);
+  const friendCount = useProfile((s) => s.friends.length);
   const autoplay = usePlayer((s) => s.autoplay);
   const crossfadeSec = usePlayer((s) => s.crossfadeSec);
   const automix = usePlayer((s) => s.automix);
@@ -81,6 +85,23 @@ export default function SettingsPage() {
     <div className={settingsUi.centered}>
       <PageHeader title="Settings" />
       <div className={settingsUi.body}>
+        <h2 className={settingsUi.sectionHeader}>Profile</h2>
+        <section className={settingsUi.group}>
+          <LinkRow
+            to="/settings/profile"
+            icon={<ProfileAvatar avatarId={myProfile?.avatarId} color={myProfile?.color} name={myProfile?.displayName ?? ''} size={24} />}
+            title={myProfile ? myProfile.displayName : 'Create your profile'}
+            value={myProfile ? null : 'A name and picture for Listen Together'}
+          />
+          <LinkRow
+            to="/settings/friends"
+            icon={<Glyph Icon={Users} color="#636366" />}
+            title="Friends"
+            value={friendCount ? String(friendCount) : 'People you added from a profile link'}
+          />
+        </section>
+        <p className={settingsUi.footer}>Separate from your YouTube Music and Spotify sign-ins. Optional, and kept in this browser.</p>
+
         <h2 className={settingsUi.sectionHeader}>Account & Integrations</h2>
         <section className={settingsUi.group}>
           <div className={settingsUi.integration}>
