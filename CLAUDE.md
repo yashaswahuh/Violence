@@ -53,7 +53,7 @@ Never remove or break playback, search, stream resolution, lyrics, metadata, art
 - Keep GPL-3.0: keep `LICENSE`, `NOTICE`, existing copyright headers and the fork attribution (README, NOTICE, About screens, web footer).
 
 ## How to work
-1. One phase per session. Read `fork-docs/PHASES.md` and `fork-docs/AGENT_RULES.md` first. If the phase is already marked done, report and stop. Phases 0-6 are done; next is Phase 7.
+1. One phase per session. Read `fork-docs/PHASES.md` and `fork-docs/AGENT_RULES.md` first. If the phase is already marked done, report and stop. Phases 0-7 are done; next is Phase 8.
 2. Never guess. Write UNCLEAR when something cannot be verified in the repo.
 3. Small commits on `violence-nk`; push to `origin violence-nk` only.
 4. When a phase finishes, update PHASES.md and the relevant `fork-docs/` files.

@@ -60,3 +60,6 @@ AGENTS.md
 
 # Claude Code session files (launch configs, worktrees)
 .claude/
+
+# Output of scripts/release.ps1 (signed APKs + update.json)
+/release-out/

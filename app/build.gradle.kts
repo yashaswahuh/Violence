@@ -70,6 +70,17 @@ val jamInviteBaseUrl: String = (
         ?: ""
     ).trim().trimEnd('/')
 
+/*
+ * Where the in-app updater looks for the update file (update.json, see fork-docs/RELEASE_GUIDE.md):
+ * UPDATE_INFO_URL in local.properties or the environment. A public https address, not a credential.
+ * Empty (the default) switches the updater off completely: no network call, no dialog.
+ */
+val updateInfoUrl: String = (
+    localProps.getProperty("UPDATE_INFO_URL")
+        ?: System.getenv("UPDATE_INFO_URL")
+        ?: ""
+    ).trim()
+
 // See the root build.gradle.kts: one version for the phone and its watch app.
 val betaSuffix = rootProject.extra["bitchordBetaSuffix"] as String
 
@@ -102,10 +113,10 @@ android {
             "JAM_INVITE_BASE_URL",
             "\"${jamInviteBaseUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
         )
-        // Which release assets are this app's: the phone and TV APKs ship in
-        // the same GitHub release, told apart by file name. See
-        // AppUpdateChecker.apkAssetUrl.
-        buildConfigField("String", "UPDATE_APK_PREFIX", "\"Violence-\"")
+        // Which entry of update.json's "apks" is this app's, so the phone app never offers the TV
+        // APK and the other way round. See AppUpdateChecker.parseUpdate.
+        buildConfigField("String", "UPDATE_APK_KEY", "\"phone\"")
+        buildConfigField("String", "UPDATE_INFO_URL", "\"${updateInfoUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     splits {

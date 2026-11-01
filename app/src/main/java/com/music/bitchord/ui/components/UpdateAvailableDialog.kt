@@ -60,7 +60,7 @@ private val DOWNLOAD_ROW_HEIGHT = 4.dp
 private val NOTES_MAX_HEIGHT = 220.dp
 
 /**
- * Once-per-launch nudge that a newer build is on GitHub Releases — the top
+ * Once-per-launch nudge that a newer build is listed in the update file (UPDATE_INFO_URL) — the top
  * bar's [Icons.Rounded.Upgrade][androidx.compose.material.icons.rounded.Upgrade]
  * icon is the quiet, always-there version of this; this is the one-time,
  * hard-to-miss version shown the moment the check comes back.
