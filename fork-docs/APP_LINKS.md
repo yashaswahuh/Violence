@@ -64,7 +64,7 @@ keytool -list -v -keystore "$env:USERPROFILE\violence-keys\violence-release.jks"
 # 2. From a built APK (no password needed): scripts\release.ps1 also prints it as its last "certificate" line
 & "$env:LOCALAPPDATA\Android\Sdk\build-tools\<version>\apksigner.bat" verify --print-certs .\release-out\<version>\violence-phone-<version>.apk
 ```
-assetlinks.json wants the fingerprint as upper-case hex pairs separated by colons (`AA:BB:CC:...`). `keytool` prints it that way; `apksigner` prints plain lowercase hex, so add the colons and upper-case it, or copy the line `scriptselease.ps1` prints, which is already in that form.
+assetlinks.json wants the fingerprint as upper-case hex pairs separated by colons (`AA:BB:CC:...`). `keytool` prints it that way; `apksigner` prints plain lowercase hex, so add the colons and upper-case it, or copy the line `scripts\\release.ps1` prints, which is already in that form.
 
 ## Check that it worked
 1. Open `https://yashaswahuh.is-a.dev/.well-known/assetlinks.json` in a browser: it must show the JSON, not a 404 page.
