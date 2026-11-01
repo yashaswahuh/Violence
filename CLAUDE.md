@@ -12,7 +12,7 @@ Read this first. Verified state: `fork-docs/PROJECT_STATE.md`. Roadmap: `fork-do
 ## Decisions
 - Keep the original's playback APIs and services, even ones the author hosts, and the in-app YT Music and Spotify web logins (WebView session cookies/tokens captured and used locally).
 - Disabled: live listener stats, open-app presence pings (Android and web), analytics, crash reporting, the author's update checker, donation prompts.
-- Jam (shared listening) will be re-pointed to a self-hosted copy of the Go backend in `/backend` on a free host. Firebase RTDB is only a documented fallback.
+- Jam (shared listening) uses a self-hosted copy of the Go backend in `/backend` on a free host (Render Free; steps in `fork-docs/JAM_BACKEND_DEPLOY.md`). The apps get its address from `JAM_BACKEND_URL` (`local.properties` / GitHub repo variable; empty by default = "Jam is not set up"). Firebase RTDB is only a documented fallback and is not built. The owner has not deployed it yet as of Phase 4 (UNCLEAR whether they have since).
 - Web is hosted on GitHub Pages at https://yashaswahuh.is-a.dev/Violence (capital V, confirmed by the owner) and needs the browser extension (`web/extension`).
 - Last.fm scrobbling stays; keys come from `local.properties` (`LASTFM_API_KEY`, `LASTFM_SECRET`).
 
@@ -53,7 +53,7 @@ Never remove or break playback, search, stream resolution, lyrics, metadata, art
 - Keep GPL-3.0: keep `LICENSE`, `NOTICE`, existing copyright headers and the fork attribution (README, NOTICE, About screens, web footer).
 
 ## How to work
-1. One phase per session. Read `fork-docs/PHASES.md` and `fork-docs/AGENT_RULES.md` first. If the phase is already marked done, report and stop. Phases 0-3 are done; next is Phase 4.
+1. One phase per session. Read `fork-docs/PHASES.md` and `fork-docs/AGENT_RULES.md` first. If the phase is already marked done, report and stop. Phases 0-4 are done; next is Phase 5.
 2. Never guess. Write UNCLEAR when something cannot be verified in the repo.
 3. Small commits on `violence-nk`; push to `origin violence-nk` only.
 4. When a phase finishes, update PHASES.md and the relevant `fork-docs/` files.
@@ -71,7 +71,7 @@ Never remove or break playback, search, stream resolution, lyrics, metadata, art
 - Removing `NOTICE`, `LICENSE`, or attribution to Kushagra Singh.
 
 ## Known open issues (details in PROJECT_STATE.md s.9)
-TV manifest still has the old `bitchord` scheme/host; `shared JamInvite.ORIGIN` is still the author's domain; `JamInviteLink.ORIGIN`, the app manifest `pathPattern` and `invite.ts` say `/violence` while the live path is `/Violence`; backend still carries upstream branding; Jam default server is still the author's; desktop not compiled against v1.9 shared code.
+TV manifest still has the old `bitchord` scheme/host; `shared JamInvite.ORIGIN` is still the author's domain; `JamInviteLink.ORIGIN`, the app manifest `pathPattern` and `invite.ts` say `/violence` while the live path is `/Violence`; desktop not compiled against v1.9 shared code; the Go backend and Dockerfile have never been compiled on the owner's PC (no Go/Docker), so the first Render build is the first compile.
 
 ## Key docs (`fork-docs/`)
-PROJECT_STATE, PHASES, AGENT_RULES, BUILD_COMMANDS, FROZEN_TARGETS, RESTORATION_LOG, UPSTREAM_SYNC(_LOG), ALLOWED_EXTERNAL_SERVICES (KEEP/DISABLE/REPLACE-LATER), DECOUPLING_LOG, REBRAND_LOG, ARCHITECTURE, JAM_DESIGN, BACKEND_AUDIT, WEB_TARGET_AUDIT, TV_TARGET_AUDIT, FREE_HOSTING_PLAN, CI_DEPLOY, EXTERNAL_DEPENDENCIES, REBRAND_CHECKLIST, OPEN_QUESTIONS. `MODULE_PRUNING_PLAN.md` is CANCELLED (nothing is removed). Also `NOTICE`, `README.md`, `web/README.md`, `backend/README.md`.
+PROJECT_STATE, PHASES, AGENT_RULES, BUILD_COMMANDS, FROZEN_TARGETS, RESTORATION_LOG, UPSTREAM_SYNC(_LOG), JAM_BACKEND_FEASIBILITY, JAM_BACKEND_DEPLOY, JAM_TEST_PLAN, ALLOWED_EXTERNAL_SERVICES (KEEP/DISABLE/REPLACE-LATER), DECOUPLING_LOG, REBRAND_LOG, ARCHITECTURE, JAM_DESIGN, BACKEND_AUDIT, WEB_TARGET_AUDIT, TV_TARGET_AUDIT, FREE_HOSTING_PLAN, CI_DEPLOY, EXTERNAL_DEPENDENCIES, REBRAND_CHECKLIST, OPEN_QUESTIONS. `MODULE_PRUNING_PLAN.md` is CANCELLED (nothing is removed). Also `NOTICE`, `README.md`, `web/README.md`, `backend/README.md`.

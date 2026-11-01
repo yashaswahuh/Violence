@@ -2,7 +2,7 @@
 
 **Audit Date:** 2026-10-29  
 **Decision Sign-off Date:** 2026-10-29  
-**Status:** **ALL QUESTIONS RESOLVED BY REPOSITORY OWNER. READY FOR PHASE 1.**
+**Status:** All questions resolved by the repository owner. Decision 3 (Jam backend) was reversed on 2026-11-01; see below.
 
 ---
 
@@ -34,10 +34,11 @@
 ---
 
 ### Decision 3: Jam Backend Architecture
-- **Resolution:** **STRATEGY 2 (Firebase Realtime Database - Spark Plan), with Go Backend Retained as Fallback.**
-- **Details:**
-  - Primary Jam implementation will use Google Firebase Realtime Database (Spark Plan, 100% free forever, no credit card required, zero cold starts, automatic offline persistence, native Android & Web real-time sync).
-  - The existing Go backend code in `/backend` will be preserved as a fallback container service.
+- **Resolution (REVERSED 2026-11-01, Phase 4): the existing Go backend in `/backend`, self-hosted on a free host (Render Free web service), is the Jam server. Firebase Realtime Database is only the documented FALLBACK and is NOT implemented.**
+- **Why it changed:** the client and server already speak a complete Jam protocol (rooms, queue, anchor-and-offset sync). Re-implementing it on Firebase would mean rewriting the protocol on every client. The backend is a single static binary with no database and no secrets, small enough for a free instance (`JAM_BACKEND_FEASIBILITY.md`).
+- **Cost accepted:** Render Free sleeps after 15 idle minutes (about 1 minute to wake) and rooms live in memory, so they are lost on sleep or restart. The apps show a "waking up" state and reconnect on their own.
+- **Original decision (kept for the record):** Firebase RTDB (Spark Plan) as the primary, Go backend as fallback. Firebase remains the last fallback if no host works; see `JAM_BACKEND_DEPLOY.md` section 9.
+- Details and manual steps: `JAM_BACKEND_FEASIBILITY.md`, `JAM_BACKEND_DEPLOY.md`, `JAM_TEST_PLAN.md`.
 
 ---
 
