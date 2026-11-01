@@ -12,8 +12,9 @@
   -VersionName), and it tells you to commit that yourself.
 
   Output (release-out/<version>/, gitignored):
-    violence-phone-<version>.apk
-    violence-tv-<version>.apk
+    violence-phone-<version>.apk, violence-tv-<version>.apk   <- universal, for installing by hand
+    violence-phone-<version>-<cpu>.apk, violence-tv-<version>-<cpu>.apk (arm64-v8a, armeabi-v7a, x86_64)
+                                 <- about half the size; what the in-app update downloads
     update.json                  <- what the apps' update check reads
 
 .PARAMETER Bump
@@ -122,15 +123,20 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) { Stop-Release "Gradle failed (exit $LASTEXITCODE). Nothing was published." }
 }
 
-function Find-Apk([string]$Module) {
+$abis = 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+function Find-Apk([string]$Module, [string]$Which) {
     $dir = Join-Path $root "$Module\build\outputs\apk\prod\release"
-    $apk = Get-ChildItem $dir -Filter '*universal*.apk' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if (-not $apk) { Stop-Release "No universal release APK in $dir." }
+    $apk = Get-ChildItem $dir -Filter "*-$Which-release*.apk" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (-not $apk) { Stop-Release "No $Which release APK in $dir." }
     if ($apk.Name -match 'unsigned') { Stop-Release "$($apk.Name) is unsigned: keystore.properties did not take effect." }
     return $apk
 }
-$phoneSrc = Find-Apk 'app'
-$tvSrc = Find-Apk 'tv'
+# One universal APK per app (all CPUs; for installing by hand) and one APK per CPU type (about half the size; the in-app updater uses these).
+$sources = @()
+foreach ($pair in @(@('phone', 'app'), @('tv', 'tv'))) {
+    $sources += [pscustomobject]@{ Key = $pair[0]; Abi = $null; File = (Find-Apk $pair[1] 'universal') }
+    foreach ($abi in $abis) { $sources += [pscustomobject]@{ Key = $pair[0]; Abi = $abi; File = (Find-Apk $pair[1] $abi) } }
+}
 
 # ---- 4. Check the signature and show the certificate fingerprint ------------------------------------------------
 $sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { Join-Path $env:LOCALAPPDATA 'Android\Sdk' }
@@ -138,9 +144,9 @@ $apksigner = Get-ChildItem (Join-Path $sdk 'build-tools') -Directory -ErrorActio
     ForEach-Object { Join-Path $_.FullName 'apksigner.bat' } | Where-Object { Test-Path $_ } | Select-Object -First 1
 $fingerprint = $null
 if ($apksigner) {
-    foreach ($apk in $phoneSrc, $tvSrc) {
-        $out = & $apksigner verify --print-certs $apk.FullName 2>&1 | Out-String
-        if ($LASTEXITCODE -ne 0) { Stop-Release "apksigner says $($apk.Name) is not validly signed:`n$out" }
+    foreach ($s in $sources) {
+        $out = & $apksigner verify --print-certs $s.File.FullName 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) { Stop-Release "apksigner says $($s.File.Name) is not validly signed:`n$out" }
         if ($out -match 'certificate SHA-256 digest:\s*([0-9a-fA-F]{64})') { $fingerprint = $Matches[1].ToLower() }
     }
 } else {
@@ -149,32 +155,40 @@ if ($apksigner) {
 
 # ---- 5. Collect the files and write update.json --------------------------------------------------------------------
 New-Item -ItemType Directory -Force $outDir | Out-Null
-$files = @{}
-foreach ($pair in @(@('phone', $phoneSrc), @('tv', $tvSrc))) {
-    $key = $pair[0]; $src = $pair[1]
-    $dest = Join-Path $outDir "violence-$key-$name.apk"
-    Copy-Item $src.FullName $dest -Force
+Get-ChildItem $outDir -Filter 'violence-*.apk' -ErrorAction SilentlyContinue | Remove-Item -Force
+$apkEntries = [ordered]@{}
+$allFiles = @()
+foreach ($s in $sources) {
+    $suffix = if ($s.Abi) { "-$($s.Abi)" } else { '' }
+    $dest = Join-Path $outDir "violence-$($s.Key)-$name$suffix.apk"
+    Copy-Item $s.File.FullName $dest -Force
     $item = Get-Item $dest
-    $files[$key] = [ordered]@{
-        url    = $item.Name
-        sha256 = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
-        bytes  = $item.Length
+    $allFiles += $item.FullName
+    Write-Host ("{0,-6} {1,-48} {2,7:N1} MB" -f $s.Key, $item.Name, ($item.Length / 1MB))
+    if ($s.Abi) {
+        $apkEntries["$($s.Key)-$($s.Abi)"] = [ordered]@{
+            url    = $item.Name
+            sha256 = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
+            bytes  = $item.Length
+        }
+        if ($item.Length -gt 95MB) { Write-Host "WARNING: $($item.Name) is above 95 MB; keep update files well under GitHub's 100 MB file limit." -ForegroundColor Yellow }
     }
-    Write-Host ("{0,-7} {1}  {2:N1} MB" -f $key, $item.Name, ($item.Length / 1MB))
-    if ($item.Length -gt 90MB) { Write-Host "WARNING: $($item.Name) is above 90 MB; GitHub rejects files over 100 MB. See RELEASE_GUIDE.md (dropping x86_64)." -ForegroundColor Yellow }
 }
 $update = [ordered]@{
     versionCode = $code
     versionName = $name
     changelog   = @($Changelog)
-    apks        = [ordered]@{ phone = $files['phone']; tv = $files['tv'] }
+    apks        = $apkEntries
 }
 $json = ConvertTo-Json -InputObject $update -Depth 6
-[IO.File]::WriteAllText((Join-Path $outDir 'update.json'), $json, (New-Object Text.UTF8Encoding($false)))
+$jsonPath = Join-Path $outDir 'update.json'
+[IO.File]::WriteAllText($jsonPath, $json, (New-Object Text.UTF8Encoding($false)))
 
 # ---- 6. What to do next ----------------------------------------------------------------------------------------------
 Write-Host ''
 Write-Host "Built $name (versionCode $code) into: $outDir" -ForegroundColor Green
+Write-Host "  violence-phone-$name.apk / violence-tv-$name.apk = the files to hand to people (work on every phone / TV)."
+Write-Host '  the -arm64-v8a / -armeabi-v7a / -x86_64 files + update.json = what the in-app updater downloads (smaller).'
 if ($fingerprint) { Write-Host "Signing certificate SHA-256 (for assetlinks.json, see APP_LINKS.md): $($fingerprint.ToUpper() -replace '(..)(?=.)', '$1:')" }
 Write-Host ''
 Write-Host 'PUBLISH (nothing has been committed or uploaded yet):' -ForegroundColor Cyan
@@ -183,11 +197,12 @@ if ($versionChanged) {
     Write-Host ("{0}. git add build.gradle.kts; git commit -m `"Release {1}`"; git branch --show-current   (must print violence-nk); git push origin violence-nk" -f $n, $name); $n++
 }
 Write-Host ("{0}. On GitHub: repository > Releases > Draft a new release. Tag: v{1} (create it on violence-nk). Title: Violence {1}." -f $n, $name); $n++
-Write-Host ("{0}. Drag these 3 files into the release (or use the gh command below): violence-phone-{1}.apk, violence-tv-{1}.apk, update.json" -f $n); $n++
-Write-Host ("{0}. Leave 'Set as a pre-release' UNticked, then Publish release. The Web Deploy workflow then copies the files to the site (about 2 minutes)." -f $n); $n++
+Write-Host ("{0}. Drag ALL files from {1} into the release (8 APKs plus update.json), or use the gh command below." -f $n, $outDir); $n++
+Write-Host ("{0}. Leave 'Set as a pre-release' UNticked, then Publish release. The Web Deploy workflow then copies the update files to the site (about 2 minutes)." -f $n); $n++
 if ($UpdateFolderUrl) { Write-Host ("{0}. Check it worked: open {1}/update.json in a browser. It should show versionCode {2}. Phones and TVs notice it within a day of the next launch." -f $n, $UpdateFolderUrl, $code); $n++ }
 Write-Host ''
 Write-Host 'Same release from a terminal (needs gh logged in):' -ForegroundColor DarkGray
-Write-Host ("  gh release create v{0} `"{1}\violence-phone-{0}.apk`" `"{1}\violence-tv-{0}.apk`" `"{1}\update.json`" --target violence-nk --title `"Violence {0}`" --notes `"{2}`"" -f $name, $outDir, ($Changelog -join '; ')) -ForegroundColor DarkGray
+$quoted = (($allFiles + $jsonPath) | ForEach-Object { '"' + $_ + '"' }) -join ' '
+Write-Host ("  gh release create v{0} {1} --target violence-nk --title `"Violence {0}`" --notes `"{2}`"" -f $name, $quoted, ($Changelog -join '; ')) -ForegroundColor DarkGray
 Write-Host ''
 Write-Host 'Never commit the keystore, keystore.properties or the APKs (all gitignored).' -ForegroundColor Yellow

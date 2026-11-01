@@ -42,6 +42,18 @@ class AppUpdateCheckerTest {
     }
 
     @Test
+    fun picksTheApkForTheDevicesCpu() {
+        val body = """{"versionCode":2,"versionName":"2","apks":{
+            "phone":{"url":"universal.apk"},
+            "phone-arm64-v8a":{"url":"arm64.apk"},
+            "phone-armeabi-v7a":{"url":"arm32.apk"}}}"""
+        fun url(vararg abis: String) = AppUpdateChecker.parseUpdate(body, infoUrl, "phone", abis.toList())!!.apkUrl
+        assertEquals("https://example.org/Violence/updates/arm64.apk", url("arm64-v8a", "armeabi-v7a"))
+        assertEquals("https://example.org/Violence/updates/arm32.apk", url("armeabi-v7a", "armeabi"))
+        assertEquals("https://example.org/Violence/updates/universal.apk", url("x86_64"))
+    }
+
+    @Test
     fun changelogMayBeAPlainString() {
         val body = """{"versionCode":2,"versionName":"2","changelog":"Hello"}"""
         assertEquals("Hello", AppUpdateChecker.parseUpdate(body, infoUrl, "phone")!!.notes)

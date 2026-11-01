@@ -42,12 +42,15 @@ import java.security.MessageDigest
  *   "changelog": ["Fixed ...", "Added ..."],          // a string or a list of lines
  *   "page": "https://example.org/Violence/",           // optional: where to send people if there is no APK for them
  *   "apks": {
- *     "phone": { "url": "violence-phone-1.9.0-violence.2.apk", "sha256": "<hex>" },
- *     "tv":    { "url": "violence-tv-1.9.0-violence.2.apk",    "sha256": "<hex>" }
+ *     "phone-arm64-v8a":   { "url": "violence-phone-1.9.0-violence.2-arm64-v8a.apk",   "sha256": "<hex>" },
+ *     "phone-armeabi-v7a": { "url": "violence-phone-1.9.0-violence.2-armeabi-v7a.apk", "sha256": "<hex>" },
+ *     "tv-arm64-v8a":      { ... }
  *   }
  * }
  * ```
- * APK `url`s may be relative to the JSON file's own address. Updates are compared by `versionCode`
+ * The app takes the entry for its own kind and the first of the device's CPU types (`phone-<abi>`,
+ * then plain `phone` as a fallback for a single universal file); one ABI-specific APK is about half
+ * the size of the universal one. APK `url`s may be relative to the JSON file's own address. Updates are compared by `versionCode`
  * only (the fork's `-violence.N` suffix would otherwise read as a pre-release).
  */
 object AppUpdateChecker {
@@ -112,7 +115,7 @@ object AppUpdateChecker {
                     prefs.edit().putLong(KEY_LAST_CHECK, now).putString(KEY_LAST_BODY, fetched).apply()
                 }
             }
-            val parsed = body?.let { parseUpdate(it, infoUrl, BuildConfig.UPDATE_APK_KEY) } ?: return@runCatching
+            val parsed = body?.let { parseUpdate(it, infoUrl, BuildConfig.UPDATE_APK_KEY, Build.SUPPORTED_ABIS.toList()) } ?: return@runCatching
             if (parsed.versionCode > BuildConfig.VERSION_CODE) {
                 _available.value = UpdateInfo(parsed.versionName, parsed.page, parsed.apkUrl, parsed.notes, parsed.sha256)
             }
@@ -138,10 +141,10 @@ object AppUpdateChecker {
 
     /**
      * Reads the update file, or null if it is not one. [apkKey] is `"phone"` or `"tv"`: the entry of
-     * `apks` that belongs to this app. Relative APK addresses are resolved against [infoUrl]; anything
+     * `apks` that belongs to this app, `<apkKey>-<abi>` for the first of [abis] that has one, else plain `<apkKey>`. Relative APK addresses are resolved against [infoUrl]; anything
      * that does not end up as an https address is dropped (an update is never fetched over plain http).
      */
-    internal fun parseUpdate(body: String, infoUrl: String, apkKey: String): ParsedUpdate? = runCatching {
+    internal fun parseUpdate(body: String, infoUrl: String, apkKey: String, abis: List<String> = emptyList()): ParsedUpdate? = runCatching {
         val root = json.parseToJsonElement(body).jsonObject
         val code = root["versionCode"]?.jsonPrimitive?.intOrNull ?: return@runCatching null
         val name = root["versionName"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() } ?: return@runCatching null
@@ -152,7 +155,8 @@ object AppUpdateChecker {
             else -> null
         }?.takeIf { it.isNotEmpty() }
         val page = root["page"]?.jsonPrimitive?.contentOrNull?.let { resolveHttps(infoUrl, it) } ?: infoUrl
-        val apk = (root["apks"] as? JsonObject)?.get(apkKey) as? JsonObject
+        val apks = root["apks"] as? JsonObject
+        val apk = (abis.map { "$apkKey-$it" } + apkKey).firstNotNullOfOrNull { apks?.get(it) as? JsonObject }
         val apkUrl = apk?.get("url")?.jsonPrimitive?.contentOrNull?.let { resolveHttps(infoUrl, it) }
         val sha = apk?.get("sha256")?.jsonPrimitive?.contentOrNull?.trim()?.lowercase()
             ?.takeIf { Regex("[0-9a-f]{64}").matches(it) }
