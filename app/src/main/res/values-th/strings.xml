@@ -1419,4 +1419,6 @@
     <string name="bit_perfect_status_inexact">%1$s · ไม่ตรงทุกบิต: แหล่งนี้ไม่ใช่ PCM แบบไม่สูญเสียคุณภาพ</string>
     <string name="bit_perfect_status_waiting">กำลังรอแทร็กแบบไม่สูญเสียคุณภาพบนเอาต์พุตที่รองรับ</string>
     <string name="bit_perfect_status_unavailable">ไม่พร้อมใช้งานสำหรับแทร็กนี้ (%1$s)</string>
+    <string name="listen_together_server_waking">Waking up the Jam server… this can take up to a minute.</string>
+    <string name="listen_together_not_configured">Jam is not set up in this build yet. Add a party server address under Use your own server, or ask the owner for a build that has one.</string>
 </resources>

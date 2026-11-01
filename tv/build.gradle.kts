@@ -46,10 +46,15 @@ val lastfmSecret: String = (
  * builds and runs, and simply asks for an address the first time somebody opens
  * the screen. See ListenTogether.DEFAULT_SERVER.
  */
+// Set JAM_BACKEND_URL in local.properties (or the environment). The old name,
+// LISTEN_TOGETHER_SERVER, is still read so existing CI secrets keep working.
+// No built-in server: the default is empty, and the Jam screen then says Jam is not set up.
 val listenTogetherServer: String = (
-    localProps.getProperty("LISTEN_TOGETHER_SERVER")
+    localProps.getProperty("JAM_BACKEND_URL")
+        ?: System.getenv("JAM_BACKEND_URL")
+        ?: localProps.getProperty("LISTEN_TOGETHER_SERVER")
         ?: System.getenv("LISTEN_TOGETHER_SERVER")
-        ?: "https://bitchord-listen-together.onrender.com"
+        ?: ""
     ).trim().trimEnd('/')
 
 /*

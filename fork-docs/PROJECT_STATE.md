@@ -119,3 +119,9 @@ Task paths (from build files and CI): phone `:app:assembleDevDebug`; TV `:tv:ass
 6. Where is the Spotify `sp_dc` persisted, and is that acceptable? (to be traced)
 7. Do the contributor-image workflows need to stay?
 8. When should the upstream v1.9 sync happen relative to Phase 4?
+
+## 15. Update after Phase 4 (2026-11-01): Jam backend
+- **Jam now uses the owner's own copy of `/backend`** (host: Render Free; fallback: Northflank Sandbox; last fallback: Firebase, not built). No Jam default points at the original author any more: Android/TV default is `JAM_BACKEND_URL` (empty), web default is `VITE_PARTY_SERVER_URL` from the repo variable `JAM_BACKEND_URL` (empty). **Not deployed yet by the agent; the owner does the manual steps in `JAM_BACKEND_DEPLOY.md`.** Corrects section 5 ("Where the Jam backend URL is configured today").
+- Empty address is a supported state: the phone shows "Jam is not set up in this build yet"; the web shows a note. Wake-up ("Waking up the Jam server...", 85 s retry) applies to the built-in server only.
+- Backend: stats/presence routes off by default (`JAM_ENABLE_STATS`), default allowed origins = owner's site + localhost, Go module renamed, author's `deploy/` kit deleted, `Dockerfile` added, display name no longer logged. Never compiled locally (no Go/Docker).
+- Still open (unchanged): TV manifest scheme/host, `shared JamInvite.ORIGIN`, `/violence` vs `/Violence` in invite code (D1-D3 above).

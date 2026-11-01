@@ -18,13 +18,13 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/KabirSinghBhatia/BitChord/backend/clock"
-	"github.com/KabirSinghBhatia/BitChord/backend/codes"
-	"github.com/KabirSinghBhatia/BitChord/backend/config"
-	"github.com/KabirSinghBhatia/BitChord/backend/hub"
-	"github.com/KabirSinghBhatia/BitChord/backend/party"
-	"github.com/KabirSinghBhatia/BitChord/backend/presence"
-	"github.com/KabirSinghBhatia/BitChord/backend/protocol"
+	"github.com/yashaswahuh/Violence/backend/clock"
+	"github.com/yashaswahuh/Violence/backend/codes"
+	"github.com/yashaswahuh/Violence/backend/config"
+	"github.com/yashaswahuh/Violence/backend/hub"
+	"github.com/yashaswahuh/Violence/backend/party"
+	"github.com/yashaswahuh/Violence/backend/presence"
+	"github.com/yashaswahuh/Violence/backend/protocol"
 )
 
 var (
@@ -49,7 +49,9 @@ var (
 
 func main() {
 	go startHeartbeatTicker()
-	go startPresenceSweeper()
+	if config.StatsEnabled {
+		go startPresenceSweeper()
+	}
 
 	mux := http.NewServeMux()
 
@@ -63,10 +65,12 @@ func main() {
 	mux.HandleFunc("GET /api/parties/{code}/preview", handlePreviewParty)
 	mux.HandleFunc("POST /api/parties/{code}/leave", handleLeaveParty)
 
-	// Open-app counter
-	mux.HandleFunc("POST /api/presence", handlePresence)
-	mux.HandleFunc("GET /api/stats/live", handleLiveStats)
-	mux.HandleFunc("GET /api/stats/live/badge.svg", handleLiveBadge)
+	// Open-app counter: off unless JAM_ENABLE_STATS=true (Violence never turns it on).
+	if config.StatsEnabled {
+		mux.HandleFunc("POST /api/presence", handlePresence)
+		mux.HandleFunc("GET /api/stats/live", handleLiveStats)
+		mux.HandleFunc("GET /api/stats/live/badge.svg", handleLiveBadge)
+	}
 
 	// Web invite endpoint
 	mux.HandleFunc("GET /invite/{code}", handleInviteLanding)
@@ -77,7 +81,7 @@ func main() {
 	handler := corsMiddleware(mux)
 
 	addr := fmt.Sprintf("0.0.0.0:%d", config.Port)
-	log.Printf("BitChord Listen Together (Go) starting on %s...", addr)
+	log.Printf("Violence Listen Together (Go) starting on %s...", addr)
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           handler,
@@ -605,7 +609,7 @@ var inviteTemplate = template.Must(template.New("invite").Parse(`<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BitChord Listen Together - Party {{.Code}}</title>
+    <title>Violence Listen Together - Party {{.Code}}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -740,7 +744,7 @@ var inviteTemplate = template.Must(template.New("invite").Parse(`<!DOCTYPE html>
                 <span>Listen Together • {{.MemberCount}} in party</span>
             </div>
             <h1>Join the Music Party</h1>
-            <p class="subtitle">Opening BitChord to sync playback in real time.</p>
+            <p class="subtitle">Opening Violence to sync playback in real time.</p>
             <div class="code-box">
                 <div class="code-label">Party Code</div>
                 <div class="code-val">{{.Code}}</div>
@@ -748,10 +752,10 @@ var inviteTemplate = template.Must(template.New("invite").Parse(`<!DOCTYPE html>
                     <div class="now-playing">🎵 {{.CurrentSongTitle}} - {{.CurrentSongArtist}}</div>
                 {{end}}
             </div>
-            <a id="joinBtn" href="{{.IntentURI}}" class="btn">Join Party in BitChord</a>
+            <a id="joinBtn" href="{{.IntentURI}}" class="btn">Join Party in Violence</a>
             <p class="footer-note">
                 Didn’t open automatically? Tap the button above.<br>
-                Don't have BitChord yet? <a href="https://github.com/kushagrasinghx/BitChord/releases" target="_blank" rel="noopener">Download it here</a>.
+                Don't have Violence yet? Ask whoever invited you for the app.
             </p>
             <script>
                 var intentUri = {{.IntentURI}};
@@ -967,7 +971,7 @@ func handleSocketFrame(p *party.Party, member *party.Member, sc *hub.SafeConn, f
 		if posNum, ok := frame["positionMs"].(float64); ok && p.Playback.IsPlaying {
 			drift := int64(posNum) - p.Playback.PositionAt(clock.NowMs())
 			if drift > 1500 || drift < -1500 {
-				log.Printf("party %s: %s drifted %dms", p.Code, member.DisplayName, drift)
+				log.Printf("party %s: member %s drifted %dms", p.Code, member.MemberId, drift)
 			}
 		}
 

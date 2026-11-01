@@ -1,3 +1,5 @@
+> **CANCELLED (2026-11-01, Phase 3).** Wear OS and desktop are no longer to be removed. They are DORMANT: kept intact and revivable, not built or tested in routine work. See FROZEN_TARGETS.md. Do NOT execute any removal step below; this file is kept only as a record of the old analysis. (Facts such as `wearos/protocol` being compiled by `:app` and `/native/analyzer` being shared are still true.)
+
 # Module Pruning Plan: Wear OS & Desktop Targets
 
 **Audit Date:** 2026-10-29  

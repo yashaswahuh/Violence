@@ -15,7 +15,7 @@ Phase 0 (Current) ──► Phase 1: Repo Hygiene & Author Decoupling
 Phase 2: Complete Rebrand & Visual Identity
                    │
                    ▼
-Phase 3: Module Pruning (Wear OS & Desktop)
+Phase 3: Dormant targets, build scripts, CI re-wiring
                    │
                    ▼
 Phase 4: Free Backend Deployment & Jam Binding
@@ -117,45 +117,43 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 
 ---
 
-## Phase 3: Module Pruning (Wear OS & Desktop)
+## Phase 3: Dormant Targets, Build Scripts, CI Re-wiring & Restoration Check [COMPLETED]
 
-- **Primary Goal:** Safely delete `:wearos`, `:desktopApp`, and `:desktopUi` along with all unused dependencies, shrinking project complexity and build times while preserving `/native/analyzer`.
-- **Files Touched:**
-  - `app/build.gradle.kts`: Delete Wear OS dependencies (`libadb-android`, `play-services-wearable`), delete `BundleWearApk` task, remove `../wearos/protocol` sourceSet.
-  - `app/src/main/java/com/music/bitchord/wear/`: Delete `WatchInstaller.kt` and `WearBridge.kt`.
-  - `tv/src/main/java/com/music/bitchord/wear/`: Delete stub files.
-  - `sharedUi/build.gradle.kts`: Remove `ui-desktop` and `CMP_DESKTOP`.
-  - `settings.gradle.kts`: Remove `:wearos`, `:desktopApp`, `:desktopUi`.
-  - CI workflows: Remove desktop jobs in `.github/workflows/check.yml` and `.github/workflows/release.yml`.
-  - File deletions: Delete directories `/wearos`, `/desktopApp`, `/desktopUi`, `/DESKTOP.md`, `/docs/DESKTOP_RELEASES.md`.
-- **Definition of Done:**
-  - Repository contains only `:app`, `:tv`, `:shared`, `:sharedUi`, `/native`, `/backend`, and `/web`.
-  - Phone and TV APK sizes reduced by ~5 MB.
-- **Verification:**
-  - Run `./gradlew assembleDevDebug` (Phone).
-  - Run `./gradlew :tv:assembleDevDebug` (TV).
-  - Run `corepack pnpm --dir web -r typecheck` (Web).
-  - Confirm all three targets compile cleanly.
+- **Status:** **DONE**
+- **Completion Date:** 2026-11-01
+- **Branch:** `violence-nk`
+- **Commits:**
+  - `50827b9`: Restore desktop wiring dropped by the v1.9 merge
+  - `57849a7`: CI: keep dormant targets out of automatic runs
+  - `8d6b20e`: Add active-target build/test scripts and BUILD_COMMANDS.md
+  - `8739c24`: Document dormant targets, restoration check, and updated agent rules
+  - (this PHASES.md update is the final Phase 3 commit)
+- **Differences from the original Phase 3 plan ("Module Pruning"):** the plan to delete `:wearos`, `:desktopApp`, `:desktopUi` is **CANCELLED**. They are DORMANT: kept intact and revivable, not built or tested in routine work. `MODULE_PRUNING_PLAN.md` is marked cancelled. TV is an ACTIVE target (the old "never build TV" directive is cancelled).
+- **What was done:**
+  - `fork-docs/BUILD_COMMANDS.md`, `scripts/build-active.ps1`, `scripts/test-active.ps1`, `scripts/_env.ps1`: explicit task paths for phone, TV, web only; root-level Gradle tasks forbidden.
+  - `fork-docs/FROZEN_TARGETS.md`: dormant modules, shared-code dependencies, history, leftover BitChord identifiers, the desktop `upgradeUuid` rule, unfreeze checklist, "Possible impact from later changes" log.
+  - `fork-docs/AGENT_RULES.md` and `/CLAUDE.md`: DORMANT TARGETS section, branch rule, KEEP rule, secret/session rules.
+  - `fork-docs/RESTORATION_LOG.md`: Phase 1/2 review found nothing wrongly disabled. **Regression from the v1.9 merge restored:** `settings.gradle.kts` desktop includes, desktop CI jobs (now `desktop-check.yml`, manual), `.gitignore` `/desktopApp/bin/`.
+  - CI: `android.yml`, `tv.yml`, `web.yml`, `check.yml` now also trigger on `violence-nk`; `check.yml` Android job uses explicit `:app:` tasks; desktop jobs moved to manual-only `desktop-check.yml`; `release.yml` (desktop release) tag trigger removed, manual only.
+  - `ALLOWED_EXTERNAL_SERVICES.md`: new row for the web presence ping (DISABLE).
+- **Environment note:** because `:desktopApp` is a Gradle project, every build needs a JDK 21 toolchain; portable Temurin 21 was installed to `%USERPROFILE%\.jdks`.
+- **Verification (active targets only, via the new scripts):** `build-active.ps1` passed phone `:app:assembleDevDebug`, TV `:tv:assembleDevDebug`, web typecheck and `build:site`. `test-active.ps1` passed `:app:testDevDebugUnitTest` and `:shared:jvmTest` (Gradle reported them up to date from the passing run earlier that day: 1209 + 122 tests, 0 failures) and 159 web tests. Wear OS and desktop: dormant, not checked.
+- **No dormant module file was edited.**
+## Phase 4: Self-hosted Jam Backend & Client Repoint [COMPLETED, deployment pending the owner]
 
----
-
-## Phase 4: Free Backend Deployment & Jam Server Binding
-
-- **Primary Goal:** Deploy the Go backend to Render Free tier (or set up Firebase RTDB), configure automated free keepalive pings to prevent spin-down, and wire client defaults to the new backend.
-- **Files Touched:**
-  - `backend/render.yaml` or Render dashboard deployment configuration.
-  - Optional: Set up free uptime monitor (cron-job.org or GitHub Actions cron) pinging `/healthz` every 12 minutes.
-  - `app/build.gradle.kts` & `tv/build.gradle.kts`: Set `LISTEN_TOGETHER_SERVER` default to the new live Render URL.
-  - `web/app/src/party/listenTogether.ts`: Update default server URL.
-- **Definition of Done:**
-  - Backend is live over HTTPS with valid SSL certificate.
-  - `curl https://<backend>/healthz` returns `{"ok": true, ...}`.
-  - Android client and web client successfully create and join room codes.
-- **Verification:**
-  - Run `go test -v ./...` inside `backend/`.
-  - Open app, create a party room, verify 6-character code is minted by new backend.
-
----
+- **Status:** **DONE in the repository** (2026-11-01). **Not deployed:** creating the Render account and service is manual (`JAM_BACKEND_DEPLOY.md`); until the owner sets `JAM_BACKEND_URL` the apps say Jam is not set up.
+- **Branch:** `violence-nk`
+- **Commits:** `11527e0` (backend), `7a6c27c` (clients, CI wiring, strings), `3496978` (`scripts/jam-test.mjs`), then the docs commit and this PHASES.md update.
+- **Differences from the old Phase 4 text:** the plan said "Render Free (or Firebase RTDB)", a keepalive workflow and hardcoding the live URL into `LISTEN_TOGETHER_SERVER` and `web/app/src/party/listenTogether.ts`. Done instead: the host was chosen from official docs (Render Free primary, Northflank Sandbox fallback, Firebase documented only), the URL is **not** in the repo (empty default, `JAM_BACKEND_URL`), and no GitHub keepalive cron was added (a pinger is optional and documented, with its 750-hour caveat). Firebase is not built.
+- **Go/no-go on free hosting:** GO. `JAM_BACKEND_FEASIBILITY.md` (endpoints/frames used vs implemented: no gaps; in-memory rooms; no login data in Jam messages; member identity fields; the existing custom-server setting is reused).
+- **What changed:**
+  - Backend: stats/presence routes off unless `JAM_ENABLE_STATS`, default allowed origins (owner's site + localhost), display name no longer logged, invite page says Violence with no author link, Go module path `github.com/yashaswahuh/Violence/backend`, `render.yaml` values, new `Dockerfile`/`.dockerignore`, author's `backend/deploy/` removed, README updated.
+  - Android/TV: `JAM_BACKEND_URL` (empty default; old name still read), no crash on a malformed value, "Jam is not set up" message, "Waking up the Jam server..." with an 85 s retry for the built-in server (create, join, lookup). Existing reconnect loop (1 s doubling to 30 s, clock and queue resync) was already in place and is unchanged.
+  - Web: `VITE_PARTY_SERVER_URL` from repo variable `JAM_BACKEND_URL`, build warns instead of failing, same wake-up and not-set-up behavior.
+  - CI: `android.yml`, `check.yml`, `tv.yml`, `web.yml` pass the `JAM_BACKEND_URL` repo variable.
+  - Docs: `JAM_BACKEND_FEASIBILITY.md`, `JAM_BACKEND_DEPLOY.md`, `JAM_TEST_PLAN.md`; `OPEN_QUESTIONS.md` and `FREE_HOSTING_PLAN.md` record the reversal; `ALLOWED_EXTERNAL_SERVICES.md`, `UPSTREAM_SYNC.md`, `FROZEN_TARGETS.md`, `PROJECT_STATE.md`, `CLAUDE.md` updated.
+- **Verification (via the scripts, active targets only):** phone `:app:assembleDevDebug`, TV `:tv:assembleDevDebug`, web typecheck and `build:site` pass; `:app:testDevDebugUnitTest` 1209 tests, `:shared:jvmTest` 122, web 159: 0 failures (includes the locale test for the 2 new strings in 20 files). `scripts/jam-test.mjs` passes against a throwaway mock (18/18 with 2 clients, 57/57 with 15), which only validates the script. **Not run:** the Go tests, the Docker build, and the Jam test against the real backend (no Go/Docker installed; nothing was installed). Wear OS and desktop: dormant, not checked.
+- **Owner follow-ups:** deploy per `JAM_BACKEND_DEPLOY.md`, then run `jam-test.mjs` (2 and 15 clients) and fill in `JAM_TEST_PLAN.md`; set `JAM_BACKEND_URL` in `local.properties` and as the GitHub repo variable.
 
 ## Phase 5: Jam Feature Resilience & Stalled-Track Isolation
 

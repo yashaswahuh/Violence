@@ -15,17 +15,18 @@ function devExtensionId(): string {
 }
 
 // The party server's address stays out of the repo: .env.local here, a
-// workflow variable (web.yml) in production. Without it Listen Together can't
-// make a party, so a production build stops instead of shipping that.
-function requirePartyServer(mode: string): void {
+// workflow variable (web.yml, JAM_BACKEND_URL) in production. Upstream stopped
+// the build without it; Violence keeps building, because an empty address is a
+// supported state: the Listen Together page then says Jam is not set up.
+function warnIfNoPartyServer(mode: string): void {
   const env = loadEnv(mode, fileURLToPath(new URL('.', import.meta.url)), 'VITE_');
   if (!env.VITE_PARTY_SERVER_URL?.trim()) {
-    throw new Error('VITE_PARTY_SERVER_URL is not set (app/.env.local, or the Cloudflare Pages environment).');
+    console.warn('[violence] VITE_PARTY_SERVER_URL is not set: this build ships without a built-in Jam server.');
   }
 }
 
 export default defineConfig(({ command, mode }) => {
-  if (command === 'build') requirePartyServer(mode);
+  if (command === 'build') warnIfNoPartyServer(mode);
   return {
     base: process.env.VITE_BASE_URL || '/Violence/',
     plugins: [react(), tailwindcss()],

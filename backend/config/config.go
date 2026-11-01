@@ -74,7 +74,15 @@ func IsAllowedOrigin(origin string) bool {
 	return false
 }
 
+// Browsers that may use the Jam server unless JAM_ALLOWED_ORIGINS says otherwise:
+// the owner's web player and local development. Native apps send no Origin.
+const defaultAllowedOrigins = "https://yashaswahuh.is-a.dev,http://localhost,http://localhost:5173"
+
 var (
+	// StatsEnabled turns the open-app counter back on (POST /api/presence,
+	// GET /api/stats/live and its badge). Violence keeps it off: no listener
+	// stats, no install tracking.
+	StatsEnabled         = getBool("JAM_ENABLE_STATS", false)
 	MaxMembers           = getInt("JAM_MAX_MEMBERS", 5)
 	StateHeartbeatMs     = getInt("JAM_STATE_HEARTBEAT_MS", 5000)
 	PlayLeadMs           = getInt("JAM_PLAY_LEAD_MS", 350)
@@ -93,7 +101,7 @@ var (
 	WebSocketMaxBytes    = int64(getInt("JAM_WEBSOCKET_MAX_BYTES", 16*1024))
 	ConnectionIdleMs     = int64(getInt("JAM_CONNECTION_IDLE_MS", 15*60*1000))
 	FrameRatePerSecond   = float64(getInt("JAM_FRAME_RATE_PER_SECOND", 30))
-	AllowedOrigins       = getCSV("JAM_ALLOWED_ORIGINS", "")
+	AllowedOrigins       = getCSV("JAM_ALLOWED_ORIGINS", defaultAllowedOrigins)
 	TrustProxy           = getBool("JAM_TRUST_PROXY", false)
 	PublicOrigin         = getOrigin("JAM_PUBLIC_ORIGIN")
 	Port                 = getInt("PORT", 8000)

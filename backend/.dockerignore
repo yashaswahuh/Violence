@@ -1,0 +1,6 @@
+server
+*.exe
+tools/
+deploy/
+*_test.go
+README.md

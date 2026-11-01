@@ -67,6 +67,8 @@ export interface PartyState {
   activity: PartyActivity[];
   /** A resume this device accepted but may not perform yet (partySync owns it). */
   awaitingStart: boolean;
+  /** True while a create, join or lookup waits for a sleeping, free-hosted server to wake up. */
+  serverWaking: boolean;
 }
 
 const IDLE: PartyState = {
@@ -83,6 +85,7 @@ const IDLE: PartyState = {
   error: null,
   activity: [],
   awaitingStart: false,
+  serverWaking: false,
 };
 
 export const useParty = create<PartyState>()(() => IDLE);
@@ -124,9 +127,55 @@ export function savePartySettings(change: Partial<Settings>): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...partySettings(), ...change }));
 }
 
-/** The server parties are made on: the custom one if set, else BitChord's. */
+/** The server parties are made on: the custom one if set, else the built-in one (may be empty). */
 export function idleServer(): string {
   return sanitizeServerUrl(partySettings().customServer) ?? DEFAULT_SERVER;
+}
+
+const NO_SERVER_MESSAGE =
+  'Jam is not set up on this site yet. Enter a party server under Server below, or ask the owner.';
+const ASLEEP_MESSAGE = 'The Jam server didn’t wake up. Give it a minute and try again.';
+const WAKE_PROBE_TIMEOUT_MS = 10_000;
+const WAKE_WINDOW_MS = 85_000;
+
+async function answersHealth(base: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${base}/healthz`, { signal: AbortSignal.timeout(WAKE_PROBE_TIMEOUT_MS) });
+    return response.ok && ((await response.json()) as { ok?: unknown }).ok === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Free hosts put an idle server to sleep, and the first request after that can wait about a
+ * minute for it to start. Rather than let that look like a failure, probe /healthz, set
+ * `serverWaking` (the page shows "waking up") and keep trying with a growing pause for up to
+ * WAKE_WINDOW_MS. Only the built-in server is treated this way: a custom address somebody
+ * typed in fails fast, as before. Throws PartyError('server_asleep') if it never wakes.
+ */
+async function wakeServerIfAsleep(base: string): Promise<void> {
+  if (!base || base !== DEFAULT_SERVER) return;
+  if (await answersHealth(base)) return;
+  useParty.setState({ serverWaking: true });
+  try {
+    const deadline = Date.now() + WAKE_WINDOW_MS;
+    let pause = 2_000;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, pause));
+      if (await answersHealth(base)) return;
+      pause = Math.min(pause * 1.5, 10_000);
+    }
+    throw new PartyError('server_asleep', ASLEEP_MESSAGE);
+  } finally {
+    useParty.setState({ serverWaking: false });
+  }
+}
+
+/** The base to talk to, or a friendly PartyError if this build has no server and none was typed in. */
+function requireServer(base: string): string {
+  if (!base) throw new PartyError('no_server', NO_SERVER_MESSAGE);
+  return base;
 }
 
 // ---- Membership --------------------------------------------------------------------
@@ -213,6 +262,8 @@ export async function createParty(options: { maxMembers?: number; autoplayEnable
   if (useParty.getState().code) await leaveParty();
   const base = idleServer();
   try {
+    requireServer(base);
+    await wakeServerIfAsleep(base);
     const membership = await request<PartyMembership>(`${base}/api/parties`, {
       method: 'POST',
       body: JSON.stringify({ ...(await identity()), maxMembers: options.maxMembers ?? 5, autoplayEnabled: options.autoplayEnabled }),
@@ -237,6 +288,8 @@ export async function joinParty(rawCode: string, serverUrl?: string | null): Pro
   const current = useParty.getState();
   if (current.code === code && server === base) return code;
   try {
+    requireServer(base);
+    await wakeServerIfAsleep(base);
     const membership = await request<PartyMembership>(`${base}/api/parties/${code}/join`, {
       method: 'POST',
       body: JSON.stringify(await identity()),
@@ -257,6 +310,8 @@ export async function previewParty(rawCode: string, serverUrl?: string | null): 
   refuseIfRecentlyKicked(code);
   const base = sanitizeServerUrl(serverUrl) ?? idleServer();
   try {
+    requireServer(base);
+    await wakeServerIfAsleep(base);
     return await request<PartyPreview>(`${base}/api/parties/${code}/preview`);
   } catch (error) {
     // A server that predates /preview answers its router's plain-text 404: still joinable.

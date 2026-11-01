@@ -2,7 +2,7 @@ name: Check
 
 on:
   push:
-    branches: [main]
+    branches: [violence-nk, violence-main, main]
   pull_request:
 
 concurrency:
@@ -28,7 +28,7 @@ jobs:
         run: |
           echo "LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}" > local.properties
           echo "LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}" >> local.properties
-          echo "LISTEN_TOGETHER_SERVER=${{ secrets.LISTEN_TOGETHER_SERVER }}" >> local.properties
+          echo "JAM_BACKEND_URL=${{ vars.JAM_BACKEND_URL || '' }}" >> local.properties
 
       # The local debug key, so this APK installs over a local dev build and
       # back. Fork PRs get no secrets; AGP then makes a throwaway key itself.
@@ -43,10 +43,10 @@ jobs:
       - run: chmod +x gradlew
 
       - name: Tests
-        run: ./gradlew testDevDebugUnitTest
+        run: ./gradlew :app:testDevDebugUnitTest '-Pbitchord.bundleWear=false'
 
       - name: Build the dev APK
-        run: ./gradlew assembleDevDebug
+        run: ./gradlew :app:assembleDevDebug '-Pbitchord.bundleWear=false'
 
       - name: Upload the dev APK
         uses: actions/upload-artifact@v4

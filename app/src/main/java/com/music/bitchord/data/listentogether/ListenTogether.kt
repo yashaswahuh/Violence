@@ -363,12 +363,22 @@ object ListenTogether {
     val customServerUrl: StateFlow<String> = _customServer.asStateFlow()
 
     /**
-     * The default party server this build ships pointed at, from `LISTEN_TOGETHER_SERVER`
-     * in `local.properties` or build environment.
+     * The default party server this build ships pointed at, from `JAM_BACKEND_URL`
+     * in `local.properties` or the build environment (BuildConfig keeps its old name).
+     *
+     * Empty is a supported state: it means this build has no built-in server, `hasServer`
+     * is false until the user types one into the custom-server box, and the Jam screen says
+     * Jam is not set up. A value that does not parse is treated the same way, with a log
+     * line, rather than crashing the app at startup.
      */
     val defaultServer: String = when (val res = parseAndNormalizeServerUrl(BuildConfig.LISTEN_TOGETHER_SERVER)) {
         is ServerUrlValidationResult.Valid -> res.normalizedUrl
-        is ServerUrlValidationResult.Invalid -> error("Invalid BuildConfig.LISTEN_TOGETHER_SERVER: ${BuildConfig.LISTEN_TOGETHER_SERVER}")
+        is ServerUrlValidationResult.Invalid -> {
+            if (BuildConfig.LISTEN_TOGETHER_SERVER.isNotBlank()) {
+                Log.w(TAG, "JAM_BACKEND_URL is not a usable address; Jam has no built-in server in this build")
+            }
+            ""
+        }
     }
 
     /**
@@ -780,10 +790,51 @@ object ListenTogether {
         connect()
     }
 
+    // ------------------------------------------------ waking a sleeping server --
+
+    private val _serverWaking = MutableStateFlow(false)
+
+    /** True while a create, join or lookup is waiting for the built-in server to wake up. */
+    val serverWaking: StateFlow<Boolean> = _serverWaking.asStateFlow()
+
+    /**
+     * Free hosts put an idle server to sleep, and the first request after that can wait about
+     * a minute for it to start. Rather than let that look like a failure, probe `/healthz`,
+     * show the "waking up" notice ([serverWaking]) and keep trying with a growing pause for
+     * up to [WAKE_WINDOW_MS]. Only the built-in server is treated this way: a custom address
+     * somebody typed in fails fast, as before.
+     *
+     * @return true when the server answers (or needs no waiting), false when it never woke.
+     */
+    private suspend fun wakeServerIfAsleep(server: String): Boolean {
+        val base = resolveHttpBase(server)
+        if (base.isBlank() || normalizeServerBase(server) != defaultServer) return true
+        if (probeHealthWithLatency(base, WAKE_PROBE_TIMEOUT_MS).isOnline) return true
+        _serverWaking.value = true
+        try {
+            val awake = kotlinx.coroutines.withTimeoutOrNull(WAKE_WINDOW_MS) {
+                var pause = 2_000L
+                while (!probeHealthWithLatency(base, WAKE_PROBE_TIMEOUT_MS).isOnline) {
+                    delay(pause)
+                    pause = (pause * 3 / 2).coerceAtMost(10_000L)
+                }
+                true
+            }
+            return awake == true
+        } finally {
+            _serverWaking.value = false
+        }
+    }
+
     // ------------------------------------------------------------ joining --
 
     suspend fun createParty(nickname: String = nickname(), maxMembers: Int = 5): Result<String> = switchMutex.withLock {
         val primary = effectiveIdleServerBase()
+        if (!wakeServerIfAsleep(primary)) {
+            val asleep = PartyException("server_asleep", ASLEEP_MESSAGE)
+            _state.update { it.copy(error = asleep.displayMessage()) }
+            return@withLock Result.failure(asleep)
+        }
         val primaryNormalized = resolveHttpBase(primary)
         val attempt = runCatching {
             doCreateOnServer(primaryNormalized, nickname, maxMembers)
@@ -815,7 +866,7 @@ object ListenTogether {
 
     private suspend fun doCreateOnServer(serverBase: String, nickname: String, maxMembers: Int): String {
         val who = identity(nickname) ?: throw PartyException("not_signed_in", "Sign in to listen together.")
-        if (serverBase.isBlank()) throw PartyException("no_server", "Set the party server address first.")
+        if (serverBase.isBlank()) throw PartyException("no_server", "Jam is not set up in this build yet. Add a party server address under Use your own server, or ask the owner for a build that has one.")
         val membership = post(
             "$serverBase/api/parties",
             JoinRequest(
@@ -861,6 +912,7 @@ object ListenTogether {
     suspend fun joinParty(code: String, nickname: String = nickname()): Result<String> = switchMutex.withLock {
         val targetServer = resolveHttpBase(effectiveIdleServerBase())
         runCatching {
+            if (!wakeServerIfAsleep(effectiveIdleServerBase())) throw PartyException("server_asleep", ASLEEP_MESSAGE)
             doJoinOnServer(targetServer, code, nickname)
         }.onFailure { failure ->
             Log.w(TAG, "could not enter a party: ${redact(failure.message)}")
@@ -870,7 +922,7 @@ object ListenTogether {
 
     private suspend fun doJoinOnServer(serverBase: String, code: String, nickname: String): String {
         val who = identity(nickname) ?: throw PartyException("not_signed_in", "Sign in to listen together.")
-        if (serverBase.isBlank()) throw PartyException("no_server", "Set the party server address first.")
+        if (serverBase.isBlank()) throw PartyException("no_server", "Jam is not set up in this build yet. Add a party server address under Use your own server, or ask the owner for a build that has one.")
         val cleaned = code.filter { it.isLetterOrDigit() }.uppercase()
         if (cleaned.length != CODE_LENGTH) {
             throw PartyException("bad_code", "A party code is six letters or digits.")
@@ -1589,7 +1641,8 @@ object ListenTogether {
         return runCatching {
             refuseIfRecentlyKicked(cleaned)
             val base = resolveHttpBase(server ?: effectiveIdleServerBase())
-            if (base.isBlank()) throw PartyException("no_server", "Set the party server address first.")
+            if (base.isBlank()) throw PartyException("no_server", "Jam is not set up in this build yet. Add a party server address under Use your own server, or ask the owner for a build that has one.")
+            if (!wakeServerIfAsleep(server ?: effectiveIdleServerBase())) throw PartyException("server_asleep", ASLEEP_MESSAGE)
             val response = http.get("$base/api/parties/$cleaned/preview")
             if (!response.status.isSuccess()) {
                 val problem = response.toPartyException()
@@ -1700,6 +1753,9 @@ object ListenTogether {
     private const val SERVER_PLACEHOLDER = "<party server>"
 
     private const val UNREACHABLE = "Couldn’t reach the party server."
+    private const val ASLEEP_MESSAGE = "The Jam server didn’t wake up. Give it a minute and try again."
+    private const val WAKE_PROBE_TIMEOUT_MS = 10_000L
+    private const val WAKE_WINDOW_MS = 85_000L
 
     private val ABSOLUTE_URL = Regex("""(?:https?|wss?)://[^\s,;)\]}'\"]+""", RegexOption.IGNORE_CASE)
     private const val KEY_CODE = "party_code"

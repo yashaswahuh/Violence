@@ -1414,4 +1414,6 @@
     <string name="bit_perfect_status_inexact">%1$s · 正確ではありません： このソースはロスレス PCM ではありません</string>
     <string name="bit_perfect_status_waiting">対応する出力でロスレスのトラックを待っています</string>
     <string name="bit_perfect_status_unavailable">このトラックでは利用できません（%1$s）</string>
+    <string name="listen_together_server_waking">Waking up the Jam server… this can take up to a minute.</string>
+    <string name="listen_together_not_configured">Jam is not set up in this build yet. Add a party server address under Use your own server, or ask the owner for a build that has one.</string>
 </resources>

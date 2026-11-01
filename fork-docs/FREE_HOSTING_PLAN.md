@@ -3,7 +3,7 @@
 **Audit Date:** 2026-10-29  
 **Core Constraint:** 100% Free forever. No paid tiers, no expiring trials, no credit card requirements.  
 **Audience Capacity:** Private personal group (4–6 people).  
-**Chosen Primary Hosting:** **GitHub Pages (`https://yashaswahuh.is-a.dev/violence`) + Google Firebase Spark Plan (RTDB)**.
+**Chosen Hosting (updated 2026-11-01, Phase 4):** **GitHub Pages (`https://yashaswahuh.is-a.dev/Violence`) for the web player + the existing Go backend self-hosted on the Render Free web service for Jam. Firebase Spark (RTDB) is the documented fallback only, not built.**
 
 ---
 
@@ -53,18 +53,15 @@ We evaluated six free-tier hosting platforms against the requirements of our pri
 
 ---
 
-### 2.4 Jam / Shared Listening Room Architecture
+### 2.4 Jam / Shared Listening Room Architecture (REVERSED in Phase 4)
 
-#### Primary Engine: Google Firebase Realtime Database (Spark Plan)
-- **Status:** **SELECTED as primary Jam engine.**
-- **Why Firebase RTDB:**
-  - 100% free forever, no credit card required.
-  - **Zero Spin-Down:** Unlike Render free containers, Firebase RTDB is a managed cloud database that never sleeps.
-  - **Instant Connection:** No 30–50 second cold starts when friends join a room after hours of inactivity.
-  - **Native Real-Time Sync:** Android (`com.google.firebase:firebase-database-ktx`) and Web (`@firebase/database`) SDKs handle automatic connection management, offline persistence, and automatic reconnection.
-  - **Built-in Server Timestamp:** `ServerValue.TIMESTAMP` ensures perfect NTP clock synchronization across all participant devices without custom ping/pong loops.
-  - **Generous Free Capacity:** 100 simultaneous connections (our group needs ~6 connections) and 10 GB/month download egress (sync messages are a few KB).
+#### Primary engine: the existing Go backend (`/backend`) on Render Free
+- **Status:** **SELECTED (2026-11-01).** Keeps the existing Jam protocol and every client unchanged; only the server address changes (`JAM_BACKEND_URL`).
+- **Why:** no protocol rewrite; static binary, no database, no secrets; fits the free instance (512 MB / 0.1 CPU class) for about 15 users; no credit card; WebSockets supported. Verified against official docs on 2026-11-01 in `JAM_BACKEND_FEASIBILITY.md`.
+- **Costs:** sleeps after 15 idle minutes (about 1 minute cold start), 750 instance hours per month, rooms in memory are lost on sleep or restart. Mitigations: "waking up" UI with 85 s retry, automatic reconnect, optional free pinger (`JAM_BACKEND_DEPLOY.md`).
+- **Step-by-step:** `JAM_BACKEND_DEPLOY.md`. **Tests:** `JAM_TEST_PLAN.md`.
 
-#### Fallback Engine: Retained Standalone Go Backend (`/backend`)
-- **Status:** **RETAINED IN REPO as a backup.**
-- **Role:** If Firebase Realtime Database ever encounters an issue or service restriction, the standalone Go server in `/backend` can be deployed immediately to Render Free tier (or any free container host) with zero code modifications.
+#### Fallbacks, in order
+1. **Northflank Sandbox** (free, no card, always on; WebSocket on a public port UNVERIFIED): same Dockerfile (`backend/Dockerfile`).
+2. **Own always-on machine + free Cloudflare Tunnel.**
+3. **Firebase Realtime Database (Spark plan), the original choice, now the documented last fallback.** 100% free and no card, but it is a different protocol and would need a client rewrite. **Not implemented**; the owner will ask for it separately if it is ever needed.

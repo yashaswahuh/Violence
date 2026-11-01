@@ -1468,4 +1468,6 @@
     <string name="bit_perfect_status_inexact">%1$s · неточно: этот источник не является PCM без потерь</string>
     <string name="bit_perfect_status_waiting">Ожидание трека без потерь на поддерживаемом выходе</string>
     <string name="bit_perfect_status_unavailable">Недоступно для этого трека (%1$s)</string>
+    <string name="listen_together_server_waking">Waking up the Jam server… this can take up to a minute.</string>
+    <string name="listen_together_not_configured">Jam is not set up in this build yet. Add a party server address under Use your own server, or ask the owner for a build that has one.</string>
 </resources>

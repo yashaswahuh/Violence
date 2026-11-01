@@ -56,6 +56,7 @@ export default function ListenTogetherPage() {
         ) : (
           <StartOrJoin signedIn={signedIn} />
         )}
+        {state.serverWaking && <p className={lede}>Waking up the Jam server… this can take up to a minute.</p>}
         {state.error && <p className={error}>{state.error}</p>}
       </div>
     </div>
@@ -145,7 +146,12 @@ function StartOrJoin({ signedIn }: { signedIn: boolean }) {
           />
         </label>
       </section>
-      <p className={settingsUi.footer}>Leave the server empty to use Violence’s. Anyone joining your party uses the server it’s on.</p>
+      <p className={settingsUi.footer}>
+        {DEFAULT_SERVER
+          ? 'Leave the server empty to use Violence’s. '
+          : 'This site has no built-in Jam server, so enter one here (the owner can give you the address). '}
+        Anyone joining your party uses the server it’s on.
+      </p>
     </>
   );
 }

@@ -63,7 +63,7 @@ Then open `http://localhost:5173/extension`. It shows "Installed", with the vers
 | `BITCHORD_STORE_BUILD=1` | extension build | Leaves out the dev `key` for a Chrome Web Store upload |
 | `VITE_EXTENSION_ID_CHROMIUM` | app (`app/.env.local`) | The pinned dev id. Set it for a store-built extension |
 | `VITE_ANDROID_APP_URL` | app | The GitHub releases page |
-| `VITE_PARTY_SERVER_URL` | app (`app/.env.local`, Pages env) | None. The Listen Together server; `vite build` fails without it |
+| `VITE_PARTY_SERVER_URL` | app (`app/.env.local`, Pages env) | *(empty)* The Listen Together server (`JAM_BACKEND_URL` in `web.yml`). Empty is allowed: the Jam page then says Jam is not set up |
 
 ## Deploy (Cloudflare Pages)
 
