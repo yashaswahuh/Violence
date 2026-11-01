@@ -183,6 +183,7 @@ import com.music.bitchord.ui.screens.ShareSheet
 import com.music.bitchord.ui.screens.noticeRes
 import com.music.bitchord.share.IncomingLinkHub
 import com.music.bitchord.share.ShareItem
+import com.music.bitchord.share.SharedSongResolver
 import com.music.bitchord.data.share.IncomingLink
 import com.music.bitchord.data.share.SongRef
 import com.music.bitchord.data.share.SongSource
@@ -5407,20 +5408,12 @@ private fun BitChordApp(
                 Toast.makeText(context, context.getString(noticeRes(notice)), Toast.LENGTH_SHORT).show()
             }
         }
-        // The only network use of receiving a song, and only after the user chose an action:
-        // the normal YouTube Music lookup of the video id (or a search for a link with no id).
-        val resolveIncomingSong: suspend (SongRef) -> Song? = { ref ->
-            if (ref.source == SongSource.YOUTUBE) {
-                YtMusicRepository.trackLinks(ref.id).getOrNull()
-            } else {
-                YtMusicRepository.search(ref.searchWords(), SearchFilter.SONGS).getOrNull()
-                    ?.filterIsInstance<SearchResult.Track>()?.firstOrNull()?.song
-            }
-        }
+        // The only network use of receiving a song, and only after the user chose an action
+        // (see SharedSongResolver).
         val onIncomingSong: (SongRef, (Song) -> Unit) -> Unit = { ref, action ->
             scope.launch {
                 incomingBusy = true
-                val resolved = resolveIncomingSong(ref)
+                val resolved = SharedSongResolver.resolve(ref)
                 incomingBusy = false
                 if (resolved == null) {
                     Toast.makeText(context, context.getString(R.string.incoming_song_failed), Toast.LENGTH_SHORT).show()
