@@ -142,9 +142,10 @@ fun TvListenTogetherDialog(
                                 TvButton(
                                     text = key.toString(),
                                     modifier = Modifier.tvInitialFocus(!arrivedByLink && rowIndex == 0 && column == 0),
-                                    enabled = !busy,
+                                    // Never disabled: a disabled button cannot hold D-pad focus, and focus
+                                    // would drop out of the grid while a join is in flight.
                                     onClick = {
-                                        if (entry.length < ListenTogether.CODE_LENGTH) entry += key
+                                        if (!busy && entry.length < ListenTogether.CODE_LENGTH) entry += key
                                         failure = null
                                     },
                                 )
@@ -157,26 +158,27 @@ fun TvListenTogetherDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TvButton(
                         text = "Delete",
-                        enabled = entry.isNotEmpty() && !busy,
+                        // Stays focusable when there is nothing to delete (a no-op), so emptying the
+                        // code with the remote does not lose focus.
                         onClick = {
-                            entry = entry.dropLast(1)
+                            if (!busy) entry = entry.dropLast(1)
                             failure = null
                         },
                     )
                     TvButton(
                         text = "Clear",
-                        enabled = entry.isNotEmpty() && !busy,
                         onClick = {
-                            entry = ""
+                            if (!busy) entry = ""
                             failure = null
                         },
                     )
                     TvButton(
                         text = if (busy) "Joining..." else "Join",
                         isPrimary = true,
-                        enabled = entry.length == ListenTogether.CODE_LENGTH && !busy,
+                        enabled = entry.length == ListenTogether.CODE_LENGTH,
                         modifier = Modifier.tvInitialFocus(arrivedByLink),
                         onClick = {
+                            if (busy) return@TvButton
                             busy = true
                             failure = null
                             scope.launch {
@@ -185,7 +187,7 @@ fun TvListenTogetherDialog(
                             }
                         },
                     )
-                    TvButton(text = "Back", enabled = !busy, onClick = { keypadOpen = false })
+                    TvButton(text = "Back", onClick = { if (!busy) keypadOpen = false })
                 }
             }
 
@@ -193,9 +195,9 @@ fun TvListenTogetherDialog(
                 StatusLines(waking = waking, failure = failure)
                 TvDialogButton(
                     text = if (busy) "Starting..." else "Start a Party",
-                    enabled = !busy,
                     initialFocus = true,
                     onClick = {
+                        if (busy) return@TvDialogButton
                         busy = true
                         failure = null
                         scope.launch {
@@ -204,7 +206,7 @@ fun TvListenTogetherDialog(
                         }
                     },
                 )
-                TvDialogButton(text = "Join with a Code", enabled = !busy, onClick = { keypadOpen = true })
+                TvDialogButton(text = "Join with a Code", onClick = { if (!busy) keypadOpen = true })
                 TvDialogButton(text = "Close", onClick = onDismiss)
             }
         }
