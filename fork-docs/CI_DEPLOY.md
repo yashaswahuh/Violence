@@ -6,6 +6,7 @@ Updated in Phase 6 (2026-11-02). Two workflows matter for sharing the app: **Web
 | Workflow | Runs when | What it does | Where the result is |
 |---|---|---|---|
 | **Web Deploy** `web.yml` | push to `violence-nk` touching `web/**` or the workflow file; or "Run workflow" | typecheck + tests, then `pnpm build:site` (builds the site for the `/Violence/` folder and packages the browser extension zips it offers), sanity-checks the output (404.html, robots.txt, noindex, asset paths), uploads it and deploys with the official Pages actions | the run's **Deploy to GitHub Pages** job summary and the repo's **Deployments** panel show the URL |
+| **Web Deploy, on a release** | a GitHub release is published (Phase 7) | the same workflow also copies that release's `update.json` + the per-CPU APKs it lists into the site's `updates/` folder (the app update files; `RELEASE_GUIDE.md`). A later web-only deploy keeps them (it downloads the newest release again) | `<site>/updates/update.json` |
 | **Android CI** `android.yml` | push to `violence-nk` touching `app/ tv/ shared/ sharedUi/ native/ gradle/` or the root Gradle files or the workflow file (docs-only and web-only pushes do not trigger it); or "Run workflow" | JDK 21 + 17, Android SDK, then `:app:assembleDevDebug :tv:assembleDevDebug` (explicit module tasks, no Wear OS) and renames the APKs | **Artifacts** at the bottom of the run page: `violence-phone-debug-<sha>` and `violence-tv-debug-<sha>`, kept 30 days |
 | other, already in the repo | | `check.yml` (phone tests + backend Go checks), `tv.yml` (TV build), `desktop-check.yml` and `release.yml` (dormant desktop, manual only), two upstream contributor-widget workflows | |
 
@@ -13,6 +14,7 @@ Updated in Phase 6 (2026-11-02). Two workflows matter for sharing the app: **Web
 1. **Settings > Pages > Build and deployment > Source = GitHub Actions** (not "Deploy from a branch").
 2. **Settings > Actions > General**: Actions allowed; workflow permissions can stay at the default read (the workflows ask for what they need).
 3. **Settings > Environments > github-pages > Deployment branches and tags**: this environment is created by the first Pages run and **defaults to the default branch only**. Add `violence-nk` (or "No restriction"), otherwise the deploy job is rejected ("Branch ... is not allowed to deploy to github-pages").
+3b. For release-triggered deploys (Phase 7): in the same `github-pages` environment also allow the **tag pattern `v*`** (releases are tagged `v<version>`). Without it a release publishes fine but its Web Deploy run is rejected; any push to `violence-nk` under `web/` then deploys it just the same.
 4. **Settings > Collaborators**: invite the people who should download APKs (artifacts of a private repo need repository access).
 5. **Optional values** (Settings > Secrets and variables > Actions). All are optional; **every build works with all of them missing**:
    - **Variables:** `JAM_BACKEND_URL` (the Jam server, see `JAM_BACKEND_DEPLOY.md`), `JAM_INVITE_BASE_URL` (where shared party links point, for example `https://yashaswahuh.is-a.dev/Violence`). Used by both workflows.
@@ -22,7 +24,7 @@ Updated in Phase 6 (2026-11-02). Two workflows matter for sharing the app: **Web
 - **Push:** any matching push to `violence-nk` starts the right workflow. The first push that contains these files runs them.
 - **"Run workflow" button:** GitHub shows it only for workflow files that exist on the **default branch** (`main`). Until these workflows are merged there, use the push trigger on `violence-nk` (for example a small edit under `web/` or to the workflow file) and watch the **Actions** tab.
 - **The first run to do:** Web Deploy, because it also creates the `github-pages` environment (step 3 above). Success = both jobs green, the summary shows a URL, and opening `<URL>` shows the player; opening `<URL>party/ABC123` shows the invite page; reloading any page does not give a GitHub 404.
-- **Android CI success** = one green job and two artifacts. Download, unzip the artifact, install the `.apk`. Debug builds from different runs are signed with different keys, so **uninstall the older build before installing a newer one** (Phase 7 adds proper signing).
+- **Android CI success** = one green job and two artifacts. Download, unzip the artifact, install the `.apk`. Debug builds from different runs are signed with different keys, so **uninstall the older build before installing a newer one** (release builds, signed with the owner's key, come from `scripts/release.ps1`: `RELEASE_GUIDE.md`).
 
 ## If a run fails
 | Symptom | Check |

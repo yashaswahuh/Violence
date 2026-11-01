@@ -8,7 +8,7 @@ Method: read `DECOUPLING_LOG.md`; diffed every code/config file changed between 
 | Change | Depends on it? | Verdict |
 |---|---|---|
 | `Presence.kt` `ENDPOINT = ""`, `AndroidPresence.install()` no-op | Open-app counter only. Jam, playback, login do not use presence. | Correct (DISABLE). |
-| `AppUpdateChecker.kt` `LATEST_RELEASE_URL = ""` | Update prompt only. | Correct (DISABLE); re-enabled against our own releases in Phase 8. |
+| `AppUpdateChecker.kt` `LATEST_RELEASE_URL = ""` | Update prompt only. | Correct (DISABLE); re-enabled in Phase 7 against the owner's own `update.json` (not GitHub's API). |
 | Discord promo button 2 default `false` (`AppSettings.kt`, `DiscordRPC.kt`, extension) | The promo button only; Discord Rich Presence itself still works. | Correct. |
 | `SettingsSheet.kt`, `DesktopApp.kt` author links removed | Footer links only. | Correct. |
 | `web/app/src/config.ts` `androidAppUrl` default `''` | Hides the "get the Android app" banner; nothing else. | Correct. |

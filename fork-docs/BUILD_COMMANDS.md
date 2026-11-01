@@ -50,7 +50,7 @@ Because `:desktopApp` is part of the Gradle build, **every build on a machine ne
 | `android.yml` | push `violence-nk` (path-filtered), manual | JDK 21+17, SDK, `:app:assembleDevDebug :tv:assembleDevDebug -Pbitchord.bundleWear=false`, uploads the two APKs (Phase 6) |
 | `tv.yml` | push (same branches), PR | `:tv:assembleDevDebug` |
 | `check.yml` | push (same branches), PR | `:app:testDevDebugUnitTest`, `:app:assembleDevDebug` (explicit), plus backend Go checks |
-| `web.yml` | push `violence-nk` (`web/**`), manual | typecheck + tests + `pnpm build:site` with `VITE_BASE_URL`=the Pages folder, deploy to GitHub Pages (Phase 6) |
+| `web.yml` | push `violence-nk` (`web/**`), release published, manual | typecheck + tests + `pnpm build:site` with `VITE_BASE_URL`=the Pages folder, adds the newest release's update files under `updates/`, deploy to GitHub Pages (Phase 6, 7) |
 | `desktop-check.yml` | **manual only** | desktop tests and packaging (dormant) |
 | `release.yml` | **manual only** (tag trigger removed) | desktop packaging release (dormant) |
 | `contributors-image.yml`, `update-contributors.yml` | upstream cron/push `main` | no Gradle; README contributor widgets (not changed) |
@@ -63,3 +63,11 @@ node scripts/serve-pages-local.mjs --check      # serves web/app/dist under /Vio
 node scripts/serve-pages-local.mjs              # then open http://localhost:4173/Violence/
 ```
 `BITCHORD_STORE_BUILD=1` is what CI sets so the packaged extension never answers pages on localhost.
+
+## Release APKs (signed, for sharing) and the update file
+Needs `keystore.properties` and a keystore outside the repo (`RELEASE_GUIDE.md` A1). Phone and TV only.
+```powershell
+.\scripts\release.ps1 -Bump -Changelog 'what changed'    # build, sign, write release-out\<version>\ (phone apk, tv apk, update.json), print the publish steps
+.\gradlew.bat ':app:assembleDevRelease' '-Pbitchord.bundleWear=false'    # dev flavor release, only when needed
+```
+Never run it with a real keystore from CI; the keystore stays on the owner's machine.
