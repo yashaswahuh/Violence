@@ -22,6 +22,18 @@
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
     <!--
+      Tap to share (Phase 9). NFC is entirely optional: the app installs and works on phones
+      without it, and the NFC options are simply hidden there. The camera is only for scanning a
+      QR code and is asked for only when the scan screen opens (fork-docs/SHARE_DESIGN.md).
+    -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
+    <uses-feature android:name="android.hardware.nfc.hce" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!--
       Asked for only when the output picker is first opened, and only on API 31+
       where it exists. Without it a paired headset is listed by the audio
       framework under a generic name rather than its own, which turns a list of
@@ -231,6 +243,9 @@
                 <data android:host="yashaswahuh.is-a.dev" />
                 <data android:pathPrefix="/Violence/party/" />
                 <data android:pathPrefix="/Violence/invite/" />
+                <!-- Phase 9: a shared song and a shared profile card (fork-docs/SHARE_DESIGN.md). -->
+                <data android:pathPrefix="/Violence/song/" />
+                <data android:pathPrefix="/Violence/profile" />
             </intent-filter>
 
             <!-- Custom scheme for Listen Together invites on custom server deployments. -->
@@ -238,9 +253,27 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="violence"
-                    android:host="party" />
+                <data android:scheme="violence" />
+                <data android:host="party" />
+                <data android:host="song" />
+                <data android:host="profile" />
+            </intent-filter>
+
+            <!--
+              A violence:// link read from an NFC tag (another phone doing Tap to share). Android
+              tries NDEF_DISCOVERED before any other tag intent, so this opens the app even when it
+              is closed. Not BROWSABLE: nothing on the web can fire it. Android 17 (API 37) will
+              want android.permission.DISPATCH_NFC_MESSAGE on an activity that receives NFC
+              intents for apps that target above API 36; this app targets 36, so it is not added
+              yet (fork-docs/SHARE_DESIGN.md section 4.1).
+            -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="violence" />
+                <data android:host="party" />
+                <data android:host="song" />
+                <data android:host="profile" />
             </intent-filter>
 
             <!--
@@ -755,6 +788,25 @@
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
             android:value="com.music.bitchord.playback.cast.CastOptionsProvider" />
+
+        <!--
+          Tap to share, sending side: looks like an NFC Forum Type 4 NDEF tag holding the one link
+          being shared. DISABLED here: NfcShareSession switches it on only while the Tap to share
+          screen is showing and off again after, so the AID is not registered at any other time.
+          requireDeviceUnlock keeps it from answering on a locked phone.
+        -->
+        <service
+            android:name=".nfc.ShareHostApduService"
+            android:enabled="false"
+            android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/share_apdu_service" />
+        </service>
     </application>
 
 </manifest>

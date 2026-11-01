@@ -262,6 +262,9 @@
                 <data android:host="yashaswahuh.is-a.dev" />
                 <data android:pathPrefix="/Violence/party/" />
                 <data android:pathPrefix="/Violence/invite/" />
+                <!-- Phase 9: a shared song and a shared profile card (fork-docs/SHARE_DESIGN.md). -->
+                <data android:pathPrefix="/Violence/song/" />
+                <data android:pathPrefix="/Violence/profile" />
             </intent-filter>
 
             <!-- Custom scheme for Listen Together invites on custom server deployments. -->
@@ -269,9 +272,10 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="violence"
-                    android:host="party" />
+                <data android:scheme="violence" />
+                <data android:host="party" />
+                <data android:host="song" />
+                <data android:host="profile" />
             </intent-filter>
 
             <!--
