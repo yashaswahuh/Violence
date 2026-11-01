@@ -9,7 +9,14 @@ name: Web Deploy
 # build succeeds with every one of them missing:
 #   JAM_BACKEND_URL      the Jam server the site defaults to   (empty = the site says Jam is not set up)
 #   JAM_INVITE_BASE_URL  where shared party links point        (empty = share only the code)
+#   UPDATE_FOLDER        folder on the site that holds the app update files (default: updates)
 # No secrets are used: anything baked into a public web page is public.
+#
+# App updates (fork-docs/RELEASE_GUIDE.md): when a GitHub release is published (or on any later
+# deploy), the newest release's update.json and violence-*.apk files are copied into the site
+# under <UPDATE_FOLDER>/, so the apps can fetch them without a login (a private repo's release
+# assets cannot be fetched without one). For the release trigger, the github-pages environment must
+# allow the tag pattern v* (Settings -> Environments -> github-pages), see CI_DEPLOY.md.
 
 on:
   push:
@@ -17,6 +24,8 @@ on:
     paths:
       - 'web/**'
       - '.github/workflows/web.yml'
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -85,6 +94,34 @@ jobs:
           grep -q "${BASE}/assets/" app/dist/index.html || { echo "::error::index.html does not load its assets from ${BASE}/ (wrong base path)"; exit 1; }
           if grep -qE '(src|href)="/assets/' app/dist/index.html; then echo "::error::index.html has root-absolute asset URLs"; exit 1; fi
           ls app/dist/downloads | sed 's/^/download: /'
+
+      - name: Add the newest release's update files
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPDATE_FOLDER: ${{ vars.UPDATE_FOLDER || 'updates' }}
+        run: |
+          dest="web/app/dist/${UPDATE_FOLDER}"
+          mkdir -p "$dest"
+          if ! gh release download --repo "$GITHUB_REPOSITORY" --pattern 'update.json' --pattern 'violence-*.apk' --dir "$dest" --clobber; then
+            echo "No release with update files yet; the site is deployed without an updates folder."
+            rm -rf "$dest"
+            exit 0
+          fi
+          # Every APK that update.json points at has to be there, or the apps would offer a download that fails.
+          node -e '
+            const fs = require("fs"), dir = process.argv[1];
+            const j = JSON.parse(fs.readFileSync(dir + "/update.json", "utf8"));
+            if (!Number.isInteger(j.versionCode) || !j.versionName) throw new Error("update.json has no versionCode/versionName");
+            for (const [k, a] of Object.entries(j.apks || {})) {
+              const f = dir + "/" + String(a.url).split("/").pop();
+              if (!fs.existsSync(f)) throw new Error("update.json lists " + k + " APK " + a.url + " but it is not in the release");
+            }
+            console.log("update files for " + j.versionName + " (versionCode " + j.versionCode + ") added");
+          ' "$dest"
+          ls -l "$dest"
+          # Files above 100 MB are rejected by GitHub; warn well before that.
+          find "$dest" -type f -size +90M -print | sed 's/^/::warning::over 90 MB: /'
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
