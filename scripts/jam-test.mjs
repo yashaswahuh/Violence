@@ -240,7 +240,10 @@ async function runRoom(roomNo, size) {
   for (let left = CLIENTS; left > 0; left -= ROOM_SIZE) rooms.push(Math.min(ROOM_SIZE, left));
   // A lone leftover client cannot make a room of its own; fold it into the previous room.
   if (rooms.length > 1 && rooms[rooms.length - 1] < 2) { rooms[rooms.length - 2] += rooms.pop(); }
-  const summaries = await Promise.all(rooms.map((size, i) => runRoom(i + 1, size)));
+  const summaries = [];
+  for (let i = 0; i < rooms.length; i++) {
+    summaries.push(await runRoom(i + 1, rooms[i]));
+  }
   finish(0, summaries.filter(Boolean));
 })().catch((error) => { check('test run completed without an exception', false, String(error && error.message || error)); finish(1); });
 
