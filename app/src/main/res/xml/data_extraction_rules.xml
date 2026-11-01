@@ -13,6 +13,10 @@
         <exclude domain="sharedpref" path="bitchord_last_played.xml" />
         <exclude domain="sharedpref" path="bitchord_bounded_context.xml" />
         <exclude domain="sharedpref" path="bitchord_party_queue_stash.xml" />
+        <!-- The Violence profile id identifies one install; a cloud restore must not copy it to another phone.
+             Device-to-device transfer (below) keeps it, because that moves the same person to a new phone. -->
+        <exclude domain="sharedpref" path="violence_profile.xml" />
+        <exclude domain="file" path="profile/" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="bitchord_auth.xml" />

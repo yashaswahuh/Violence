@@ -30,7 +30,7 @@ Needs JDK 17, Android SDK platform 37.0 (and 36), NDK, CMake 3.22.1. **Quote the
 | Web typecheck | `corepack pnpm --dir web typecheck` (scripts call `pnpm`, so put a corepack shim on PATH) |
 | Web build | `corepack pnpm --dir web build:site` |
 | Web tests | `corepack pnpm --dir web test` |
-| Backend tests | `cd backend; go test -v ./...` (Go is not installed on the owner's machine as of 2026-11-01) |
+| Backend tests | `cd backend; go test -v ./...`. Go is not installed on the owner's machine. In Phase 8 they were run with a **portable** Go 1.27.3 (zip from go.dev, SHA-256 checked, unpacked into a scratch folder, `GOROOT`/`GOPATH`/`GOTOOLCHAIN=local` set for the session). **Do not set `GOFLAGS=-mod=mod`**: it rewrites `backend/go.mod` (drops `// indirect`). `-race` needs a C compiler and does not work on this PC. Real-server check: `go build -o jamserver.exe .` then run it with `PORT`, `JAM_CREATE_RATE_PER_MINUTE=200` and `node scripts/jam-test.mjs --url http://localhost:<port> --clients 4 --profiles`. |
 
 `'-Pbitchord.bundleWear=false'` stops `:app` from building and bundling the Wear OS APK. Without it, `:app` builds `:wearos` too (`app/build.gradle.kts` `BundleWearApk`).
 Web needs `VITE_PARTY_SERVER_URL` set for `build:site` (upstream v1.9 refuses to build without it); the scripts and `web.yml` use the same default.

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.music.bitchord.BuildConfig
 import com.music.bitchord.data.AppUpdateChecker
 import com.music.bitchord.data.listentogether.ListenTogether
+import com.music.bitchord.data.profile.ProfileManager
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.TvSettings
 import com.music.bitchord.ui.MainViewModel
@@ -40,7 +41,9 @@ import com.music.bitchord.ui.tv.components.TvListHeader
 import com.music.bitchord.ui.tv.components.TvListRow
 import com.music.bitchord.ui.tv.dialogs.TvAboutDialog
 import com.music.bitchord.ui.tv.dialogs.TvEqualizerDialog
+import com.music.bitchord.ui.tv.dialogs.TvFriendsDialog
 import com.music.bitchord.ui.tv.dialogs.TvListenTogetherDialog
+import com.music.bitchord.ui.tv.dialogs.TvProfileDialog
 import com.music.bitchord.ui.tv.dialogs.TvLyricsSourcesDialog
 import com.music.bitchord.ui.tv.dialogs.TvRefreshRateDialog
 import com.music.bitchord.ui.tv.dialogs.TvScrobbleDialog
@@ -54,7 +57,7 @@ import com.music.bitchord.ui.tv.theme.TvGlass
 import com.music.bitchord.ui.tv.theme.TvType
 
 // Discord Rich Presence is hidden on TV for now; TvDiscordDialog is kept for when it returns.
-private enum class SettingsSheet { Theme, RefreshRate, Equalizer, Scrobbling, LyricsSources, Update, About, Jam }
+private enum class SettingsSheet { Theme, RefreshRate, Equalizer, Scrobbling, LyricsSources, Update, About, Jam, Profile, Friends }
 
 private const val DefaultBlurb = "Playback, sound and display preferences for Violence on this TV."
 
@@ -101,6 +104,8 @@ fun TvSettingsScreen(
     var blurb by remember { mutableStateOf(DefaultBlurb) }
     var sheet by remember { mutableStateOf<SettingsSheet?>(null) }
     val update by AppUpdateChecker.available.collectAsState()
+    val myProfile by ProfileManager.profile.collectAsState()
+    val friendList by ProfileManager.friends.collectAsState()
     LaunchedEffect(jamInviteCode) {
         if (jamInviteCode != null) sheet = SettingsSheet.Jam
     }
@@ -331,6 +336,24 @@ fun TvSettingsScreen(
                 )
             }
 
+            item { TvListHeader("Violence Profile") }
+            item {
+                TvListRow(
+                    title = "Profile",
+                    value = myProfile?.displayName ?: "Create",
+                    onFocused = { blurb = "Your name and picture in Listen Together. It is separate from your YouTube Music account, and nothing else about you is shared." },
+                    onClick = { sheet = SettingsSheet.Profile },
+                )
+            }
+            item {
+                TvListRow(
+                    title = "Friends",
+                    value = if (friendList.isEmpty()) "None" else friendList.size.toString(),
+                    onFocused = { blurb = "People you added from a profile link. Saved only on this TV." },
+                    onClick = { sheet = SettingsSheet.Friends },
+                )
+            }
+
             item { TvListHeader("Listen Together") }
             item {
                 TvListRow(
@@ -387,6 +410,8 @@ fun TvSettingsScreen(
         SettingsSheet.LyricsSources -> TvLyricsSourcesDialog(onDismiss = { sheet = null })
         SettingsSheet.Update -> update?.let { TvUpdateDialog(update = it, onDismiss = { sheet = null }) }
         SettingsSheet.About -> TvAboutDialog(onDismiss = { sheet = null })
+        SettingsSheet.Profile -> TvProfileDialog(onDismiss = { sheet = null })
+        SettingsSheet.Friends -> TvFriendsDialog(onDismiss = { sheet = null })
         SettingsSheet.Jam -> TvListenTogetherDialog(
             initialCode = jamInviteCode,
             onDismiss = {

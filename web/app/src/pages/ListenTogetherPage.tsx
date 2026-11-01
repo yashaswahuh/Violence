@@ -19,6 +19,8 @@ import {
   savePartySettings,
   useParty,
 } from '@/party/listenTogether';
+import { ProfileAvatar } from '@/profile/ProfileAvatar';
+import { useProfile } from '@/profile/store';
 import { usePlayer } from '@/state/player';
 import { Toggle } from './IntegrationSettings';
 import { settingsUi } from './settingsStyles';
@@ -43,7 +45,10 @@ export default function ListenTogetherPage() {
   const inviteCode = params.code ? cleanCode(params.code) : null;
   const inviteServer = search.get('server');
   const state = useParty();
-  const signedIn = useSignedIn();
+  const ytSignedIn = useSignedIn();
+  // A Violence profile is enough to jam: it needs no YouTube Music sign-in.
+  const hasProfile = useProfile((s) => s.profile !== null);
+  const signedIn = ytSignedIn || hasProfile;
 
   return (
     <div className={settingsUi.centered}>
@@ -66,8 +71,8 @@ export default function ListenTogetherPage() {
 function SignInFirst() {
   return (
     <p className={`${settingsUi.footer} mb-4`}>
-      Listen Together uses your YouTube Music account for your name and picture in the party. Sign in on music.youtube.com,
-      then come back.
+      Listen Together needs a name and picture for the party: make a Violence profile in Settings, or sign in to YouTube Music
+      on music.youtube.com and come back.
     </p>
   );
 }
@@ -177,7 +182,7 @@ function InviteCard({ code, server, signedIn }: { code: string; server: string |
           </p>
           <div className="flex gap-1.5">
             {data.members.map((m, i) => (
-              <Avatar key={i} name={m.displayName} url={m.avatarUrl} large />
+              <Avatar key={i} name={m.displayName} url={m.avatarUrl} avatarId={m.avatarId} color={m.avatarColor} large />
             ))}
           </div>
         </>
@@ -194,7 +199,20 @@ function InviteCard({ code, server, signedIn }: { code: string; server: string |
   );
 }
 
-function Avatar({ name, url, large = false }: { name: string; url: string | null; large?: boolean }) {
+function Avatar({
+  name,
+  url,
+  avatarId,
+  color,
+  large = false,
+}: {
+  name: string;
+  url: string | null;
+  avatarId?: string | null;
+  color?: string | null;
+  large?: boolean;
+}) {
+  if (avatarId) return <ProfileAvatar avatarId={avatarId} color={color} name={name} url={url} size={large ? 36 : 24} />;
   const className = `grid place-items-center rounded-full bg-quaternary object-cover type-callout-emphasized ${large ? 'size-9' : 'size-6'}`;
   return url ? (
     <img className={className} src={url} alt="" referrerPolicy="no-referrer" />
@@ -258,7 +276,7 @@ function InParty() {
       <section className={settingsUi.group}>
         {state.members.map((m) => (
           <div key={m.memberId} className={settingsUi.integrationPlain}>
-            <Avatar name={m.displayName} url={m.avatarUrl} />
+            <Avatar name={m.displayName} url={m.avatarUrl} avatarId={m.avatarId} color={m.avatarColor} />
             <span className={settingsUi.integrationName}>
               {m.displayName}
               {m.memberId === state.you?.memberId && <span className="text-secondary"> (you)</span>}

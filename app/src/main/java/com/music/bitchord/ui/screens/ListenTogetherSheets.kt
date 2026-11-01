@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.music.bitchord.ui.profile.ProfileAvatar
 import com.music.bitchord.R
 import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.data.listentogether.PartyPreview
@@ -99,6 +100,8 @@ internal sealed interface PartySheet {
 @Composable
 internal fun GlowingAvatar(
     url: String?,
+    avatarId: String? = null,
+    avatarColor: String? = null,
     modifier: Modifier = Modifier,
     size: Dp = 104.dp,
     glow: Color = MaterialTheme.colorScheme.primary,
@@ -154,7 +157,17 @@ internal fun GlowingAvatar(
                     shape = CircleShape,
                 ),
         )
-        if (url != null) {
+        if (avatarId != null) {
+            // The Violence profile: a preset on the profile colour. A local photo is shown
+            // only on the profile screen itself, never in anything a party can see.
+            ProfileAvatar(
+                avatarId = avatarId,
+                color = avatarColor,
+                name = "",
+                size = size,
+                modifier = Modifier.border(2.dp, Color.White.copy(alpha = 0.12f), CircleShape),
+            )
+        } else if (url != null) {
             AsyncImage(
                 model = url,
                 contentDescription = null,
@@ -194,6 +207,8 @@ internal fun GlowingAvatar(
 @Composable
 internal fun PartyLanding(
     avatarUrl: String?,
+    avatarId: String? = null,
+    avatarColor: String? = null,
     enabled: Boolean,
     onCreate: () -> Unit,
     onJoin: () -> Unit,
@@ -206,7 +221,7 @@ internal fun PartyLanding(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.height(28.dp))
-        GlowingAvatar(url = avatarUrl)
+        GlowingAvatar(url = avatarUrl, avatarId = avatarId, avatarColor = avatarColor)
         Spacer(Modifier.height(20.dp))
         Text(
             text = stringResource(R.string.listen_together_landing_title),
@@ -323,6 +338,8 @@ private fun SheetWakingNotice() {
 @Composable
 internal fun CreatePartySheet(
     avatarUrl: String?,
+    avatarId: String? = null,
+    avatarColor: String? = null,
     nickname: String,
     onNicknameChange: (String) -> Unit,
     maxMembers: Int,
@@ -342,7 +359,7 @@ internal fun CreatePartySheet(
         )
         Spacer(Modifier.height(22.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PartySheetAvatar(url = avatarUrl)
+            PartySheetAvatar(url = avatarUrl, avatarId = avatarId, avatarColor = avatarColor)
             Spacer(Modifier.width(ICON_GAP))
             PillTextField(
                 value = nickname,
@@ -414,8 +431,10 @@ private fun StepperButton(label: String, enabled: Boolean, onClick: () -> Unit) 
 
 /** The avatar as the sheets draw it — larger than a settings row's glyph. */
 @Composable
-private fun PartySheetAvatar(url: String?, size: Dp = 40.dp) {
-    if (url != null) {
+private fun PartySheetAvatar(url: String?, avatarId: String? = null, avatarColor: String? = null, size: Dp = 40.dp) {
+    if (avatarId != null) {
+        ProfileAvatar(avatarId = avatarId, color = avatarColor, name = "", size = size)
+    } else if (url != null) {
         AsyncImage(
             model = url,
             contentDescription = null,
@@ -490,6 +509,14 @@ internal fun JoinPartySheet(
     }
 }
 
+/** One face in [MemberAvatarStack]. */
+internal class StackFace(
+    val name: String,
+    val url: String?,
+    val avatarId: String? = null,
+    val avatarColor: String? = null,
+)
+
 /**
  * The faces already in a party, overlapped, with a count for the rest.
  *
@@ -499,7 +526,7 @@ internal fun JoinPartySheet(
  */
 @Composable
 internal fun MemberAvatarStack(
-    members: List<Pair<String, String?>>,
+    members: List<StackFace>,
     total: Int,
     modifier: Modifier = Modifier,
     faceSize: Dp = 52.dp,
@@ -512,7 +539,7 @@ internal fun MemberAvatarStack(
         horizontalArrangement = Arrangement.spacedBy((-12).dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        faces.forEach { (name, avatar) ->
+        faces.forEach { face ->
             Box(
                 modifier = Modifier
                     .size(faceSize)
@@ -521,19 +548,13 @@ internal fun MemberAvatarStack(
                     .border(2.dp, MaterialTheme.colorScheme.background, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                if (avatar != null) {
-                    AsyncImage(
-                        model = avatar,
-                        contentDescription = null,
-                        modifier = Modifier.size(faceSize).clip(CircleShape),
-                    )
-                } else {
-                    Text(
-                        text = name.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                ProfileAvatar(
+                    avatarId = face.avatarId,
+                    color = face.avatarColor,
+                    name = face.name,
+                    size = faceSize,
+                    imageUrl = face.url,
+                )
             }
         }
         if (extra > 0) {
@@ -564,6 +585,8 @@ internal fun MemberAvatarStack(
 internal fun JoinConfirmSheet(
     preview: PartyPreview,
     avatarUrl: String?,
+    avatarId: String? = null,
+    avatarColor: String? = null,
     nickname: String,
     onNicknameChange: (String) -> Unit,
     busy: Boolean,
@@ -576,7 +599,9 @@ internal fun JoinConfirmSheet(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         MemberAvatarStack(
-            members = preview.members.map { it.displayName to it.avatarUrl },
+            members = preview.members.map {
+                StackFace(it.displayName, it.avatarUrl, it.avatarId, it.avatarColor)
+            },
             total = preview.memberCount,
         )
         Spacer(Modifier.height(18.dp))
@@ -617,7 +642,7 @@ internal fun JoinConfirmSheet(
         }
         Spacer(Modifier.height(20.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PartySheetAvatar(url = avatarUrl)
+            PartySheetAvatar(url = avatarUrl, avatarId = avatarId, avatarColor = avatarColor)
             Spacer(Modifier.width(ICON_GAP))
             PillTextField(
                 value = nickname,

@@ -71,3 +71,5 @@ Of all services in the catalog, **ONLY ONE functional service is hosted by the o
 **Crucial Note for Repository Owner:**
 No music playback, search, lyrics, metadata, or download services are hosted by the original author. Music streaming and playback queries go directly from client devices to YouTube Music, Google CDN, JioSaavn, and public community lyrics providers. Therefore, keeping playback and search working requires **zero reliance** on the author's personal infrastructure. The only feature that touched author servers was Jam/Listen Together; since Phase 4 no Jam default points at the author (the invite-link leftovers above are the exception).
 
+## 4. Phase 8 addendum (2026-11-01): in-app profiles add no external service
+The Violence profile and friends list are stored only on the device (phone/TV preferences, browser `localStorage`). Nothing is uploaded or fetched for them. The only network path that carries profile data is the existing **Jam** join call to the owner's own Jam server (REPLACE-LATER, self-hosted): name, preset avatar id, colour, opaque profile id. No third-party service, SDK, analytics or account was added.

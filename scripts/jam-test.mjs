@@ -9,7 +9,11 @@
 // identities and fake track ids; no login data. Exit code 0 = every check passed.
 //
 // Options: --url <base> (required), --clients <n> (default 2), --room-size <n> (default 5, max 15),
-//          --wake-seconds <n> (wait this long for a sleeping host, default 90), --out <file.json>
+//          --wake-seconds <n> (wait this long for a sleeping host, default 90), --out <file.json>,
+//          --profiles (Phase 8: every even-numbered member also sends the in-app profile fields
+//          profileId/avatarId/avatarColor, and the run checks they come back in the member list and
+//          that the pre-join preview shows avatar and colour but never the profile id; the odd
+//          members stay "old clients" that send none, so one run covers both)
 
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((pairs, arg, i, all) => {
@@ -22,6 +26,7 @@ const BASE = String(args.url || '').replace(/\/+$/, '');
 const CLIENTS = Math.max(2, Number(args.clients || 2));
 const ROOM_SIZE = Math.min(15, Math.max(2, Number(args['room-size'] || 5))); // 15 = the backend's config.MaxPartyMembers
 const WAKE_SECONDS = Number(args['wake-seconds'] || 90);
+const PROFILES = args.profiles === 'true';
 if (!BASE || !/^https?:\/\//.test(BASE)) {
   console.error('Usage: node scripts/jam-test.mjs --url http://localhost:8000 --clients 2|15');
   process.exit(2);
@@ -56,7 +61,12 @@ async function api(method, path, body, token) {
 function identity(n, room) {
   // Made-up, stable per run. userId/deviceId look like the app's (hashed id, UUID).
   const tag = `${room}-${n}`;
-  return { userId: `test-user-${tag}`.padEnd(32, '0').slice(0, 32), deviceId: `test-device-${tag}`, displayName: `Tester ${tag}` };
+  const base = { userId: `test-user-${tag}`.padEnd(32, '0').slice(0, 32), deviceId: `test-device-${tag}`, displayName: `Tester ${tag}` };
+  if (PROFILES && n % 2 === 0) {
+    const roomNo = Number(String(room).replace(/\D/g, '')) || 0;
+    return { ...base, profileId: `1234abcd-0000-4000-8000-${String(roomNo * 100 + n).padStart(12, '0')}`, avatarId: 'guitar', avatarColor: '0A84FF' };
+  }
+  return base;
 }
 
 /** One connected member: collects frames, lets a test wait for a matching one. */
@@ -145,6 +155,25 @@ async function runRoom(roomNo, size) {
   const everyoneSeesAll = await members[0].waitFor((f) => f.type === 'members' && f.members && f.members.length === members.length, 8000);
   check(`${label}: member list shows all ${members.length}`, !!everyoneSeesAll);
 
+  if (PROFILES && everyoneSeesAll) {
+    const list = everyoneSeesAll.members;
+    const expected = Math.ceil(size / 2);
+    const withProfile = list.filter((m) => m.profileId !== undefined);
+    check(
+      `${label}: profile fields travel with the member list`,
+      withProfile.length === expected && withProfile.every((m) => /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(m.profileId) && m.avatarId === 'guitar' && m.avatarColor === '0a84ff'),
+      `${withProfile.length}/${expected} members with a profile`,
+    );
+    check(
+      `${label}: members without a profile carry none of the fields (old clients unchanged)`,
+      list.filter((m) => m.profileId === undefined).every((m) => m.avatarId === undefined && m.avatarColor === undefined),
+    );
+    check(
+      `${label}: preview shows avatar and colour but never the profile id`,
+      !!(preview.json && preview.json.members.some((m) => m.avatarId === 'guitar' && m.avatarColor === '0a84ff')) && preview.json.members.every((m) => m.profileId === undefined),
+    );
+  }
+
   const host = members[0];
   const guest = members[members.length - 1];
   const allReceive = async (predicate, ms = 8000, since = 0) => (await Promise.all(members.map((m) => m.waitFor(predicate, ms, since)))).every(Boolean);
@@ -171,7 +200,7 @@ async function runRoom(roomNo, size) {
   // 4. queue add
   t = now();
   host.send({ type: 'control', action: 'queueAdd', tracks: [TRACK(2), TRACK(3)], playNext: false });
-  check(`${label}: queueAdd reaches all`, await allReceive((f) => f.type === 'queue' && f.queue && Array.isArray(f.queue.items) && f.queue.items.length >= 2, 8000, t));
+  check(`${label}: queueAdd reaches all`, await allReceive((f) => f.type === 'queue' && f.queue && Array.isArray(f.queue.items) && f.queue.items.length >= 2, 8000, t)); // the two added tracks: the current track (setTrack) is held apart from the queue
 
   // 5. leave and rejoin (a guest)
   const leaverIdx = members.length - 1;

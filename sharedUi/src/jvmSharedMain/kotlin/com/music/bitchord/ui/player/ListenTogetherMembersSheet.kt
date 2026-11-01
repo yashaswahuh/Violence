@@ -32,11 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.music.bitchord.sharedui.resources.*
 import com.music.bitchord.data.listentogether.PartyMember
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
+import com.music.bitchord.ui.profile.ProfileAvatar
 import dev.chrisbanes.haze.HazeState
 
 /**
@@ -89,27 +89,15 @@ private fun MemberDrawerRow(member: PartyMember, isYou: Boolean) {
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.08f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (member.avatarUrl != null) {
-                AsyncImage(
-                    model = member.avatarUrl,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp).clip(CircleShape),
-                )
-            } else {
-                Text(
-                    text = member.displayName.take(1).uppercase(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.85f),
-                )
-            }
-        }
+        // A Violence profile avatar (preset + colour) when the member has one, otherwise the
+        // picture that came with their Google profile, otherwise their initial.
+        ProfileAvatar(
+            avatarId = member.avatarId,
+            color = member.avatarColor,
+            name = member.displayName,
+            size = 40.dp,
+            imageUrl = member.avatarUrl,
+        )
         Spacer(Modifier.width(13.dp))
         Column(Modifier.weight(1f)) {
             Text(

@@ -348,3 +348,38 @@ The following existing classes are the exact points of extension for Jam feature
 | `web/app/src/party/listenTogether.ts` | Web player Listen Together controller | Update default server URL; handle browser subprotocol tokens. |
 | `web/app/src/party/invite.ts` | Web invite link builder | Update `INVITE_ORIGIN` to fork static web domain. |
 | `app/build.gradle.kts` & `tv/build.gradle.kts` | Build configuration properties | Set `LISTEN_TOGETHER_SERVER` buildConfig field to fork backend instance. |
+
+
+---
+
+## 9. Phase 8: in-app profile identity fields (additive, backward compatible)
+
+Added 2026-11-01. Full rationale and the profile feature itself: `PROFILE_DESIGN.md`. Verified against the real Go backend run locally (`JAM_TEST_PLAN.md` section 12).
+
+**Request** (`POST /api/parties` and `POST /api/parties/{code}/join`): `JoinRequest` gains three optional fields next to `displayName`.
+
+| Field | Meaning | Server rule |
+|---|---|---|
+| `profileId` | the opaque UUID of the sender's in-app profile | lower-case dashed UUID after trim/lower-casing, otherwise **dropped** |
+| `avatarId` | preset avatar id | `[a-z0-9]{1,16}` after trim/lower-casing, otherwise **dropped**. The server does not know the preset list, so new avatars need no redeploy |
+| `avatarColor` | six hex digits, no `#` | `[0-9a-f]{6}` after lower-casing, otherwise **dropped** |
+
+An invalid optional field is ignored, never a 422: a cosmetic extra must not stop anyone joining. `displayName` is unchanged (1-80 UTF-8 bytes); a client with a profile cuts its name to 80 bytes before sending because a 24-emoji name is 96 bytes.
+
+**Responses.** A `PartyMember` (in `welcome`, `members`, and the create/join answers) carries `profileId`, `avatarId`, `avatarColor` **only when the member has them**; members without a profile serialise exactly as before. The pre-join **preview** (`GET /api/parties/{code}/preview`, readable by anyone with the code) carries `avatarId` and `avatarColor` per member and **never `profileId`**. A rejoining device replaces all three with whatever it sends now, so deleting a profile on the device clears it on the next join.
+
+**What the server stores.** The three values live in the in-memory `Member` for the life of the room, like the name and avatar URL already did. Nothing is written to disk, nothing is logged (the existing rule: no names, avatars or tokens in logs; verified for these fields in the local run).
+
+**Identity on the client.** With a profile: `userId = sha256("violence-profile:" + profileId)[:32]`, `avatarUrl` is not sent, and Jam no longer needs a YT Music sign-in. Without one: unchanged.
+
+**Compatibility.**
+| Client | Server | Result |
+|---|---|---|
+| old | new | works; the server has nothing extra to store |
+| new, no profile | old or new | works; sends no new fields |
+| new, profile | old | joins with the profile name (unknown JSON fields are ignored); others see an initial instead of the glyph |
+| new, profile | new | glyph and colour for everyone on a new client; old clients in the room see the initial |
+
+**Redeploy.** Needed only to see avatars and colours; names and joining work against the existing server. Steps: `JAM_BACKEND_DEPLOY.md` section 6.
+
+Files: `backend/protocol/protocol.go` (`JoinRequest`, `Validate`), `backend/party/party.go` (`Member`, `Profile`, `JoinWithProfile`), `backend/main.go` (`profileOf`, preview), `shared/.../PartyModels.kt`, `web/app/src/party/models.ts`. Tests: `backend/protocol/profile_test.go`, `backend/party/profile_test.go`, `backend/profile_http_test.go`, `scripts/jam-test.mjs --profiles`.

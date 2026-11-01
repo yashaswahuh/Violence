@@ -66,6 +66,7 @@ Render stops an idle free service after 15 minutes without traffic (HTTP request
 
 ## 6. Redeploy and roll back
 - **Redeploy** (after backend changes land on `violence-nk`): Render dashboard -> your service -> **Manual Deploy** -> **Deploy latest commit**. Rooms in progress end. Do it when nobody is listening.
+  - **Phase 8 (in-app profiles) changed the backend** (three optional join fields: `profileId`, `avatarId`, `avatarColor`). **Redeploy once to make avatars and colours show in the member lists.** It is backward compatible both ways, so there is no rush and no data to migrate: until you redeploy, everything works and members simply appear with an initial instead of their picture. No new environment variable.
 - **Roll back:** service -> **Events/Deploys** -> pick the last good deploy -> **Rollback** (UNVERIFIED label wording; Render keeps previous deploys). Or point `JAM_BACKEND_URL` somewhere else and rebuild.
 - **Turn Jam off:** clear `JAM_BACKEND_URL` (local.properties and the GitHub variable) and rebuild; the app says Jam is not set up. Or suspend the service in the dashboard.
 - **Backend env change only:** edit in the dashboard (Environment) -> save; Render restarts the service.

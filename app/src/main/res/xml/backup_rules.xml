@@ -17,4 +17,7 @@
     <exclude domain="sharedpref" path="bitchord_last_played.xml" />
     <exclude domain="sharedpref" path="bitchord_bounded_context.xml" />
     <exclude domain="sharedpref" path="bitchord_party_queue_stash.xml" />
+    <!-- The Violence profile id identifies one install; a restored copy would put one identity on two phones. -->
+    <exclude domain="sharedpref" path="violence_profile.xml" />
+    <exclude domain="file" path="profile/" />
 </full-backup-content>

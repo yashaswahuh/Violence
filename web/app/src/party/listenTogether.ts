@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { config } from '@/config';
 import { ytAuthSnapshot } from '@/extension/useYtAuth';
+import { jamProfileFields } from '@/profile/friends';
+import { currentProfile } from '@/profile/store';
 import { ServerClock } from './clock';
 import { cleanCode, CODE_LENGTH, sanitizeServerUrl } from './invite';
 import {
@@ -205,11 +207,26 @@ async function sha256(value: string): Promise<string> {
 }
 
 /**
- * Who this device jams as: the YouTube Music account it's signed in with
- * (prompt §8; the phone requires a signed-in account too). The id is a hash of
- * the login and channel, never either of them.
+ * Who this device jams as. A Violence profile, when the user made one, needs no sign-in and sends
+ * only a name, a preset avatar id, a colour and an opaque id (the userId is a hash of the profile
+ * id alone, nothing about any account). Without a profile: the YouTube Music account it's signed
+ * in with (prompt §8; the phone does the same). The id is a hash of the login and channel, never
+ * either of them.
  */
 async function identity(): Promise<Omit<JoinRequest, 'maxMembers' | 'autoplayEnabled'>> {
+  const profile = currentProfile();
+  if (profile) {
+    const fields = jamProfileFields(profile, partySettings().nickname);
+    return {
+      userId: (await sha256(fields.userIdSeed)).slice(0, 32),
+      deviceId: deviceId(),
+      displayName: fields.name,
+      avatarUrl: null,
+      profileId: fields.profileId,
+      avatarId: fields.avatarId,
+      avatarColor: fields.avatarColor,
+    };
+  }
   const auth = ytAuthSnapshot();
   const active = auth.signedIn ? auth.active : null;
   if (!active) throw new PartyError('not_signed_in', 'Sign in to YouTube Music to listen together.');

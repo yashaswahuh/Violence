@@ -41,6 +41,13 @@ data class PartyMember(
     val userId: String = "",
     val displayName: String = "",
     val avatarUrl: String? = null,
+    /**
+     * The in-app profile fields (Phase 8). All optional: a member on an old client, or one with
+     * no profile, simply has none, and a server that predates them never sends them.
+     */
+    val profileId: String? = null,
+    val avatarId: String? = null,
+    val avatarColor: String? = null,
     val isHost: Boolean = false,
     /** Whether they are currently holding a socket — not whether they are still in. */
     val connected: Boolean = false,
@@ -149,6 +156,9 @@ data class PartyPreview(
 data class PartyPreviewMember(
     val displayName: String = "",
     val avatarUrl: String? = null,
+    /** Preset avatar and colour only; the preview never carries a profile id. */
+    val avatarId: String? = null,
+    val avatarColor: String? = null,
     val isHost: Boolean = false,
 )
 
@@ -179,6 +189,13 @@ data class JoinRequest(
     val avatarUrl: String? = null,
     val maxMembers: Int? = null,
     val autoplayEnabled: Boolean? = null,
+    /**
+     * In-app profile identity (Phase 8), optional and additive: old servers ignore unknown
+     * request fields, so a new client can always send them. Null when the user has no profile.
+     */
+    val profileId: String? = null,
+    val avatarId: String? = null,
+    val avatarColor: String? = null,
 )
 
 @Serializable

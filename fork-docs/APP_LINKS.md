@@ -18,7 +18,7 @@ Both manifests (`app/src/main/AndroidManifest.xml`, `tv/src/main/AndroidManifest
 
 **The folder is `/Violence/` with a capital V.** The Phase 7 brief wrote `/violence/party/`; GitHub Pages serves the project under the repository's exact name and Android path prefixes are case sensitive, so the prefix has to match what the link really contains. The link builder (`JamInviteLink`) produces `.../Violence/party/<CODE>`, and the reader accepts any base path.
 
-It is built to grow: later features (a shared song, a profile) are one more line each in **both** manifests, for example `<data android:pathPrefix="/Violence/song/" />`, plus the page for it on the website. **No change to assetlinks.json is needed** for new prefixes (it covers the whole domain).
+It is built to grow: later features (a shared song, a profile) are one more line each in **both** manifests, for example `<data android:pathPrefix="/Violence/song/" />`, plus the page for it on the website. **Phase 9 (profile sharing) adds `/Violence/profile`** (the https form of the profile card, `PROFILE_DESIGN.md` section 4); until then a profile link is only accepted by pasting it into Friends, and the manifests are unchanged. **No change to assetlinks.json is needed** for new prefixes (it covers the whole domain).
 
 Verification covers the **release** apps only: `com.yashaswahuh.violencemusic` (phone) and `com.yashaswahuh.violencemusic.tv` (TV), signed with your release key. The `.dev` flavors and debug/CI builds are signed differently and are simply not verified (their links fall back to the landing page).
 
@@ -64,7 +64,7 @@ keytool -list -v -keystore "$env:USERPROFILE\violence-keys\violence-release.jks"
 # 2. From a built APK (no password needed): scripts\release.ps1 also prints it as its last "certificate" line
 & "$env:LOCALAPPDATA\Android\Sdk\build-tools\<version>\apksigner.bat" verify --print-certs .\release-out\<version>\violence-phone-<version>.apk
 ```
-assetlinks.json wants the fingerprint as upper-case hex pairs separated by colons (`AA:BB:CC:...`). `keytool` prints it that way; `apksigner` prints plain lowercase hex, so add the colons and upper-case it, or copy the line `scriptselease.ps1` prints, which is already in that form.
+assetlinks.json wants the fingerprint as upper-case hex pairs separated by colons (`AA:BB:CC:...`). `keytool` prints it that way; `apksigner` prints plain lowercase hex, so add the colons and upper-case it, or copy the line `scripts\release.ps1` prints, which is already in that form.
 
 ## Check that it worked
 1. Open `https://yashaswahuh.is-a.dev/.well-known/assetlinks.json` in a browser: it must show the JSON, not a 404 page.

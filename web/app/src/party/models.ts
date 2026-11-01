@@ -20,6 +20,10 @@ export interface PartyMember {
   userId: string;
   displayName: string;
   avatarUrl: string | null;
+  /** The in-app profile fields (Phase 8): all optional, absent from old clients and old servers. */
+  profileId?: string | null;
+  avatarId?: string | null;
+  avatarColor?: string | null;
   isHost: boolean;
   /** Holding a socket right now, not whether they are still in. */
   connected: boolean;
@@ -73,7 +77,7 @@ export interface PartyPreview {
   memberCount: number;
   maxMembers: number;
   isFull: boolean;
-  members: { displayName: string; avatarUrl: string | null; isHost: boolean }[];
+  members: { displayName: string; avatarUrl: string | null; avatarId?: string | null; avatarColor?: string | null; isHost: boolean }[];
 }
 
 export interface PartyMembership {
@@ -99,6 +103,10 @@ export interface JoinRequest {
   avatarUrl?: string | null;
   maxMembers?: number;
   autoplayEnabled?: boolean;
+  /** In-app profile identity (Phase 8), optional and additive: old servers ignore unknown fields. */
+  profileId?: string;
+  avatarId?: string;
+  avatarColor?: string;
 }
 
 export const EMPTY_PLAYBACK: PartyPlayback = {
@@ -146,6 +154,9 @@ export function memberOf(raw: Partial<PartyMember>): PartyMember {
     userId: raw.userId ?? '',
     displayName: raw.displayName ?? '',
     avatarUrl: raw.avatarUrl ?? null,
+    profileId: raw.profileId ?? null,
+    avatarId: raw.avatarId ?? null,
+    avatarColor: raw.avatarColor ?? null,
     isHost: raw.isHost ?? false,
     connected: raw.connected ?? false,
     joinedAtMs: raw.joinedAtMs ?? 0,

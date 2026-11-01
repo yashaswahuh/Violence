@@ -15,6 +15,7 @@ Read this first. Verified state: `fork-docs/PROJECT_STATE.md`. Roadmap: `fork-do
 - Jam (shared listening) uses a self-hosted copy of the Go backend in `/backend` on a free host (Render Free; steps in `fork-docs/JAM_BACKEND_DEPLOY.md`). The apps get its address from `JAM_BACKEND_URL` and shared invite links point at `JAM_INVITE_BASE_URL` (both in `local.properties` / GitHub repo variables, both empty by default: "Jam is not set up" and "share only the code"). Firebase RTDB is only a documented fallback and is not built. The owner has not deployed it yet as of Phase 4 (UNCLEAR whether they have since).
 - Web is hosted on GitHub Pages at https://yashaswahuh.is-a.dev/Violence/ (capital V, confirmed by the owner; Pages is case sensitive and names the folder after the repository), deployed by `.github/workflows/web.yml` on pushes to `violence-nk`, and needs the browser extension (`web/extension`) which trusts exactly that origin. APKs are built in the cloud by `android.yml`. See `fork-docs/CI_DEPLOY.md`.
 - Last.fm scrobbling stays; keys come from `local.properties` (`LASTFM_API_KEY`, `LASTFM_SECRET`).
+- **Violence profile (Phase 8):** a local, optional name + preset avatar + colour (and a phone-only local photo), plus a local friends list, independent of every login (`fork-docs/PROFILE_DESIGN.md`). Jam uses it as the member identity and then needs no YT Music sign-in. The profile-card link `violence://profile?v=1&...` is strict, versioned and untrusted-input safe; photo, email, account ids and nicknames never leave the device. Never log profile data.
 
 ## BRANCH RULE
 All work, commits, and pushes go to the branch violence-nk, never main and never violence-main. Never force-push, never rewrite history, never push to the upstream remote.
@@ -53,7 +54,7 @@ Never remove or break playback, search, stream resolution, lyrics, metadata, art
 - Keep GPL-3.0: keep `LICENSE`, `NOTICE`, existing copyright headers and the fork attribution (README, NOTICE, About screens, web footer).
 
 ## How to work
-1. One phase per session. Read `fork-docs/PHASES.md` and `fork-docs/AGENT_RULES.md` first. If the phase is already marked done, report and stop. Phases 0-7 are done; next is Phase 8.
+1. One phase per session. Read `fork-docs/PHASES.md` and `fork-docs/AGENT_RULES.md` first. If the phase is already marked done, report and stop. Phases 0-8 are done; next is Phase 9 (NFC, QR and link sharing of profile cards).
 2. Never guess. Write UNCLEAR when something cannot be verified in the repo.
 3. Small commits on `violence-nk`; push to `origin violence-nk` only.
 4. When a phase finishes, update PHASES.md and the relevant `fork-docs/` files.
@@ -71,7 +72,7 @@ Never remove or break playback, search, stream resolution, lyrics, metadata, art
 - Removing `NOTICE`, `LICENSE`, or attribution to Kushagra Singh.
 
 ## Known open issues (details in PROJECT_STATE.md s.9)
-Jam fixes from Phase 5 (TV Jam dialog, web landing page, 15-member rooms, unplayable-track isolation) have never run on a real phone, TV or browser, and the new Go tests have never run (no Go); desktop not compiled against v1.9 shared code; the Go backend and Dockerfile have never been compiled on the owner's PC (no Go/Docker), so the first Render build is the first compile.
+Jam fixes from Phase 5 (TV Jam dialog, web landing page, 15-member rooms, unplayable-track isolation) have never run on a real phone, TV or browser, the Go tests ran for the first time in Phase 8 and pass (portable Go; `go test -race` needs a C compiler and was not run); desktop not compiled against v1.9 shared code; the Go backend and Dockerfile have never been compiled on the owner's PC (no Go/Docker), so the first Render build is the first compile.
 
 ## Key docs (`fork-docs/`)
-PROJECT_STATE, PHASES, AGENT_RULES, BUILD_COMMANDS, CI_DEPLOY, WEB_USER_GUIDE, LASTFM_SETUP, FROZEN_TARGETS, RESTORATION_LOG, UPSTREAM_SYNC(_LOG), JAM_BACKEND_FEASIBILITY, JAM_BACKEND_DEPLOY, JAM_TEST_PLAN, ALLOWED_EXTERNAL_SERVICES (KEEP/DISABLE/REPLACE-LATER), DECOUPLING_LOG, REBRAND_LOG, ARCHITECTURE, JAM_DESIGN, BACKEND_AUDIT, WEB_TARGET_AUDIT, TV_TARGET_AUDIT, FREE_HOSTING_PLAN, CI_DEPLOY, EXTERNAL_DEPENDENCIES, REBRAND_CHECKLIST, OPEN_QUESTIONS. `MODULE_PRUNING_PLAN.md` is CANCELLED (nothing is removed). Also `NOTICE`, `README.md`, `web/README.md`, `backend/README.md`.
+PROJECT_STATE, PHASES, AGENT_RULES, PROFILE_AUDIT, PROFILE_DESIGN, BUILD_COMMANDS, CI_DEPLOY, WEB_USER_GUIDE, LASTFM_SETUP, FROZEN_TARGETS, RESTORATION_LOG, UPSTREAM_SYNC(_LOG), JAM_BACKEND_FEASIBILITY, JAM_BACKEND_DEPLOY, JAM_TEST_PLAN, ALLOWED_EXTERNAL_SERVICES (KEEP/DISABLE/REPLACE-LATER), DECOUPLING_LOG, REBRAND_LOG, ARCHITECTURE, JAM_DESIGN, BACKEND_AUDIT, WEB_TARGET_AUDIT, TV_TARGET_AUDIT, FREE_HOSTING_PLAN, CI_DEPLOY, EXTERNAL_DEPENDENCIES, REBRAND_CHECKLIST, OPEN_QUESTIONS. `MODULE_PRUNING_PLAN.md` is CANCELLED (nothing is removed). Also `NOTICE`, `README.md`, `web/README.md`, `backend/README.md`.

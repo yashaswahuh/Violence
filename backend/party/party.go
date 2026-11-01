@@ -495,6 +495,9 @@ type Member struct {
 	DeviceId           string  `json:"-"`
 	DisplayName        string  `json:"displayName"`
 	AvatarUrl          *string `json:"avatarUrl,omitempty"`
+	ProfileId          *string `json:"profileId,omitempty"`
+	AvatarId           *string `json:"avatarId,omitempty"`
+	AvatarColor        *string `json:"avatarColor,omitempty"`
 	Token              string  `json:"-"`
 	IsHost             bool    `json:"isHost"`
 	Connected          bool    `json:"connected"`
@@ -506,8 +509,16 @@ type Member struct {
 	FrameBudgetAtMs    int64   `json:"-"`
 }
 
+// Profile is the optional in-app profile identity a client may send when joining.
+// It lives only as long as the member does; nothing here is stored beyond the live room.
+type Profile struct {
+	ProfileId   *string
+	AvatarId    *string
+	AvatarColor *string
+}
+
 func (m *Member) ToWire() map[string]interface{} {
-	return map[string]interface{}{
+	wire := map[string]interface{}{
 		"memberId":    m.MemberId,
 		"userId":      m.UserId,
 		"displayName": m.DisplayName,
@@ -517,6 +528,18 @@ func (m *Member) ToWire() map[string]interface{} {
 		"joinedAtMs":  m.JoinedAtMs,
 		"lastSeenMs":  m.LastSeenMs,
 	}
+	// Only present when the member has a profile, so the frames of members without one are
+	// byte-for-byte what they were before.
+	if m.ProfileId != nil {
+		wire["profileId"] = *m.ProfileId
+	}
+	if m.AvatarId != nil {
+		wire["avatarId"] = *m.AvatarId
+	}
+	if m.AvatarColor != nil {
+		wire["avatarColor"] = *m.AvatarColor
+	}
+	return wire
 }
 
 // Party holds members and playback state for a single room code.
@@ -576,12 +599,21 @@ func (p *Party) Host() *Member {
 }
 
 func (p *Party) Join(userId, deviceId, displayName string, avatarUrl *string) (*Member, error) {
+	return p.JoinWithProfile(userId, deviceId, displayName, avatarUrl, Profile{})
+}
+
+// JoinWithProfile is Join plus the optional in-app profile fields. A rejoining device takes the
+// new values, including their absence, so deleting a profile on the device clears it here.
+func (p *Party) JoinWithProfile(userId, deviceId, displayName string, avatarUrl *string, profile Profile) (*Member, error) {
 	now := clock.NowMs()
 	// Rejoining device check
 	for _, m := range p.Members {
 		if m.DeviceId == deviceId {
 			m.DisplayName = displayName
 			m.AvatarUrl = avatarUrl
+			m.ProfileId = profile.ProfileId
+			m.AvatarId = profile.AvatarId
+			m.AvatarColor = profile.AvatarColor
 			m.UserId = userId
 			m.LastSeenMs = now
 			m.Token = randomToken(24)
@@ -600,6 +632,9 @@ func (p *Party) Join(userId, deviceId, displayName string, avatarUrl *string) (*
 		DeviceId:          deviceId,
 		DisplayName:       displayName,
 		AvatarUrl:         avatarUrl,
+		ProfileId:         profile.ProfileId,
+		AvatarId:          profile.AvatarId,
+		AvatarColor:       profile.AvatarColor,
 		Token:             randomToken(24),
 		IsHost:            len(p.Members) == 0,
 		Connected:         false,

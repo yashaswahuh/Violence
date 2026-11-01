@@ -27,14 +27,22 @@ Phase 5: Jam Resilience & Protocol Hardening
 Phase 6: Static Web & Extension Deployment (Cloudflare Pages)
                    │
                    ▼
-Phase 7: Android TV Target Verification & Remote Polish
+Phase 7: TV verification, release signing, private in-app updates, App Links   (merged the old 7, 8 and 9)
                    │
                    ▼
-Phase 8: APK Update Distribution (GitHub Releases)
+Phase 8: In-app profiles (local profile, friends list, profile in Jam)
                    │
                    ▼
-Phase 9: Production Signing, Release Automation & End-to-End Audit
+Phase 9: NFC, QR and link sharing of profile cards                                 (planned)
+                   │
+                   ▼
+Phase 10: Final audit and handover                                                 (planned)
+                   │
+                   ▼
+Phase 11: Playback sources and login flows log                                     (planned)
 ```
+
+> **Numbering note (2026-11-01).** Phase 8 now means **In-app profiles**. The numbers after it moved so that profile sharing could be its own phase: the old "Phase 8" (final audit and handover) is now **Phase 10** and the old "Phase 9" (playback sources and login flows log) is now **Phase 11**. In this repository's earlier PHASES text, "Phase 8" and "Phase 9" were the app updater and release signing; both were already merged into Phase 7 (see Phase 7 below), so nothing of them is lost by the renumbering.
 
 ---
 
@@ -198,15 +206,32 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 
 ---
 
-## Phase 8: In-App Self-Updating via GitHub Releases [MERGED into Phase 7, done differently]
+## Phase 8: In-App Profiles [COMPLETED in the repo; real-device testing and a Jam server redeploy pending the owner]
 
-See Phase 7: the update flow reads `update.json` from the owner's GitHub Pages site instead of the GitHub API.
+- **Status:** **DONE in the repository** (2026-11-01, the build PC's date; Phases 5 to 7 above were dated 2026-11-02). Nothing was run on a phone, TV or browser.
+- **Branch:** `violence-nk`. **Commits:** `f9e87087` (audit), `70fbc291` (design), `077981f1` (shared model, card codec, friends, storage, 55+ tests), `8b83564c` (Go backend), `ac22b686` (phone), `3ae03cac` (TV), `53f70420` (web), `81c1f5ae` (Jam script), plus the docs commit that holds this entry.
+- **Differences from the Phase 8 brief:** the repo's PHASES text did not contain a "final audit" or a "playback sources log" phase to renumber (its old Phases 8 and 9 were the updater and signing, already merged into Phase 7); they are renumbered as the brief says (10 and 11) and the numbering note above says so. The brief's `/violence/profile` example path is `/Violence/profile` (capital V, like every other web path).
+- **What it is:** a local-first profile (`InAppProfile`: random UUID made once, name 1 to 24 characters, one of 24 preset avatars, a colour; an optional photo that stays on the phone) and a local friends list (`FriendCard` with a local nickname), separate from the YouTube Music, Spotify, Discord and Last.fm logins. Jam uses the profile as the member identity and, with a profile, **no longer needs a YouTube Music sign-in**. A strict, versioned profile-card link (`violence://profile?v=1&id=...&n=...&a=...&c=...` and the https twin under `/Violence/profile`) is defined, parsed and tested, and "paste a profile link" adds a friend after "Add <name> as a friend?". No server, account or analytics was added.
+- **Audit decision:** the app's existing "profile" concept is the YouTube profile/channel switcher (with the TV PIN). It was **not** extended: it is tied to the Google account. See `PROFILE_AUDIT.md`.
+- **Docs:** `PROFILE_AUDIT.md`, `PROFILE_DESIGN.md` (data model, card format and limits, validation, what leaves the device), `JAM_DESIGN.md` section 9 (protocol change), `JAM_TEST_PLAN.md` sections 12 and 13, `JAM_BACKEND_DEPLOY.md` section 6, `TV_TEST_PLAN.md` section 9, `PROJECT_STATE.md` section 19.
+- **Jam protocol change (backward compatible):** `JoinRequest` and the member objects gain optional `profileId`, `avatarId`, `avatarColor` (invalid values are dropped, never an error; the preview never shows `profileId`). **Redeploy the Jam server to make avatars and colours show**; names and joining work against the old server.
+- **Verification (active targets only, via the scripts):** phone `:app:assembleDevDebug` and TV `:tv:assembleDevDebug` pass; web typecheck and `build:site` pass; phone unit tests 1231 (0 failures, 1 skipped), shared `jvmTest` 182 (0 failures), web 218 (0 failures); **Go `go vet` clean and `go test ./...` passes** (first time the Go tests ever ran: portable Go 1.27.3); the real backend was built and run locally and `scripts/jam-test.mjs` passed 18/18 (old-style clients), 23/23 (mixed old and profile clients) and 34/34 (one room of 15), and against the pre-Phase-8 server old-style clients pass 18/18 and mixed clients 21/23 (only the two profile-display checks fail, as expected). Wear OS and desktop: dormant, not checked.
+- **UNVERIFIED (needs your devices):** every screen on a real phone, TV (D-pad focus of the new dialogs) and browser; the avatar emoji rendering on your TV; Jam without a YouTube Music sign-in (playback while signed out); the `Dockerfile` and the Render build; the Go race detector (no C compiler here); the release (R8) build with the new `@Serializable` classes (covered by the existing keep rule `-keep @kotlinx.serialization.Serializable class com.music.bitchord.**`, but not rebuilt in this phase).
+- **Known gaps:** the 56 new strings are English placeholders in the 17 other language files (the locale test only requires the keys); no photo on TV or web; the profile-link landing page and the NFC/QR/share transports are Phase 9 (the App Links manifest line `/Violence/profile` is added there).
 
 ---
 
-## Phase 9: Release Keystore Setup & Automated GitHub Actions [MERGED into Phase 7, partly]
+## Phase 9: NFC, QR and Link Sharing [PLANNED]
 
-Keystore setup, `keystore.properties.example` and signed builds are in Phase 7 (local, by `scripts/release.ps1`). A CI job that signs with secrets was deliberately **not** added. The final end-to-end audit on personal devices is still the owner's.
+Share the profile card of Phase 8 by NFC tag/beam, QR code and a shareable link, and add a friend from any of them with the same confirmation. Starts from `PROFILE_DESIGN.md` section 4 (the card format, size limits and strict parsing are already implemented and tested on Kotlin and TypeScript). Needs: a `/Violence/profile` web landing page, the extra App Links prefix in both manifests (`APP_LINKS.md`), a QR renderer (the Jam invite already draws one) and an NFC reader/writer decision (NTAG215 or larger, or QR when a card does not fit 200 bytes).
+
+## Phase 10: Final Audit and Handover [PLANNED]
+
+The end-to-end audit on personal devices that the old Phase 9 left to the owner, plus a last pass over the docs and the repo. (Renumbered from the earlier "Phase 8".)
+
+## Phase 11: Playback Sources and Login Flows Log [PLANNED]
+
+A document of the playback sources and the login flows (YouTube Music, Spotify) as they are. (Renumbered from the earlier "Phase 9".)
 
 ---
 

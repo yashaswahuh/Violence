@@ -379,7 +379,7 @@ func handleCreateParty(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.Lock()
-	m, err := p.Join(req.UserId, req.DeviceId, req.DisplayName, req.AvatarUrl)
+	m, err := p.JoinWithProfile(req.UserId, req.DeviceId, req.DisplayName, req.AvatarUrl, profileOf(req))
 	if err != nil {
 		p.Unlock()
 		store.Drop(p.Code)
@@ -404,6 +404,12 @@ func handleCreateParty(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// profileOf turns the already validated optional profile fields of a request into the form
+// the party package stores.
+func profileOf(req protocol.JoinRequest) party.Profile {
+	return party.Profile{ProfileId: req.ProfileId, AvatarId: req.AvatarId, AvatarColor: req.AvatarColor}
+}
+
 func handleJoinParty(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
 	var req protocol.JoinRequest
@@ -426,7 +432,7 @@ func handleJoinParty(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.Lock()
-	m, err := p.Join(req.UserId, req.DeviceId, req.DisplayName, req.AvatarUrl)
+	m, err := p.JoinWithProfile(req.UserId, req.DeviceId, req.DisplayName, req.AvatarUrl, profileOf(req))
 	if err != nil {
 		p.Unlock()
 		if pe, ok := err.(*party.PartyError); ok {
@@ -488,11 +494,20 @@ func handlePreviewParty(w http.ResponseWriter, r *http.Request) {
 	members := make([]map[string]interface{}, 0, len(ordered))
 	hostName := ""
 	for _, m := range ordered {
-		members = append(members, map[string]interface{}{
+		entry := map[string]interface{}{
 			"displayName": m.DisplayName,
 			"avatarUrl":   m.AvatarUrl,
 			"isHost":      m.IsHost,
-		})
+		}
+		// The preview is visible to anyone holding the code, so it gets the cosmetic fields
+		// only, never the profile id.
+		if m.AvatarId != nil {
+			entry["avatarId"] = *m.AvatarId
+		}
+		if m.AvatarColor != nil {
+			entry["avatarColor"] = *m.AvatarColor
+		}
+		members = append(members, entry)
 		if m.IsHost {
 			hostName = m.DisplayName
 		}

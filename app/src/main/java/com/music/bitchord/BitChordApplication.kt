@@ -149,6 +149,8 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
         // mid-session is something the rest of the party never sees. The socket
         // and the clock offset are not restored — both are re-established on
         // the next connect, which is the only way to be sure they are current.
+        // The local Violence profile, read by Jam when it builds a member identity.
+        com.music.bitchord.data.profile.ProfileManager.init(this)
         ListenTogether.init(this)
         SearchHistory.init(this)
         LastPlayed.init(this)

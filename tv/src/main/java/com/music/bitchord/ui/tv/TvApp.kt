@@ -72,7 +72,10 @@ import com.music.bitchord.ui.tv.components.rememberDominantCardColor
 import com.music.bitchord.ui.tv.components.tvClick
 import com.music.bitchord.ui.tv.components.tvLift
 import com.music.bitchord.ui.tv.dialogs.TvAccountDialog
+import com.music.bitchord.ui.tv.dialogs.TvProfileDialog
+import com.music.bitchord.ui.tv.dialogs.TvProfileSuggestionDialog
 import com.music.bitchord.ui.tv.dialogs.TvUpdateDialog
+import com.music.bitchord.data.profile.ProfileManager
 import com.music.bitchord.ui.tv.player.TvNowPlayingScreen
 import com.music.bitchord.ui.tv.screens.TvDetailScreen
 import com.music.bitchord.ui.tv.screens.TvExploreScreen
@@ -250,8 +253,30 @@ fun TvApp(
         }
 
         val pendingUpdate = update
+        val updateShowing = pendingUpdate != null && !updateDismissed
         if (pendingUpdate != null && !updateDismissed && !isRunningSetup && !showAccountDialog) {
             TvUpdateDialog(update = pendingUpdate, onDismiss = { updateDismissed = true })
+        }
+
+        // A one-time, skippable offer to make a Violence profile; never shown during setup, behind
+        // another dialog, or again once answered. Playback and navigation are never blocked by it.
+        var suggestProfile by remember { mutableStateOf(ProfileManager.shouldSuggest()) }
+        var showProfileDialog by remember { mutableStateOf(false) }
+        if (suggestProfile && !isRunningSetup && !showAccountDialog && !updateShowing) {
+            TvProfileSuggestionDialog(
+                onCreate = {
+                    suggestProfile = false
+                    ProfileManager.markSuggestionHandled()
+                    showProfileDialog = true
+                },
+                onSkip = {
+                    suggestProfile = false
+                    ProfileManager.markSuggestionHandled()
+                },
+            )
+        }
+        if (showProfileDialog) {
+            TvProfileDialog(onDismiss = { showProfileDialog = false })
         }
     }
 }
