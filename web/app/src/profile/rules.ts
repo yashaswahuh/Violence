@@ -43,6 +43,11 @@ function classify(codePoint: number, char: string): Kind {
 
 /** Trims, collapses spaces and checks [raw]. Too long is rejected, never truncated. */
 export function checkName(raw: string): NameResult {
+  return checkText(raw, NAME_MAX_CODE_POINTS);
+}
+
+/** [checkName] with another length limit: the same character rules for any short text from somebody else. */
+export function checkText(raw: string, maxCodePoints: number): NameResult {
   const kept: string[] = [];
   let combiningRun = 0;
   let pendingSpace = false;
@@ -69,7 +74,7 @@ export function checkName(raw: string): NameResult {
     kept.push(char);
   }
   if (kept.length === 0) return { ok: false, problem: 'empty' };
-  if (kept.length > NAME_MAX_CODE_POINTS) return { ok: false, problem: 'too-long' };
+  if (kept.length > maxCodePoints) return { ok: false, problem: 'too-long' };
   return { ok: true, name: kept.join('') };
 }
 

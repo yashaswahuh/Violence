@@ -1,17 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { PageHeader } from '@/components/PageHeader';
-import { MAX_INPUT_CHARS, parseCard, type CardError, type ProfileCard } from '@/profile/card';
+import { MAX_INPUT_CHARS, type ProfileCard } from '@/profile/card';
+import { extractIncoming, INVALID_TEXT, type InvalidReason } from '@/share/incoming';
+import { songToWebUrl } from '@/share/songLinks';
 import { shownName, sortedFriends, type FriendCard } from '@/profile/friends';
 import { ProfileAvatar } from '@/profile/ProfileAvatar';
 import { normalizeName } from '@/profile/rules';
 import { useProfile } from '@/profile/store';
 import { settingsUi } from './settingsStyles';
 
-function errorText(error: CardError): string {
-  if (error === 'not-a-card') return 'That is not a Violence profile link.';
-  if (error === 'wrong-version') return 'This link comes from a different version of Violence.';
-  return 'That profile link is damaged or not valid.';
-}
+const errorText = (reason: InvalidReason): string => INVALID_TEXT[reason];
 
 /** One friend, with an inline nickname editor. The name is somebody else's text: shown as plain text only. */
 function FriendRow({ friend }: { friend: FriendCard }) {
@@ -71,19 +70,25 @@ export default function FriendsPage() {
   const clearFriends = useProfile((s) => s.clearFriends);
 
   const [text, setText] = useState('');
-  const [error, setError] = useState<CardError | null>(null);
+  const navigate = useNavigate();
+  const [error, setError] = useState<InvalidReason | null>(null);
   const [candidate, setCandidate] = useState<ProfileCard | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
 
   const check = () => {
     setNotice(null);
-    const result = parseCard(text);
-    if (result.ok) {
+    // Any Violence link: a profile asks to add a friend here; a song or a Jam invite opens its page.
+    const result = extractIncoming(text);
+    if (result.kind === 'profile') {
       setCandidate(result.card);
       setError(null);
+    } else if (result.kind === 'song') {
+      navigate(`/song/${result.ref.source}/${result.ref.id}?${songToWebUrl(result.ref).split('?')[1] ?? ''}`);
+    } else if (result.kind === 'party') {
+      navigate(`/party/${result.invite.code}${result.invite.serverUrl ? `?server=${encodeURIComponent(result.invite.serverUrl)}` : ''}`);
     } else {
-      setError(result.error);
+      setError(result.reason);
     }
   };
 
@@ -115,7 +120,7 @@ export default function FriendsPage() {
     <div className={settingsUi.centered}>
       <PageHeader title="Friends" />
       <div className={settingsUi.body}>
-        <h2 className={settingsUi.sectionHeader}>Add from a profile link</h2>
+        <h2 className={settingsUi.sectionHeader}>Add from a link</h2>
         <section className={settingsUi.group}>
           <div className="px-4 py-3">
             <div className="flex gap-2">

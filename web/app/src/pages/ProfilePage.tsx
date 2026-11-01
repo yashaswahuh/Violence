@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PageHeader } from '@/components/PageHeader';
 import { AVATARS, COLOR_PRESETS, DEFAULT_AVATAR_ID, DEFAULT_COLOR } from '@/profile/catalog';
+import { cardToWebUrl } from '@/profile/card';
+import { cardOf } from '@/profile/friends';
+import { ShareDialog } from '@/share/ShareDialog';
 import { codePointLength, checkName, NAME_MAX_CODE_POINTS } from '@/profile/rules';
 import { ProfileAvatar } from '@/profile/ProfileAvatar';
 import { useProfile } from '@/profile/store';
@@ -35,6 +38,7 @@ export default function ProfilePage() {
   const [avatarId, setAvatarId] = useState(saved?.avatarId ?? DEFAULT_AVATAR_ID);
   const [color, setColor] = useState(saved?.color ?? DEFAULT_COLOR);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const checked = checkName(name);
   const problem = !checked.ok && name !== '' ? problemText(checked.problem) : '';
@@ -121,6 +125,17 @@ export default function ProfilePage() {
           People in your Listen Together see your name, picture and colour. Your email and Google account are never shared. This profile is
           separate from your YouTube Music and Spotify sign-ins, and it is kept only in this browser.
         </p>
+
+        {saved && (
+          <section className={`${settingsUi.group} mt-6`}>
+            <button className={`${settingsUi.integrationPlain} ${settingsUi.linkRow} justify-center text-key`} onClick={() => setSharing(true)}>
+              <span className="col-span-2 text-center">Share my profile</span>
+            </button>
+          </section>
+        )}
+        {sharing && saved && (
+          <ShareDialog title={saved.displayName} subtitle="Violence profile" link={cardToWebUrl(cardOf(saved))} onClose={() => setSharing(false)} />
+        )}
 
         {saved && (
           <section className={`${settingsUi.group} mt-6`}>
