@@ -1159,7 +1159,7 @@ func applyControl(p *party.Party, member *party.Member, action string, frame map
 
 	case protocol.ActionSetMaxMembers:
 		value, ok := frame["maxMembers"].(float64)
-		if !ok { return false, "invalid_capacity", "Choose a party size between 2 and 10." }
+		if !ok { return false, "invalid_capacity", fmt.Sprintf("Choose a party size between 2 and %d.", config.MaxPartyMembers) }
 		if err := p.SetMaxMembers(member, int(value)); err != nil {
 			pe := err.(*party.PartyError)
 			return false, pe.Code, pe.Message

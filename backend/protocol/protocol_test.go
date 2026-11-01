@@ -93,14 +93,14 @@ func TestValidateAvatarUrl(t *testing.T) {
 }
 
 func TestValidateMaxMembers(t *testing.T) {
-	for _, n := range []int{2, 5, 10} {
+	for _, n := range []int{2, 5, 10, 15} {
 		req := validRequest()
 		req.MaxMembers = &n
 		if err := req.Validate(); err != nil {
 			t.Errorf("MaxMembers=%d rejected: %v", n, err)
 		}
 	}
-	for _, n := range []int{1, 11} {
+	for _, n := range []int{1, 16} {
 		req := validRequest()
 		req.MaxMembers = &n
 		if err := req.Validate(); err == nil {

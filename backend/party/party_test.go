@@ -484,3 +484,60 @@ func TestQueueIndexPrefersTheCopyAtTheNeedle(t *testing.T) {
 		t.Fatalf("expected b at 3 despite a stale index, got %d", ps.QueueIndex)
 	}
 }
+
+func joinAt(t *testing.T, p *Party, n int, joinedAt int64, connected bool) *Member {
+	t.Helper()
+	m, err := p.Join(fmt.Sprintf("u%d", n), fmt.Sprintf("d%d", n), fmt.Sprintf("User%d", n), nil)
+	if err != nil {
+		t.Fatalf("Join %d failed: %v", n, err)
+	}
+	m.JoinedAtMs = joinedAt
+	m.Connected = connected
+	return m
+}
+
+// The host leaving hands the room to the longest-standing member who is still connected, not to
+// whichever survivor Go's map iteration happens to produce first.
+func TestHostLeavingPassesToOldestConnectedMember(t *testing.T) {
+	for i := 0; i < 50; i++ { // map order is random: repeat so a lucky pass cannot hide a bad rule
+		p := NewParty("HOST01")
+		host := joinAt(t, p, 0, 100, true)
+		oldestOffline := joinAt(t, p, 1, 110, false)
+		oldestOnline := joinAt(t, p, 2, 120, true)
+		joinAt(t, p, 3, 130, true)
+
+		p.Remove(host.MemberId)
+		if !oldestOnline.IsHost {
+			t.Fatalf("pass %d: expected the oldest connected member to become host", i)
+		}
+		if oldestOffline.IsHost {
+			t.Fatalf("pass %d: a disconnected member must not be chosen while others are connected", i)
+		}
+	}
+}
+
+func TestHostLeavingWithNobodyConnectedPicksTheOldest(t *testing.T) {
+	p := NewParty("HOST02")
+	host := joinAt(t, p, 0, 100, false)
+	older := joinAt(t, p, 1, 110, false)
+	joinAt(t, p, 2, 120, false)
+	p.Remove(host.MemberId)
+	if !older.IsHost {
+		t.Fatalf("expected the oldest member to become host when nobody is connected")
+	}
+}
+
+func TestFifteenMembersFitInOneParty(t *testing.T) {
+	p := NewPartyWithMaxMembers("BIG015", config.MaxPartyMembers)
+	for i := 0; i < config.MaxPartyMembers; i++ {
+		if _, err := p.Join(fmt.Sprintf("u%d", i), fmt.Sprintf("d%d", i), fmt.Sprintf("User%d", i), nil); err != nil {
+			t.Fatalf("member %d of %d refused: %v", i+1, config.MaxPartyMembers, err)
+		}
+	}
+	if p.MaxMembers != config.MaxPartyMembers {
+		t.Fatalf("party size was reset to %d, want %d", p.MaxMembers, config.MaxPartyMembers)
+	}
+	if _, err := p.Join("one-too-many", "d-extra", "Extra", nil); err == nil {
+		t.Fatalf("a %dth member should be refused", config.MaxPartyMembers+1)
+	}
+}
