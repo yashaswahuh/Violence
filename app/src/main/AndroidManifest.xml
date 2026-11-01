@@ -216,33 +216,21 @@
                 <data android:host="youtu.be" />
             </intent-filter>
 
-            <!-- Public Listen Together invites. autoVerify makes a tap open
-                 Violence directly once the domain publishes its assetlinks
-                 association for the production signing certificate. -->
+            <!-- Listen Together invites as web links: https://yashaswahuh.is-a.dev/Violence/party/<CODE>.
+                 autoVerify makes a tap open Violence directly once the domain publishes its
+                 assetlinks.json for the release signing certificate (fork-docs/APP_LINKS.md);
+                 until then, or when it does not verify, the link opens the web landing page, which
+                 has an "Open in Violence app" button. Prefixes, not patterns, so more can be added:
+                 later features (a shared song, a profile) are one more <data> line each, e.g.
+                 /Violence/song/ and /Violence/profile/ (the web page for them has to exist first). -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="https"
-                    android:host="yashaswahuh.is-a.dev"
-                    android:pathPattern="/violence/invite/......" />
-                <data
-                    android:scheme="https"
-                    android:host="yashaswahuh.is-a.dev"
-                    android:pathPattern="/invite/......" />
-                <data
-                    android:scheme="https"
-                    android:host="yashaswahuh.is-a.dev"
-                    android:pathPattern="/Violence/party/......" />
-                <data
-                    android:scheme="https"
-                    android:host="yashaswahuh.is-a.dev"
-                    android:pathPattern="/Violence/invite/......" />
-                <data
-                    android:scheme="https"
-                    android:host="yashaswahuh.is-a.dev"
-                    android:pathPattern="/party/......" />
+                <data android:scheme="https" />
+                <data android:host="yashaswahuh.is-a.dev" />
+                <data android:pathPrefix="/Violence/party/" />
+                <data android:pathPrefix="/Violence/invite/" />
             </intent-filter>
 
             <!-- Custom scheme for Listen Together invites on custom server deployments. -->
