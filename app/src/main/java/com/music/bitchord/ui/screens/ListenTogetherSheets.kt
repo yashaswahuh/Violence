@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.music.bitchord.R
@@ -295,6 +296,23 @@ private fun SheetError(message: String?) {
 }
 
 /**
+ * Shown while a create, join or lookup waits for a sleeping, free-hosted Jam server to wake up
+ * (it can take about a minute). See ListenTogether.wakeServerIfAsleep.
+ */
+@Composable
+private fun SheetWakingNotice() {
+    val waking by ListenTogether.serverWaking.collectAsStateWithLifecycle()
+    if (!waking) return
+    Spacer(Modifier.height(14.dp))
+    Text(
+        text = stringResource(R.string.listen_together_server_waking),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+/**
  * Name and size, asked once, before a party exists.
  *
  * Both are changeable afterwards from the party's own page — this is not the
@@ -381,6 +399,7 @@ internal fun CreatePartySheet(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+        SheetWakingNotice()
         SheetError(error)
         Spacer(Modifier.height(12.dp))
     }
@@ -465,6 +484,7 @@ internal fun JoinPartySheet(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+        SheetWakingNotice()
         SheetError(error)
         Spacer(Modifier.height(16.dp))
     }
@@ -627,6 +647,7 @@ internal fun JoinConfirmSheet(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+        SheetWakingNotice()
         SheetError(error)
         Spacer(Modifier.height(4.dp))
         TextButton(

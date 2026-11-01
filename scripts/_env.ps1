@@ -40,7 +40,8 @@ function Use-WebToolchain {
         corepack enable --install-directory $shim pnpm | Out-Null
         $env:PATH = "$shim;$env:PATH"
     }
-    # Upstream's web build refuses to run without a party server; same default as .github/workflows/web.yml.
-    if (-not $env:VITE_PARTY_SERVER_URL) { $env:VITE_PARTY_SERVER_URL = 'https://api.bitchord.kushagrasingh.in' }
+    # The Jam server for the web build comes from the environment (VITE_PARTY_SERVER_URL), or JAM_BACKEND_URL
+    # if that is set; empty is fine, the site then says Jam is not set up.
+    if (-not $env:VITE_PARTY_SERVER_URL -and $env:JAM_BACKEND_URL) { $env:VITE_PARTY_SERVER_URL = $env:JAM_BACKEND_URL }
     if (-not $env:VITE_BASE_URL) { $env:VITE_BASE_URL = '/Violence/' }
 }

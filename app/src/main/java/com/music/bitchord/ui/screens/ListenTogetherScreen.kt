@@ -503,6 +503,16 @@ fun ListenTogetherScreen(
                     sheet = PartySheet.JoinCode
                 },
             )
+            // A build with no built-in server and no address typed in: say so, rather than
+            // leaving two dead buttons.
+            if (!ListenTogether.hasServer) {
+                Text(
+                    text = stringResource(R.string.listen_together_not_configured),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = GROUP_INSET + 4.dp, end = GROUP_INSET + 4.dp, top = 12.dp),
+                )
+            }
         } else {
             InAParty(
                 state = state,
