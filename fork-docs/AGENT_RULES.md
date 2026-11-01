@@ -1,7 +1,7 @@
-![alt text](image.png)# Rules for Future AI Agents & Contributors
+# Rules for Future AI Agents & Contributors
 
-**Applies to:** All future coding phases, sessions, and automated tasks in this repository.  
-**Location:** `/fork-docs/AGENT_RULES.md`
+**Applies to:** All future coding phases, sessions, and automated tasks in this repository.
+**Location:** `/fork-docs/AGENT_RULES.md` (updated in Phase 3, 2026-11-01; `/CLAUDE.md` is the short version, this file wins if they differ in detail)
 
 Every AI agent starting a new phase in this project **MUST** read and adhere strictly to these core engineering directives:
 
@@ -15,10 +15,11 @@ Every AI agent starting a new phase in this project **MUST** read and adhere str
 ---
 
 ## 2. Private Fork Constraint (Never Public)
-- This is a private fork created strictly for personal use by a small group of 4–6 individuals.
+- This is a private fork created strictly for personal use by a small group (core 4-6 people, up to about 10-15 with friends and family).
 - **Never publish APKs, modified code, release notes, or website instances publicly.**
 - Do not add trackers, commercial analytics, ads, telemetry beacons, or monetization code.
-- Only three targets are maintained: **Android Phone (`:app`)**, **Android TV (`:tv`)**, and **Web (`/web`)**. Wear OS and Desktop are pruned.
+- Active targets: **Android Phone (`:app`)**, **Android TV (`:tv`)**, **Web (`/web`)**. Wear OS and desktop are **DORMANT** (section 7), not removed.
+- Never add caps, allowlists, extra login steps or restrictions that hinder the core users.
 
 ---
 
@@ -34,26 +35,42 @@ Every AI agent starting a new phase in this project **MUST** read and adhere str
 - **NEVER COMMIT KEYSTORES, PASSWORDS, OR SECRETS.**
 - The release keystore (`*.jks`, `*.keystore`) and `keystore.properties` are strictly gitignored. Never add them with `git add -f` or remove them from `.gitignore`.
 - API keys (such as `LASTFM_API_KEY`, `LASTFM_SECRET`, or personal tokens) must stay in `local.properties` or environment variables; never hardcode secrets in source files.
+- **Login cookies, tokens, and session data for YT Music and Spotify (and Discord) must never be logged, committed, or sent to any server other than the service they belong to.**
 
 ---
 
-## 5. Git Remote & Upstream Discipline
-- **NEVER PUSH TO UPSTREAM.**
-- Remote `origin` points to the private repository (`https://github.com/yashaswahuh/Violence.git`).
-- Remote `upstream` (when added) points to `https://github.com/kushagrasinghx/BitChord.git` and must be treated as **READ-ONLY**.
-- Never open Pull Requests from this repository back to the upstream repository.
+## 5. Git Remote & Branch Discipline
+- **BRANCH RULE:** all work, commits, and pushes go to the branch **violence-nk**, never `main` and never `violence-main`. Run `git branch --show-current` before starting and before every push.
+- **Never force-push, never rewrite history, never push to the upstream remote.**
+- Remote `origin` = `https://github.com/yashaswahuh/Violence.git`. Remote `upstream` = `https://github.com/kushagrasinghx/BitChord.git`, push URL `DISABLED`, **READ-ONLY**. Never open Pull Requests from this repository to upstream.
+- Upstream syncs follow `UPSTREAM_SYNC.md`.
 
 ---
 
 ## 6. Development Discipline & Build Verification
-- **Make Small, Atomic Commits:** Group related changes logically (e.g. one commit for string rebranding, one for package renaming). Write clear commit messages.
-- **BUILD TARGET RESTRICTION (STANDING USER DIRECTIVE):**
-  - **ONLY test/build Android Phone (`:app:assembleDevDebug`) and Web (`pnpm --dir web build:site`).**
-  - **DO NOT build or test WearOS or Android TV (`:tv`) under any circumstances, now or in future phases, unless the user explicitly asks to start doing it.**
-- **Build Verification Commands:**
-  - Android APP: run `.\gradlew.bat :app:assembleDevDebug`.
-  - Web: run `pnpm --dir web build:site` (or `corepack pnpm --dir web build:site`).
-  - Backend: run `go test -v ./...` inside `backend/`.
-  - **Never declare a phase or task complete without successful build/test execution output for the allowed targets.**
-- **Preserve Unrelated Documentation & Comments:** Maintain comments that explain subtle bug fixes (such as D8/R8 phi allocation notes or NewPipeExtractor Utils exclusion rules).
-- Always commit and push directly to main after every change.
+- **Make small, atomic commits** with clear messages.
+- **Build verification uses explicit module paths only** (see `BUILD_COMMANDS.md`, or run `scripts/build-active.ps1` and `scripts/test-active.ps1`):
+  - Phone: `.\gradlew.bat :app:assembleDevDebug '-Pbitchord.bundleWear=false'`
+  - TV: `.\gradlew.bat :tv:assembleDevDebug '-Pbitchord.bundleWear=false'` (TV is ACTIVE; the old "never build TV" directive is cancelled)
+  - Web: `corepack pnpm --dir web build:site`
+  - Backend: `go test -v ./...` inside `backend/`
+- **Never declare a phase or task complete without successful build/test output for the active targets.**
+- **Preserve unrelated documentation & comments** that explain subtle bug fixes (such as D8/R8 phi allocation notes or NewPipeExtractor `Utils` exclusion rules).
+- Update `PHASES.md` and the relevant `fork-docs/` files when a phase finishes. Never guess; mark UNCLEAR.
+
+---
+
+## 7. DORMANT TARGETS (Wear OS and desktop)
+Dormant modules: `:wearos` (`wearos/`), `:desktopApp` (`desktopApp/`), `:desktopUi` (`desktopUi/`). Details and the unfreeze checklist: `FROZEN_TARGETS.md`.
+- **Never edit, rebrand, refactor, build, test, or lint the dormant modules unless the owner explicitly says "unfreeze".**
+- **Never run root-level Gradle tasks without explicit module paths** (`build`, `assemble`, `check`, `test`, `lint`, `clean`, bare `gradlew`): they include the dormant modules. Use `BUILD_COMMANDS.md` or the scripts in `/scripts`.
+- Do not include dormant targets in verification or reports beyond one line: "Wear OS and desktop: dormant, not checked."
+- **Never remove code, dependencies, or resources that only dormant targets use** (including `wearos/protocol`, which `:app` compiles, `CMP_DESKTOP` in `sharedUi`, `/native/analyzer`, and the desktop includes in `settings.gradle.kts`).
+- Reading dormant code is allowed only when a task truly requires it.
+- If a change to shared code (`:shared`, `:sharedUi`, `/native`, expect/actual) could affect a dormant target: make the change if the active targets need it, do **NOT** touch the dormant target, and append one line to "Possible impact from later changes" in `FROZEN_TARGETS.md`.
+- Keep desktop's Violence branding and its Windows installer `upgradeUuid` untouched, always. Check after every merge or upstream sync that the dormant modules and their Gradle includes survived (upstream deleted desktop in v1.9).
+
+---
+
+## 8. KEEP rule
+Never remove or break playback, search, stream resolution, lyrics, metadata, artwork, downloads, Last.fm/ListenBrainz, the YT Music and Spotify logins/import, web extension support, or Jam. **Services marked KEEP in `ALLOWED_EXTERNAL_SERVICES.md` are untouchable**, even if the original author hosts them. Only DISABLE items (live stats, presence pings, analytics, crash reporting, telemetry, the author's update checker, donation and promo links) are switched off, and new ones that appear in upstream syncs must be disabled the same way.

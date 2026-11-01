@@ -1,6 +1,6 @@
 # Allowed External Services & API Catalog
 
-**Audit Date:** 2026-10-30  
+**Audit Date:** 2026-10-30 (updated 2026-11-01 for the v1.9 sync; no other new external services appeared in v1.9)  
 **Phase:** Phase 1 (Repository Hygiene & Author Decoupling)  
 **Scope:** Complete inventory of every external domain, API, and service contacted at runtime.
 
@@ -56,6 +56,7 @@ Each runtime external endpoint is classified according to the following directiv
 | **Promotional Discord RPC Button** | `github.com/kushagrasinghx/BitChord` | `app/.../DiscordRPC.kt:17,98`, `AppSettings.kt` | "Visit BitChord" button 2 on Discord status | **DISABLE** | **YES (Original Author)** | Button 2 default visibility set to `false`. |
 | **Settings Screen Author Links** | `github.com/kushagrasinghx/BitChord`, `github.com/kushagrasinghx`, `discord.gg/pDdKfrdHY6`, `bitchord.kushagrasingh.in` | `app/.../SettingsSheet.kt:1569-1583`, `desktopApp/.../DesktopApp.kt:6649-6659` | Footer links to author's profile, Discord, and website | **DISABLE** | **YES (Original Author)** | Removed from Settings footer. Version string retained. |
 | **Donation & Crowdfunding Prompts** | `ko-fi.com/kushagrasinghx`, `paypal.me/kuxhagrasingh`, `upi_support.jpg`, `.github/FUNDING.yml` | `README.md:127-131`, `.github/FUNDING.yml`, `upi_support.jpg` | Financial solicitation links for original author | **DISABLE** | **YES (Original Author)** | Deleted `upi_support.jpg` and `.github/FUNDING.yml`; stripped `# Support` from README. |
+| **Web Live Presence Ping (added by upstream v1.9)** | `<party server>/api/presence` (author's Jam server) | `web/app/src/playback/livePresence.ts` | Open-tab counter for the web player | **DISABLE** | **YES (Original Author)** | New in v1.9. Disabled in the 2026-10-31 sync (`PRESENCE_ENABLED = false`). Zero network calls. |
 | **Author Backend Deployment Workflow** | `api.bitchord.kushagrasingh.in/healthz` (Oracle VM) | `.github/workflows/deploy-backend.yml` | Automated CD deploying to author's Oracle VM | **DISABLE** | **YES (Original Author)** | Deleted workflow file. |
 | **Author Upstream Issue Closer** | Upstream GitHub Actions | `.github/workflows/close-issue.yml` | Auto-closes issues with `/close` for specific upstream logins | **DISABLE** | **YES (Original Author)** | Deleted workflow file. |
 
