@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { resumeSession } from '@/party/listenTogether';
+import { resumeSession, useParty } from '@/party/listenTogether';
 import { startPartySync } from '@/party/partySync';
 import { useDiscordPresence } from '@/playback/discordPresence';
 import { startHistoryReporting } from '@/playback/historyReporting';
@@ -9,6 +9,7 @@ import { PrefetchLink } from '@/components/PrefetchLink';
 import { config } from '@/config';
 import { useExtension } from '@/extension/useExtension';
 import { isMobileBrowser } from '@/lib/platform';
+import { partyPlayer } from '@/state/player';
 import { useUi } from '@/state/ui';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { Banner, bannerButtonClass } from './Banner';
@@ -43,8 +44,36 @@ export function AppShell() {
   const dismissBanner = useUi((s) => s.dismissInstallBanner);
   const fullScreen = useUi((s) => s.fullScreen);
 
+  // Listen Together notices that matter wherever the listener is in the app.
+  const partyAudioBlocked = useParty((s) => !!s.code && s.audioBlocked);
+  const partyStalled = useParty((s) => (s.code ? s.stalledTrack : null));
+
   let banner = null;
-  if (mobile) {
+  if (partyAudioBlocked) {
+    banner = (
+      <Banner
+        title="Tap to start the party’s audio."
+        detail="Your browser holds back sound until you interact with the page."
+        action={
+          <button className={bannerButtonClass} onClick={() => partyPlayer.play()}>
+            Start audio
+          </button>
+        }
+      />
+    );
+  } else if (partyStalled) {
+    banner = (
+      <Banner
+        title="Can’t play this song here."
+        detail={`“${partyStalled}” won’t play in this browser. You’ll rejoin the party on the next song.`}
+        action={
+          <PrefetchLink className={bannerButtonClass} to="/settings/listen-together">
+            Open party
+          </PrefetchLink>
+        }
+      />
+    );
+  } else if (mobile) {
     banner = (
       <Banner
         title="Violence is better in the app."

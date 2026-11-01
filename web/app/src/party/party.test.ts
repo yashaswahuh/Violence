@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ServerClock } from './clock';
-import { cleanCode, inviteUrl, parseInvite } from './invite';
+import { appLink, cleanCode, extractCode, inviteLink, parseInvite } from './invite';
 import { EMPTY_PLAYBACK, type PartyMember, type PartyQueue, type PartyTrack } from './models';
 import { autoplaySupplierId, detectSingleMove, partyQueueIndexOf, partyUpcomingAfter } from './queueReading';
 
@@ -112,17 +112,74 @@ describe('AutoPlay supplier', () => {
 });
 
 describe('invites', () => {
-  it('reads both link shapes and normalises the code', () => {
+  it('reads the link shapes and normalises the code', () => {
     expect(parseInvite('https://yashaswahuh.is-a.dev/violence/invite/ab12cd')).toEqual({ code: 'AB12CD', serverUrl: null });
-    expect(parseInvite('https://bitchord.kushagrasingh.in/invite/ab12cd')).toEqual({ code: 'AB12CD', serverUrl: null });
+    expect(parseInvite('https://yashaswahuh.is-a.dev/Violence/party/ab12cd')).toEqual({ code: 'AB12CD', serverUrl: null });
+    expect(parseInvite('https://yashaswahuh.is-a.dev/Violence/party/ab12cd/')).toEqual({ code: 'AB12CD', serverUrl: null });
+    expect(parseInvite('https://yashaswahuh.is-a.dev/party/AB12CD')).toEqual({ code: 'AB12CD', serverUrl: null });
     expect(parseInvite('violence://party/AB12CD?server=jam.example.com')).toEqual({ code: 'AB12CD', serverUrl: 'https://jam.example.com' });
     expect(parseInvite('bitchord://party/AB12CD?server=jam.example.com')).toEqual({ code: 'AB12CD', serverUrl: 'https://jam.example.com' });
     expect(parseInvite('https://example.com/nope')).toBeNull();
+    expect(parseInvite('https://yashaswahuh.is-a.dev/Violence/party/ABC12')).toBeNull();
+    expect(parseInvite('https://yashaswahuh.is-a.dev/Violence/party/AB12CD/extra')).toBeNull();
     expect(cleanCode(' ab-12 cd ')).toBe('AB12CD');
   });
 
-  it('links to a custom server’s own invite page', () => {
-    expect(inviteUrl('ab12cd', null)).toBe('https://yashaswahuh.is-a.dev/violence/invite/AB12CD');
-    expect(inviteUrl('AB12CD', 'https://jam.example.com/')).toBe('https://jam.example.com/invite/AB12CD');
+  it('has no web link without a configured base: share only the code', () => {
+    expect(inviteLink('ab12cd', null, '')).toBeNull();
+    expect(inviteLink('ab12cd', null, '   ')).toBeNull();
+  });
+
+  it('builds the web link from the configured base', () => {
+    expect(inviteLink('ab12cd', null, 'https://yashaswahuh.is-a.dev/Violence')).toBe('https://yashaswahuh.is-a.dev/Violence/party/AB12CD');
+    expect(inviteLink('ab12cd', null, 'https://yashaswahuh.is-a.dev/Violence/')).toBe('https://yashaswahuh.is-a.dev/Violence/party/AB12CD');
+    expect(inviteLink('ab12cd', null, 'site.example')).toBe('https://site.example/party/AB12CD');
+  });
+
+  it('carries a custom Jam server and reads it back', () => {
+    const link = inviteLink('ab12cd', 'https://jam.example.com/', 'https://site.example/Violence');
+    expect(link).toBe('https://site.example/Violence/party/AB12CD?server=https%3A%2F%2Fjam.example.com');
+    expect(parseInvite(link!)).toEqual({ code: 'AB12CD', serverUrl: 'https://jam.example.com' });
+  });
+
+  it('builds the app link that opens Android', () => {
+    expect(appLink('ab12cd')).toBe('violence://party/AB12CD');
+    expect(appLink('ab12cd', 'https://jam.example.com')).toBe('violence://party/AB12CD?server=https%3A%2F%2Fjam.example.com');
+    expect(parseInvite(appLink('ab12cd', 'https://jam.example.com'))).toEqual({ code: 'AB12CD', serverUrl: 'https://jam.example.com' });
+  });
+});
+
+// The join field: a typed code, a pasted link, or a pasted share message (it used to cut a link to 7 characters).
+describe('extractCode', () => {
+  it('takes a bare code in any case, with spaces or hyphens', () => {
+    expect(extractCode('K7M2PQ')).toBe('K7M2PQ');
+    expect(extractCode('  k7m2pq ')).toBe('K7M2PQ');
+    expect(extractCode('K7M 2PQ')).toBe('K7M2PQ');
+    expect(extractCode('k7m-2pq')).toBe('K7M2PQ');
+  });
+
+  it('takes a pasted web or app link', () => {
+    expect(extractCode('https://yashaswahuh.is-a.dev/Violence/party/K7M2PQ')).toBe('K7M2PQ');
+    expect(extractCode('https://yashaswahuh.is-a.dev/Violence/party/k7m2pq?server=https%3A%2F%2Fjam.example.com')).toBe('K7M2PQ');
+    expect(extractCode('https://yashaswahuh.is-a.dev/Violence/invite/K7M2PQ')).toBe('K7M2PQ');
+    expect(extractCode('violence://party/K7M2PQ')).toBe('K7M2PQ');
+  });
+
+  it('takes a whole share message', () => {
+    expect(extractCode('https://yashaswahuh.is-a.dev/Violence/party/K7M2PQ\n\nListen with me on Violence - party code K7M2PQ')).toBe('K7M2PQ');
+    expect(extractCode('Listen with me on Violence - party code K7M2PQ')).toBe('K7M2PQ');
+  });
+
+  it('does not mistake words for a code, and does not guess between two', () => {
+    expect(extractCode('please invite me to listen')).toBeNull();
+    expect(extractCode('hello there')).toBeNull();
+    expect(extractCode('try K7M2PQ or X9Y8Z7 maybe')).toBeNull();
+  });
+
+  it('gives nothing for empty or partial input', () => {
+    expect(extractCode(null)).toBeNull();
+    expect(extractCode('')).toBeNull();
+    expect(extractCode('AB12')).toBeNull();
+    expect(extractCode('ABC1234')).toBeNull();
   });
 });

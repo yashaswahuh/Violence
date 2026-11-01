@@ -12,4 +12,6 @@ export const config = {
   androidAppUrl: import.meta.env.VITE_ANDROID_APP_URL || '',
   /** The Listen Together server. vite.config.ts refuses a production build without it. */
   partyServerUrl: import.meta.env.VITE_PARTY_SERVER_URL ?? '',
+  /** Where shared party links point (the landing page is `<base>/party/<CODE>`). Empty = share only the code. */
+  inviteBaseUrl: import.meta.env.VITE_INVITE_BASE_URL ?? '',
 } as const;

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/PageHeader';
 import { useSignedIn } from '@/data/music/queries';
-import { cleanCode, inviteUrl } from '@/party/invite';
+import { cleanCode, extractCode, inviteLink } from '@/party/invite';
 import {
   controlsLocked,
   createParty,
@@ -86,7 +86,7 @@ function StartOrJoin({ signedIn }: { signedIn: boolean }) {
   return (
     <>
       <p className={lede}>
-        Listen to the same music at the same moment with up to five devices. Anyone in the party can play, pause and skip.
+        Listen to the same music at the same moment, up to 15 devices. Anyone in the party can play, pause and skip.
       </p>
       {!signedIn && <SignInFirst />}
       <section className={settingsUi.group}>
@@ -103,7 +103,7 @@ function StartOrJoin({ signedIn }: { signedIn: boolean }) {
           className={settingsUi.controlRow}
           onSubmit={(e) => {
             e.preventDefault();
-            const cleaned = cleanCode(code);
+            const cleaned = extractCode(code) ?? cleanCode(code);
             if (cleaned) navigate(`/invite/${cleaned}`);
           }}
         >
@@ -112,12 +112,15 @@ function StartOrJoin({ signedIn }: { signedIn: boolean }) {
             <input
               className="w-[110px] flex-none rounded-[8px] border-0 bg-quaternary px-2.5 py-[5px] text-center type-body tracking-[0.12em] text-primary uppercase"
               value={code}
-              maxLength={7}
-              placeholder="ABC123"
-              aria-label="Party code"
-              onChange={(e) => setCode(e.currentTarget.value.toUpperCase())}
+              placeholder="Code or link"
+              aria-label="Party code or invite link"
+              onChange={(e) => {
+                // A pasted link (or a whole share message) is reduced to its code.
+                const raw = e.currentTarget.value;
+                setCode(extractCode(raw) ?? raw.toUpperCase());
+              }}
             />
-            <button className={primary} type="submit" disabled={!cleanCode(code)}>
+            <button className={primary} type="submit" disabled={!(extractCode(code) ?? cleanCode(code))}>
               Join
             </button>
           </span>
@@ -203,14 +206,14 @@ function Avatar({ name, url, large = false }: { name: string; url: string | null
 function InParty() {
   const state = useParty();
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
   const isHost = state.you?.isHost === true;
   const locked = controlsLocked(state);
   const custom = partyServer() && partyServer() !== DEFAULT_SERVER ? partyServer() : null;
-  const link = inviteUrl(state.code!, custom);
+  const link = inviteLink(state.code!, custom);
   useEffect(() => {
     if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 1500);
+    const t = setTimeout(() => setCopied(null), 1500);
     return () => clearTimeout(t);
   }, [copied]);
 
@@ -228,14 +231,25 @@ function InParty() {
       <div className={invite}>
         <p className={inviteCode}>{state.code}</p>
         <p className={settingsUi.footer}>{status}</p>
-        <button
-          className="inline-flex items-center gap-1.5 rounded-pill bg-quaternary px-3.5 py-1.5 type-callout-emphasized"
-          onClick={() => void navigator.clipboard.writeText(link).then(() => setCopied(true))}
-          title={link}
-        >
-          {copied ? <Check size={15} /> : <Copy size={15} />}
-          {copied ? 'Copied' : 'Copy Invite Link'}
-        </button>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            className="inline-flex items-center gap-1.5 rounded-pill bg-quaternary px-3.5 py-1.5 type-callout-emphasized"
+            onClick={() => void navigator.clipboard.writeText(state.code!).then(() => setCopied('code'))}
+          >
+            {copied === 'code' ? <Check size={15} /> : <Copy size={15} />}
+            {copied === 'code' ? 'Copied' : 'Copy code'}
+          </button>
+          {link && (
+            <button
+              className="inline-flex items-center gap-1.5 rounded-pill bg-quaternary px-3.5 py-1.5 type-callout-emphasized"
+              onClick={() => void navigator.clipboard.writeText(link).then(() => setCopied('link'))}
+              title={link}
+            >
+              {copied === 'link' ? <Check size={15} /> : <Copy size={15} />}
+              {copied === 'link' ? 'Copied' : 'Copy invite link'}
+            </button>
+          )}
+        </div>
       </div>
 
       <h2 className={settingsUi.sectionHeader}>

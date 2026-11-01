@@ -69,6 +69,10 @@ export interface PartyState {
   awaitingStart: boolean;
   /** True while a create, join or lookup waits for a sleeping, free-hosted server to wake up. */
   serverWaking: boolean;
+  /** Title of the party's current track when this browser cannot play it; it rejoins on the next one. */
+  stalledTrack: string | null;
+  /** The browser's autoplay policy is holding the party's audio back until the user taps. */
+  audioBlocked: boolean;
 }
 
 const IDLE: PartyState = {
@@ -86,6 +90,8 @@ const IDLE: PartyState = {
   activity: [],
   awaitingStart: false,
   serverWaking: false,
+  stalledTrack: null,
+  audioBlocked: false,
 };
 
 export const useParty = create<PartyState>()(() => IDLE);
@@ -266,7 +272,7 @@ export async function createParty(options: { maxMembers?: number; autoplayEnable
     await wakeServerIfAsleep(base);
     const membership = await request<PartyMembership>(`${base}/api/parties`, {
       method: 'POST',
-      body: JSON.stringify({ ...(await identity()), maxMembers: options.maxMembers ?? 5, autoplayEnabled: options.autoplayEnabled }),
+      body: JSON.stringify({ ...(await identity()), maxMembers: options.maxMembers ?? 8, autoplayEnabled: options.autoplayEnabled }),
     });
     return adoptMembership(base, membership);
   } catch (error) {
@@ -525,6 +531,24 @@ async function checkMembership(): Promise<void> {
 
 function ping(): void {
   send({ type: 'ping', clientMs: clock.nowMs() });
+}
+
+/**
+ * A hidden tab has its timers throttled hard (minutes apart after a while), so a socket that died
+ * while hidden is noticed late and the reconnect timer may be far off. Called when the tab becomes
+ * visible again or the network returns: with a membership but no open socket it dials now; with an
+ * open socket it asks for the current state and re-measures the clock.
+ */
+export function resyncNow(): void {
+  const { code } = useParty.getState();
+  if (!code || !token || !server) return;
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    send({ type: 'sync' });
+    send({ type: 'syncQueue' });
+    for (let i = 0; i < 3; i++) timers.push(setTimeout(ping, i * 300));
+    return;
+  }
+  connect();
 }
 
 function report(): void {

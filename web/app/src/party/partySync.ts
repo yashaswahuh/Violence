@@ -1,7 +1,7 @@
 import type { Track } from '@/data/music/types';
 import type { QueueTier } from '@/playback/queue/timeline';
 import { getAudio, partyPlayer, setPartyHooks, usePlayer } from '@/state/player';
-import { controlsLocked, msUntilStart, party, partyPositionMs, useParty, type PartyState } from './listenTogether';
+import { controlsLocked, msUntilStart, party, partyPositionMs, resyncNow, useParty, type PartyState } from './listenTogether';
 import type { PartyTrack } from './models';
 import { autoplaySupplierId, detectSingleMove, partyQueueIndexOf, partyUpcomingAfter } from './queueReading';
 
@@ -102,6 +102,20 @@ let driftCooldownUntil = 0;
 let publishTimer: ReturnType<typeof setTimeout> | undefined;
 let startTimer: ReturnType<typeof setTimeout> | undefined;
 let lastPartyCode: string | null = null;
+/** The party track this browser could not play; it stays quiet until the party moves on (see reconcile). */
+let stalledVideoId: string | null = null;
+
+function clearStalled(): void {
+  if (stalledVideoId !== null) {
+    stalledVideoId = null;
+    useParty.setState({ stalledTrack: null });
+  }
+}
+
+function noteStalled(track: PartyTrack): void {
+  stalledVideoId = track.videoId;
+  useParty.setState({ stalledTrack: track.title || track.videoId });
+}
 /** The personal queue, put back after the party (PartyPersonalQueueStash). */
 let stash: { queue: ReturnType<typeof usePlayer.getState>['queue']; index: number; positionSec: number; wasPlaying: boolean } | null = null;
 
@@ -114,6 +128,8 @@ const setAwaiting = (value: boolean): void => {
 function onIntent(): void {
   const state = useParty.getState();
   if (!state.code || controlsLocked(state)) return;
+  // The user pressed something, which is also how a stalled track gets retried.
+  clearStalled();
   reconcileQuietUntil = performance.now() + INTENT_QUIET_MS;
   // Nothing published yet: no seq to wait for, and someone else's control mustn't clear the window.
   awaitPlaybackSeq = Number.MAX_SAFE_INTEGER;
@@ -236,6 +252,7 @@ function reconcile(): void {
     lastPositionMs = 0;
     lastTrackId = null;
     lastIsPlaying = false;
+    clearStalled();
     setAwaiting(false);
     return;
   }
@@ -245,9 +262,19 @@ function reconcile(): void {
   const track = target.track;
   if (!track) return seedEmptyParty(state);
 
+  // The party moved on from a track this browser could not play: back to following it normally.
+  if (stalledVideoId && stalledVideoId !== track.videoId) clearStalled();
   const entry = current();
   if (entry?.track.videoId !== track.videoId) return load(state);
   if (loadingVideoId === track.videoId && usePlayer.getState().status === 'loading') return;
+  // This browser cannot play the party's track (region block, unresolvable stream). Do not retry it
+  // every tick (play() on an errored player reloads it) and do not tell anybody else to move: stay
+  // quiet, say so, and rejoin on the party's next track. A press of play retries it (onIntent).
+  if (stalledVideoId === track.videoId) return;
+  if (usePlayer.getState().status === 'error') {
+    noteStalled(track);
+    return;
+  }
   loadingVideoId = null;
   reconcileQueue(state);
 
@@ -282,6 +309,7 @@ function reconcile(): void {
     return;
   }
   setAwaiting(false);
+  if (state.audioBlocked) useParty.setState({ audioBlocked: false });
   if (want === null) return;
   // Only a settled player can be measured.
   if (usePlayer.getState().status !== 'playing') {
@@ -441,7 +469,19 @@ export function startPartySync(): () => void {
     shouldDeferPlay,
     onLockedTransport,
     inParty: () => !!useParty.getState().code,
+    onPlayBlocked: () => {
+      if (useParty.getState().code && !useParty.getState().audioBlocked) useParty.setState({ audioBlocked: true });
+    },
   });
+  // A tab that was hidden has had its timers throttled and may have lost its socket: catch up the
+  // moment it is visible again, or the network comes back, instead of waiting for the next tick.
+  const wake = () => {
+    if (document.visibilityState === 'hidden') return;
+    resyncNow();
+    reconcile();
+  };
+  document.addEventListener('visibilitychange', wake);
+  window.addEventListener('online', wake);
   let key = '';
   const off = useParty.subscribe((state) => {
     const next = `${state.playback.seq}|${state.queue.seq}|${state.code}|${state.clockSynced}`;
@@ -467,6 +507,8 @@ export function startPartySync(): () => void {
     clearInterval(tick);
     clearTimeout(publishTimer);
     clearTimeout(startTimer);
+    document.removeEventListener('visibilitychange', wake);
+    window.removeEventListener('online', wake);
     setPartyHooks(null);
   };
 }
