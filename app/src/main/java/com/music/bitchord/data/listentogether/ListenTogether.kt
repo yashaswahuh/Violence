@@ -828,7 +828,7 @@ object ListenTogether {
 
     // ------------------------------------------------------------ joining --
 
-    suspend fun createParty(nickname: String = nickname(), maxMembers: Int = 5): Result<String> = switchMutex.withLock {
+    suspend fun createParty(nickname: String = nickname(), maxMembers: Int = 8): Result<String> = switchMutex.withLock {
         val primary = effectiveIdleServerBase()
         if (!wakeServerIfAsleep(primary)) {
             val asleep = PartyException("server_asleep", ASLEEP_MESSAGE)
@@ -1207,6 +1207,22 @@ object ListenTogether {
     /** @see awaitingStart */
     fun setAwaitingStart(value: Boolean) {
         _awaitingStart.value = value
+    }
+
+    /**
+     * The title of the party's current track when this device cannot play it, else null.
+     *
+     * A song can be region-blocked or unresolvable on one phone and fine on the others. That phone
+     * keeps following the party silently and rejoins on the next track; it must not skip the song
+     * itself (the party is still on it) and must not tell anybody else to move. Written only by
+     * `PartySync`; read by the Jam screen for a small notice.
+     */
+    private val _stalledTrack = MutableStateFlow<String?>(null)
+    val stalledTrack: StateFlow<String?> = _stalledTrack.asStateFlow()
+
+    /** @see stalledTrack */
+    fun setStalledTrack(title: String?) {
+        _stalledTrack.value = title
     }
 
     // --------------------------------------------------------- the playhead --
@@ -1744,6 +1760,9 @@ object ListenTogether {
         .joinToString("") { "%02x".format(it) }
 
     const val CODE_LENGTH = 6
+
+    /** The largest party the protocol allows (the Go backend's `config.MaxPartyMembers`). */
+    const val MAX_PARTY_MEMBERS = 15
 
     private const val TAG = "ListenTogether"
     private const val PREFS = "bitchord_listen_together"

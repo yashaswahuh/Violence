@@ -190,6 +190,44 @@ class PartySync(
 
     private var lastPartyCode: String? = null
 
+    /**
+     * The party track this device could not play, so that it stays quiet until the party moves on.
+     *
+     * Without it a failed track was skipped locally by the service, [reconcile] then saw the wrong
+     * item and loaded the failed track again (a loop), and the next local pause or seek published
+     * the *other* track to everybody. See [onTrackUnplayable].
+     */
+    @Volatile
+    private var unplayableVideoId: String? = null
+
+    /**
+     * The service has given up on [videoId] on this device (retries spent, or ruled out).
+     *
+     * Returns the party's track when that is the party's current track, which tells the caller
+     * *not* to skip past it: the party is still on it, and this device simply rejoins on the next
+     * one. Nothing is published and nothing is reloaded meanwhile. Returns null (caller carries on
+     * as usual) when there is no party or the failed track is not the party's current one.
+     */
+    fun onTrackUnplayable(videoId: String): PartyTrack? {
+        val party = ListenTogether.state.value
+        if (!party.inParty) return null
+        val track = party.playback.track ?: return null
+        if (track.videoId != videoId) return null
+        Log.w(TAG, "cannot play party track $videoId here; staying quiet until the party moves on")
+        unplayableVideoId = videoId
+        publishJob?.cancel()
+        deferredPlayPending = false
+        ListenTogether.setStalledTrack(track.title.ifBlank { track.videoId })
+        return track
+    }
+
+    private fun clearUnplayable() {
+        if (unplayableVideoId != null) {
+            unplayableVideoId = null
+            ListenTogether.setStalledTrack(null)
+        }
+    }
+
     fun start() {
         jobs += scope.launch {
             ListenTogether.state
@@ -484,6 +522,7 @@ class PartySync(
             lastPositionMs = 0L
             lastTrackId = null
             lastIsPlaying = false
+            clearUnplayable()
             return
         }
         // Before any of the early returns below, so a local pause cannot
@@ -499,6 +538,12 @@ class PartySync(
         val track = target.track ?: run {
             seedEmptyParty(party)
             return
+        }
+        // A track this device cannot play: leave the player alone until the party is on another
+        // one. Checked before the load below, which is what used to loop on it.
+        unplayableVideoId?.let { stalled ->
+            if (stalled == track.videoId) return
+            clearUnplayable()
         }
         val exo = player() ?: return
 
@@ -913,6 +958,7 @@ class PartySync(
         loadingVideoId = null
         focusLost = false
         rejoining = false
+        clearUnplayable()
         val stashed = PartyPersonalQueueStash.load()
         if (stashed != null) {
             val exo = player() ?: return

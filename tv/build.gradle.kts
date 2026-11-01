@@ -58,6 +58,18 @@ val listenTogetherServer: String = (
     ).trim().trimEnd('/')
 
 /*
+ * The web address that shared Jam invite links point at (the landing page is `<base>/party/<CODE>`),
+ * from JAM_INVITE_BASE_URL in local.properties or the environment. A public URL, not a credential.
+ * Empty (the default) means "share only the code": the apps then offer the code and a
+ * violence://party/<CODE> link, and no web link at all.
+ */
+val jamInviteBaseUrl: String = (
+    localProps.getProperty("JAM_INVITE_BASE_URL")
+        ?: System.getenv("JAM_INVITE_BASE_URL")
+        ?: ""
+    ).trim().trimEnd('/')
+
+/*
  * Bump this by hand before cutting each sideloaded test build ("beta2",
  * "beta3", ...) and blank it out before cutting the real release. Marks the
  * versionName below as a pre-release: AppUpdateChecker.isNewer() treats any
@@ -99,6 +111,11 @@ android {
             "String",
             "LISTEN_TOGETHER_SERVER",
             "\"${listenTogetherServer.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
+        )
+        buildConfigField(
+            "String",
+            "JAM_INVITE_BASE_URL",
+            "\"${jamInviteBaseUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
         )
         // The TV APKs share a GitHub release with the phone ones and are told
         // apart by name (BitChordTV-v1.8.apk, BitChordTV-v1.8_x86_64.apk), so

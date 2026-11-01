@@ -380,7 +380,7 @@ internal fun CreatePartySheet(
                 modifier = Modifier.width(32.dp),
                 textAlign = TextAlign.Center,
             )
-            StepperButton("+", enabled = enabled && maxMembers < 10) {
+            StepperButton("+", enabled = enabled && maxMembers < ListenTogether.MAX_PARTY_MEMBERS) {
                 onMaxMembersChange(maxMembers + 1)
             }
         }
@@ -682,8 +682,12 @@ internal fun JoinConfirmSheet(
 @Composable
 internal fun InviteSheet(
     code: String,
-    link: String,
+    /** The web link, or null when no invite base is configured (then only the code is shared). */
+    link: String?,
+    /** What the QR code holds: the web link, else violence://party/<CODE>. */
+    qrContent: String,
     onShareLink: () -> Unit,
+    onShareCode: () -> Unit,
     onCopyCode: () -> Unit,
 ) {
     Column(
@@ -692,18 +696,40 @@ internal fun InviteSheet(
     ) {
         SheetHeader(title = stringResource(R.string.listen_together_invite_title))
         Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = onShareLink,
-            shape = RoundedCornerShape(percent = 50),
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-        ) {
-            Icon(Icons.Rounded.Link, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.listen_together_share_link),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
+        if (link != null) {
+            Button(
+                onClick = onShareLink,
+                shape = RoundedCornerShape(percent = 50),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+            ) {
+                Icon(Icons.Rounded.Link, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.listen_together_share_link),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onShareCode, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                Text(
+                    text = stringResource(R.string.listen_together_share_code),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+        } else {
+            // No web address configured: the code is the invite.
+            Button(
+                onClick = onShareCode,
+                shape = RoundedCornerShape(percent = 50),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.listen_together_share_code),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
         Spacer(Modifier.height(24.dp))
         Row(
@@ -741,8 +767,13 @@ internal fun InviteSheet(
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
+                Text(
+                    text = stringResource(R.string.copy_code),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            QrCode(content = link, size = 132.dp)
+            QrCode(content = qrContent, size = 132.dp)
         }
         Spacer(Modifier.height(16.dp))
     }

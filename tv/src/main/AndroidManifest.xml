@@ -248,7 +248,7 @@
             </intent-filter>
 
             <!-- Public Listen Together invites. autoVerify makes a tap open
-                 BitChord directly once the domain publishes its assetlinks
+                 Violence directly once the domain publishes its assetlinks
                  association for the production signing certificate. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -256,7 +256,19 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="bitchord.kushagrasingh.in"
+                    android:host="yashaswahuh.is-a.dev"
+                    android:pathPattern="/Violence/party/......" />
+                <data
+                    android:scheme="https"
+                    android:host="yashaswahuh.is-a.dev"
+                    android:pathPattern="/Violence/invite/......" />
+                <data
+                    android:scheme="https"
+                    android:host="yashaswahuh.is-a.dev"
+                    android:pathPattern="/party/......" />
+                <data
+                    android:scheme="https"
+                    android:host="yashaswahuh.is-a.dev"
                     android:pathPattern="/invite/......" />
             </intent-filter>
 
@@ -266,7 +278,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="bitchord"
+                    android:scheme="violence"
                     android:host="party" />
             </intent-filter>
 

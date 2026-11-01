@@ -231,6 +231,18 @@
                     android:scheme="https"
                     android:host="yashaswahuh.is-a.dev"
                     android:pathPattern="/invite/......" />
+                <data
+                    android:scheme="https"
+                    android:host="yashaswahuh.is-a.dev"
+                    android:pathPattern="/Violence/party/......" />
+                <data
+                    android:scheme="https"
+                    android:host="yashaswahuh.is-a.dev"
+                    android:pathPattern="/Violence/invite/......" />
+                <data
+                    android:scheme="https"
+                    android:host="yashaswahuh.is-a.dev"
+                    android:pathPattern="/party/......" />
             </intent-filter>
 
             <!-- Custom scheme for Listen Together invites on custom server deployments. -->

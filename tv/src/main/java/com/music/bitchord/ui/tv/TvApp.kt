@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.media3.session.MediaController
 import com.music.bitchord.R
+import com.music.bitchord.data.listentogether.JamInviteLink
 import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.data.settings.TvSettings
 import com.music.bitchord.playback.PlayerState
@@ -338,6 +339,12 @@ private fun TvMainShell(
             destination = next
         }
     }
+    // A violence://party/<CODE> link opened on the TV: show Settings, where Listen Together opens
+    // filled in (see TvSettingsScreen / TvListenTogetherDialog).
+    val incomingJamInvite by JamInviteLink.pending.collectAsState()
+    LaunchedEffect(incomingJamInvite) {
+        if (incomingJamInvite != null) select(TvDestination.SETTINGS)
+    }
     val openDetail: TvOpenDetail = { browseId, title, subtitle, thumb, type ->
         returnFocus.add(chrome.lastFocused)
         detailStack.add(TvDetailRoute(browseId, title, subtitle, thumb, type))
@@ -467,6 +474,8 @@ private fun TvMainShell(
                                 viewModel = viewModel,
                                 onOpenAccount = onOpenAccount,
                                 onRunSetupAgain = onRunSetupAgain,
+                                jamInviteCode = incomingJamInvite?.code,
+                                onJamInviteHandled = { JamInviteLink.handled() },
                             )
                         }
                     }
