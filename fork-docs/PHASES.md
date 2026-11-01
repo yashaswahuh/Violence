@@ -15,7 +15,7 @@ Phase 0 (Current) ──► Phase 1: Repo Hygiene & Author Decoupling
 Phase 2: Complete Rebrand & Visual Identity
                    │
                    ▼
-Phase 3: Module Pruning (Wear OS & Desktop)
+Phase 3: Dormant targets, build scripts, CI re-wiring
                    │
                    ▼
 Phase 4: Free Backend Deployment & Jam Binding
@@ -117,28 +117,28 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 
 ---
 
-## Phase 3: Module Pruning (Wear OS & Desktop)
+## Phase 3: Dormant Targets, Build Scripts, CI Re-wiring & Restoration Check [COMPLETED]
 
-- **Primary Goal:** Safely delete `:wearos`, `:desktopApp`, and `:desktopUi` along with all unused dependencies, shrinking project complexity and build times while preserving `/native/analyzer`.
-- **Files Touched:**
-  - `app/build.gradle.kts`: Delete Wear OS dependencies (`libadb-android`, `play-services-wearable`), delete `BundleWearApk` task, remove `../wearos/protocol` sourceSet.
-  - `app/src/main/java/com/music/bitchord/wear/`: Delete `WatchInstaller.kt` and `WearBridge.kt`.
-  - `tv/src/main/java/com/music/bitchord/wear/`: Delete stub files.
-  - `sharedUi/build.gradle.kts`: Remove `ui-desktop` and `CMP_DESKTOP`.
-  - `settings.gradle.kts`: Remove `:wearos`, `:desktopApp`, `:desktopUi`.
-  - CI workflows: Remove desktop jobs in `.github/workflows/check.yml` and `.github/workflows/release.yml`.
-  - File deletions: Delete directories `/wearos`, `/desktopApp`, `/desktopUi`, `/DESKTOP.md`, `/docs/DESKTOP_RELEASES.md`.
-- **Definition of Done:**
-  - Repository contains only `:app`, `:tv`, `:shared`, `:sharedUi`, `/native`, `/backend`, and `/web`.
-  - Phone and TV APK sizes reduced by ~5 MB.
-- **Verification:**
-  - Run `./gradlew assembleDevDebug` (Phone).
-  - Run `./gradlew :tv:assembleDevDebug` (TV).
-  - Run `corepack pnpm --dir web -r typecheck` (Web).
-  - Confirm all three targets compile cleanly.
-
----
-
+- **Status:** **DONE**
+- **Completion Date:** 2026-11-01
+- **Branch:** `violence-nk`
+- **Commits:**
+  - `50827b9`: Restore desktop wiring dropped by the v1.9 merge
+  - `57849a7`: CI: keep dormant targets out of automatic runs
+  - `8d6b20e`: Add active-target build/test scripts and BUILD_COMMANDS.md
+  - `8739c24`: Document dormant targets, restoration check, and updated agent rules
+  - (this PHASES.md update is the final Phase 3 commit)
+- **Differences from the original Phase 3 plan ("Module Pruning"):** the plan to delete `:wearos`, `:desktopApp`, `:desktopUi` is **CANCELLED**. They are DORMANT: kept intact and revivable, not built or tested in routine work. `MODULE_PRUNING_PLAN.md` is marked cancelled. TV is an ACTIVE target (the old "never build TV" directive is cancelled).
+- **What was done:**
+  - `fork-docs/BUILD_COMMANDS.md`, `scripts/build-active.ps1`, `scripts/test-active.ps1`, `scripts/_env.ps1`: explicit task paths for phone, TV, web only; root-level Gradle tasks forbidden.
+  - `fork-docs/FROZEN_TARGETS.md`: dormant modules, shared-code dependencies, history, leftover BitChord identifiers, the desktop `upgradeUuid` rule, unfreeze checklist, "Possible impact from later changes" log.
+  - `fork-docs/AGENT_RULES.md` and `/CLAUDE.md`: DORMANT TARGETS section, branch rule, KEEP rule, secret/session rules.
+  - `fork-docs/RESTORATION_LOG.md`: Phase 1/2 review found nothing wrongly disabled. **Regression from the v1.9 merge restored:** `settings.gradle.kts` desktop includes, desktop CI jobs (now `desktop-check.yml`, manual), `.gitignore` `/desktopApp/bin/`.
+  - CI: `android.yml`, `tv.yml`, `web.yml`, `check.yml` now also trigger on `violence-nk`; `check.yml` Android job uses explicit `:app:` tasks; desktop jobs moved to manual-only `desktop-check.yml`; `release.yml` (desktop release) tag trigger removed, manual only.
+  - `ALLOWED_EXTERNAL_SERVICES.md`: new row for the web presence ping (DISABLE).
+- **Environment note:** because `:desktopApp` is a Gradle project, every build needs a JDK 21 toolchain; portable Temurin 21 was installed to `%USERPROFILE%\.jdks`.
+- **Verification (active targets only, via the new scripts):** `build-active.ps1` passed phone `:app:assembleDevDebug`, TV `:tv:assembleDevDebug`, web typecheck and `build:site`. `test-active.ps1` passed `:app:testDevDebugUnitTest` and `:shared:jvmTest` (Gradle reported them up to date from the passing run earlier that day: 1209 + 122 tests, 0 failures) and 159 web tests. Wear OS and desktop: dormant, not checked.
+- **No dormant module file was edited.**
 ## Phase 4: Free Backend Deployment & Jam Server Binding
 
 - **Primary Goal:** Deploy the Go backend to Render Free tier (or set up Firebase RTDB), configure automated free keepalive pings to prevent spin-down, and wire client defaults to the new backend.
