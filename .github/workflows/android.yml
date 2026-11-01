@@ -1,8 +1,17 @@
 name: Android CI
 
+# Builds the phone and TV debug APKs in the cloud and uploads them as downloadable artifacts
+# (Actions -> the run -> Artifacts). Runs on a push to violence-nk that touches Android or shared
+# code (docs-only and web-only changes do not), or by hand. See fork-docs/CI_DEPLOY.md.
+#
+# Optional values, all read from the environment and all safe to leave unset (the build still works):
+#   secrets   LASTFM_API_KEY, LASTFM_SECRET     Last.fm scrobbling (empty = shows as not configured)
+#   variables JAM_BACKEND_URL, JAM_INVITE_BASE_URL   the Jam server and the invite-link base
+# Debug builds only: no release, no signing secrets (Phase 7 adds proper signing).
+
 on:
   push:
-    branches: [violence-nk, violence-main, main]
+    branches: [violence-nk]
     paths:
       - 'app/**'
       - 'tv/**'
@@ -19,82 +28,100 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-apks:
-    name: Build Phone & TV Debug APKs
+    name: Build phone and TV debug APKs
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # JDK 17 runs the Android build (AGP 8.10). JDK 21 is installed as well: the dormant desktop
+      # module is part of the Gradle build and declares a Java 21 toolchain (desktopApp/build.gradle.kts),
+      # so Gradle needs one on disk even for a phone-only build. The last version listed is JAVA_HOME.
+      - name: Set up JDK 21 and 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: |
+            21
+            17
 
-      - name: Setup Gradle
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      # The packages this project compiles against (versions as used on the owner's machine).
+      - name: Install SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platforms;android-37.0" "platforms;android-36" "cmake;3.22.1" "ndk;27.0.12077973"
+
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Setup local.properties
+      - name: Build phone and TV debug APKs
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          JAM_BACKEND_URL: ${{ vars.JAM_BACKEND_URL }}
+          JAM_INVITE_BASE_URL: ${{ vars.JAM_INVITE_BASE_URL }}
         run: |
-          if [ -n "$ANDROID_HOME" ]; then
-            echo "sdk.dir=$ANDROID_HOME" > local.properties
-          fi
-          echo "LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY || '' }}" >> local.properties
-          echo "LASTFM_SECRET=${{ secrets.LASTFM_SECRET || '' }}" >> local.properties
-          echo "JAM_BACKEND_URL=${{ vars.JAM_BACKEND_URL || '' }}" >> local.properties
-          echo "JAM_INVITE_BASE_URL=${{ vars.JAM_INVITE_BASE_URL || '' }}" >> local.properties
+          chmod +x gradlew
+          ./gradlew :app:assembleDevDebug :tv:assembleDevDebug \
+            -Pbitchord.bundleWear=false \
+            -Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64 \
+            --stacktrace
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build Phone and TV Debug APKs
-        run: ./gradlew :app:assembleDevDebug :tv:assembleDevDebug -Pbitchord.bundleWear=false --stacktrace
-
-      - name: Prepare APK Artifacts
+      - name: Name the APKs
+        id: apks
         run: |
+          SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
           mkdir -p dist-apks
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-
-          PHONE_APK=$(find app/build/outputs/apk/dev/debug -name "*universal*.apk" | head -n 1)
-          if [ -z "$PHONE_APK" ]; then
-            PHONE_APK=$(find app/build/outputs/apk/dev/debug -name "*.apk" | head -n 1)
-          fi
-          echo "Phone APK found: $PHONE_APK"
+          pick() { find "$1" -name '*universal*.apk' | head -n 1; }
+          PHONE_APK="$(pick app/build/outputs/apk/dev/debug)"
+          TV_APK="$(pick tv/build/outputs/apk/dev/debug)"
+          [ -n "$PHONE_APK" ] || { echo "::error::no phone universal APK was produced"; exit 1; }
+          [ -n "$TV_APK" ] || { echo "::error::no TV universal APK was produced"; exit 1; }
           cp "$PHONE_APK" "dist-apks/violence-phone-debug-${SHORT_SHA}.apk"
-
-          TV_APK=$(find tv/build/outputs/apk/dev/debug -name "*universal*.apk" | head -n 1)
-          if [ -z "$TV_APK" ]; then
-            TV_APK=$(find tv/build/outputs/apk/dev/debug -name "*.apk" | head -n 1)
-          fi
-          echo "TV APK found: $TV_APK"
           cp "$TV_APK" "dist-apks/violence-tv-debug-${SHORT_SHA}.apk"
+          echo "sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          ls -l dist-apks
 
-          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
-
-      - name: Upload Phone Debug APK
+      - name: Upload phone APK
         uses: actions/upload-artifact@v4
         with:
-          name: violence-phone-debug-${{ env.SHORT_SHA }}
+          name: violence-phone-debug-${{ steps.apks.outputs.sha }}
           path: dist-apks/violence-phone-debug-*.apk
           retention-days: 30
+          if-no-files-found: error
 
-      - name: Upload TV Debug APK
+      - name: Upload TV APK
         uses: actions/upload-artifact@v4
         with:
-          name: violence-tv-debug-${{ env.SHORT_SHA }}
+          name: violence-tv-debug-${{ steps.apks.outputs.sha }}
           path: dist-apks/violence-tv-debug-*.apk
           retention-days: 30
+          if-no-files-found: error
 
-      - name: Write build summary
+      - name: Write job summary
+        env:
+          SHA: ${{ steps.apks.outputs.sha }}
         run: |
-          echo "### 📱 Android Debug Builds" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Debug APKs were successfully compiled for commit \`${{ env.SHORT_SHA }}\`:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Phone APK:** \`violence-phone-debug-${{ env.SHORT_SHA }}.apk\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **TV APK:** \`violence-tv-debug-${{ env.SHORT_SHA }}.apk\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
-          echo "> Debug builds from different CI runs use different ephemeral debug signing keys. If installing over a previous build, you may need to uninstall the older APK first before installing this one. Proper release signing will be configured in a later phase." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Android debug builds for \`${SHA}\`"
+            echo ""
+            echo "- **Phone:** \`violence-phone-debug-${SHA}.apk\`"
+            echo "- **TV:** \`violence-tv-debug-${SHA}.apk\`"
+            echo ""
+            echo "Download them from the **Artifacts** section at the bottom of this run (kept 30 days)."
+            echo ""
+            echo "> **Updating over an older build:** debug builds from different runs are signed with"
+            echo "> different keys, so Android may refuse to install a newer one over an older one."
+            echo "> Uninstall the older build first, then install this one. Phase 7 adds proper signing."
+          } >> "$GITHUB_STEP_SUMMARY"

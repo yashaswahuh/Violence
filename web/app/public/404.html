@@ -5,25 +5,35 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Violence</title>
     <script>
+      // GitHub Pages has no server-side routing: a refresh or a shared link to a page of the app
+      // (/Violence/party/ABC123, /Violence/settings, later /Violence/song/..., /Violence/profile/...)
+      // finds no file and Pages serves THIS page with a 404. It remembers where the visitor was
+      // headed, then loads the app's index.html, which restores that exact path before the router
+      // starts (see the first script in index.html). Every route is handled the same way, so new
+      // routes need nothing here. /party/<CODE> in particular is left alone: it is a page of its own
+      // (the invite landing page), not an alias of /invite/<CODE>.
       (function () {
         var path = window.location.pathname || '/';
         var search = window.location.search || '';
         var hash = window.location.hash || '';
 
-        // Detect base prefix from current pathname (e.g. /Violence or /violence)
-        var baseMatch = path.match(/^\/(?:violence)/i);
-        var base = baseMatch ? baseMatch[0] : '/Violence';
+        // The site lives under one folder, the repository name. GitHub Pages is case sensitive, so
+        // this is the canonical spelling and the only one that is ever redirected to (a wrong-case
+        // address is rewritten to it, which also rules out any redirect loop).
+        var base = '/Violence';
 
-        // Handle violence://party/<CODE> web equivalents:
-        // /Violence/party/<CODE> or /party/<CODE> -> /Violence/invite/<CODE>
-        var partyMatch = path.match(/^(?:\/(?:violence))?\/party\/([A-Za-z0-9]{6})(?:\/.*)?$/i);
-        if (partyMatch) {
-          path = base + '/invite/' + partyMatch[1].toUpperCase();
-        } else if (!path.toLowerCase().startsWith(base.toLowerCase())) {
-          path = base + (path.startsWith('/') ? path : '/' + path);
+        // Strip the base from the front of the path (any case), if it is there...
+        var baseMatch = path.match(/^\/violence(?=\/|$)/i);
+        var rest = baseMatch ? path.slice(baseMatch[0].length) : path;
+        // ...and put it back, so /party/ABC123 and /violence/party/ABC123 both land on
+        // /Violence/party/ABC123.
+        path = base + (rest.charAt(0) === '/' ? rest : '/' + rest);
+
+        try {
+          sessionStorage.setItem('violence_redirect', path + search + hash);
+        } catch (e) {
+          // Storage blocked: the app opens at its home page instead of the deep link.
         }
-
-        sessionStorage.setItem('violence_redirect', path + search + hash);
         window.location.replace(base + '/');
       })();
     </script>

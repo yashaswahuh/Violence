@@ -171,22 +171,21 @@ Phase 9: Production Signing, Release Automation & End-to-End Audit
 - **Verification (active targets, via the scripts):** phone `:app:assembleDevDebug`, TV `:tv:assembleDevDebug`, web typecheck and `build:site` pass. Tests: phone 1222 (+9 `JamInviteCodeExtractionTest`, rewritten `JamInviteLinkTest`), shared 122, web 167 (+8 invite/extractCode tests): 0 failures. `jam-test.mjs` against the throwaway mock (2, 15 clients, one room of 15): passes (script logic only). Wear OS and desktop: dormant, not checked.
 - **Known limits:** drift/reconcile engine not refactored or unit-tested; TV ignores `?server=` custom servers in invites; TV UI untested; the first Render build is still the first Go compile.
 
-## Phase 6: Web Target Static Deployment & Browser Extension
+## Phase 6: Web on GitHub Pages, Cloud APK Builds, Extension Origin and Last.fm [COMPLETED in the repo; first GitHub run pending the owner]
 
-- **Primary Goal:** Build and deploy the web player statically to Cloudflare Pages (or GitHub Pages) and package the companion browser extension.
-- **Files Touched:**
-  - `web/extension/wxt.config.ts`: Set `BITCHORD_SITE_ORIGINS` to the Cloudflare Pages URL.
-  - `web/app/.env.production`: Set release APK and backend server links.
-  - Deploy script / Cloudflare Pages integration: `pnpm build:site`.
-- **Definition of Done:**
-  - Web player loads cleanly over HTTPS on Cloudflare Pages.
-  - Browser extension zips are downloadable directly from `<site>/downloads/`.
-  - Loading unpacked extension enables YouTube Music audio streaming in the browser.
-- **Verification:**
-  - Run `corepack pnpm --dir web build:site`.
-  - Verify static output in `web/app/dist` (including `downloads/extension.json`).
-
----
+- **Status:** **DONE in the repository** (2026-11-02). The workflows have never run on GitHub (they cannot run from here); everything that could be checked locally was (below). The first real run is the owner's, see `CI_DEPLOY.md`.
+- **Branch:** `violence-nk`. **Commits:** `a3bf609` (web base path and 404 fallback), `b7fef4a` (workflows), `2963051` (local Pages check script), `905a04e` (docs).
+- **Refines the earlier "Early CI" work** (`web.yml`, `android.yml` added on 2026-10-30): both files were rewritten in place, not recreated.
+- **Differences from the Phase 6 brief and the old PHASES text:** the old text said Cloudflare Pages; the owner chose GitHub Pages. The brief wrote the folder as `/violence/`; GitHub Pages names it after the repository and is case sensitive, so the real, owner-confirmed folder is **`/Violence/`** (the workflow takes it from `actions/configure-pages`). The brief says "if Gradle builds the web target": it does not, the web is built with pnpm (`pnpm build:site`), so no Java is set up in `web.yml`.
+- **What changed:**
+  - **Web base path:** the ONNX Automix models were fetched from a root-absolute `/models/...` (a 404 on the deployed site); now `${BASE_URL}models/...`. `404.html` no longer rewrites `/party/<CODE>` to `/invite/<CODE>` (it would have bypassed the Phase 5 landing page); it now redirects every path (`/party/..`, `/settings/..`, later `/song/..`, `/profile/..`) into the app and restores the exact path, always to the canonical `/Violence/` (no redirect loop on wrong-case addresses). `noindex` meta and `robots.txt` (disallow all) were already present and are checked by the workflow. The PWA manifest uses relative `start_url`/`scope` (so `/Violence/`); there is no service worker.
+  - **`web.yml`:** push to `violence-nk` (path filters) and `workflow_dispatch` only; official actions pinned to major versions (`checkout@v4`, `pnpm/action-setup@v4`, `setup-node@v4`, `configure-pages@v5`, `upload-pages-artifact@v3`, `deploy-pages@v4`); permissions `contents: read, pages: write, id-token: write`; `github-pages` environment; concurrency group with `cancel-in-progress: false`; typecheck + tests, build, a sanity check of the output, URL in the job summary. Optional repo variables `JAM_BACKEND_URL` and `JAM_INVITE_BASE_URL` (empty defaults; this wires the Phase 5 `VITE_INVITE_BASE_URL`); `BITCHORD_STORE_BUILD=1` so the published extension zips never answer pages on localhost. **Removed** the unused `VITE_LASTFM_API_KEY` (no web code reads it, and a key in a public bundle is public). No secrets.
+  - **`android.yml`:** push to `violence-nk` (path filters; docs-only and web-only pushes ignored) and `workflow_dispatch`; JDK 21 + 17 (the dormant desktop module needs a Java 21 toolchain even for a phone build), Android SDK via `android-actions/setup-android@v3` plus explicit `sdkmanager` packages, Gradle caching, explicit `:app:assembleDevDebug :tv:assembleDevDebug`, APKs renamed `violence-phone-debug-<sha>.apk` / `violence-tv-debug-<sha>.apk`, 30-day artifacts, `contents: read` only, summary note about debug signing keys. Last.fm and Jam values come from optional secrets/variables through the step environment (no `local.properties` written).
+  - **Extension:** the built manifests (checked) allow exactly `https://yashaswahuh.is-a.dev/*` (dev builds also `http://localhost:5173`); name "Violence"; no author branding beyond GPL attribution and code comments.
+  - **Docs:** `CI_DEPLOY.md` (one page, rewritten), `WEB_USER_GUIDE.md`, `LASTFM_SETUP.md`. New local tool `scripts/serve-pages-local.mjs` (Pages-like server and `--check`).
+- **Last.fm:** Android/TV already read `LASTFM_API_KEY`/`LASTFM_SECRET` from `local.properties` or the environment and show "not configured" when missing; unchanged. The web player has no Last.fm integration.
+- **Verification:** web built with `VITE_BASE_URL=/Violence/` and with every optional value missing; the CI sanity checks pass on the real output; `serve-pages-local.mjs --check`: 16/16 (assets, manifest, robots, models, deep links get 404.html, wrong-case folder is not the site); a real headless Edge run through the 404 redirect rendered the landing page for `/Violence/party/AB12CD` (with and without `?server=`), `/invite/..`, `/settings/listen-together` and the home page; both workflows parse as YAML with every action pinned and no secret inside a script; phone and TV debug builds via `scripts/build-active.ps1` pass; web typecheck and 167 web tests pass. Wear OS and desktop: dormant, not checked.
+- **UNVERIFIED until the first GitHub run:** `setup-android@v3` + `sdkmanager` on the runner, JDK 21 discovery through `JAVA_HOME_21_X64`, private-repo Pages deployment, the `github-pages` environment branch rule, and whether `yashaswahuh.is-a.dev` is the user site's custom domain.
 
 ## Phase 7: Android TV Target Optimization & Polish
 

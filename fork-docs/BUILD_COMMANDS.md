@@ -47,10 +47,19 @@ Because `:desktopApp` is part of the Gradle build, **every build on a machine ne
 ## CI (what runs automatically)
 | Workflow | Runs on | Tasks |
 |---|---|---|
-| `android.yml` | push `violence-nk`/`violence-main`/`main` (path-filtered), manual | `:app:assembleDevDebug :tv:assembleDevDebug -Pbitchord.bundleWear=false` |
+| `android.yml` | push `violence-nk` (path-filtered), manual | JDK 21+17, SDK, `:app:assembleDevDebug :tv:assembleDevDebug -Pbitchord.bundleWear=false`, uploads the two APKs (Phase 6) |
 | `tv.yml` | push (same branches), PR | `:tv:assembleDevDebug` |
 | `check.yml` | push (same branches), PR | `:app:testDevDebugUnitTest`, `:app:assembleDevDebug` (explicit), plus backend Go checks |
-| `web.yml` | push (same branches, `web/**`), manual | `pnpm build:site`, deploy to GitHub Pages |
+| `web.yml` | push `violence-nk` (`web/**`), manual | typecheck + tests + `pnpm build:site` with `VITE_BASE_URL`=the Pages folder, deploy to GitHub Pages (Phase 6) |
 | `desktop-check.yml` | **manual only** | desktop tests and packaging (dormant) |
 | `release.yml` | **manual only** (tag trigger removed) | desktop packaging release (dormant) |
 | `contributors-image.yml`, `update-contributors.yml` | upstream cron/push `main` | no Gradle; README contributor widgets (not changed) |
+
+## Web: build for the deployed folder and check it like GitHub Pages
+```powershell
+$env:VITE_BASE_URL='/Violence/'; $env:BITCHORD_STORE_BUILD='1'
+.\scripts\build-active.ps1 -Target web        # or: corepack pnpm --dir web build:site
+node scripts/serve-pages-local.mjs --check      # serves web/app/dist under /Violence/ like Pages and checks routes, assets, deep links
+node scripts/serve-pages-local.mjs              # then open http://localhost:4173/Violence/
+```
+`BITCHORD_STORE_BUILD=1` is what CI sets so the packaged extension never answers pages on localhost.
