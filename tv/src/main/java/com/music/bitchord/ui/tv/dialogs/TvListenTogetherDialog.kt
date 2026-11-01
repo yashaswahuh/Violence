@@ -123,7 +123,7 @@ fun TvListenTogetherDialog(
             }
 
             !ListenTogether.canJoin() -> {
-                Notice("Sign in to YouTube Music first (Settings > Account). Listen Together uses your account's name and picture.")
+                Notice("Make a Violence profile (Settings > Profile) or sign in to YouTube Music (Settings > Account) first. Listen Together shows your name and picture.")
                 TvDialogButton(text = "OK", initialFocus = true, onClick = onDismiss)
             }
 
