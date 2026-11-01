@@ -40,7 +40,7 @@ Signing out of YT Music, switching Google accounts or removing Spotify does not 
 
 An id that a receiving app does not know is **invalid** when it arrives in a card (strict) and is shown as the first letter of the name when it arrives from Jam (tolerant, so a newer app's avatar never breaks an older app's member list). Presets are append-only; never rename or reuse an id.
 
-Default for a new profile: `headphones`, colour `fa243c`.
+Default for a new profile: `headphones`, colour `fa2d48`.
 
 ## 4. The profile card (shared by NFC, QR and links in Phase 9)
 
