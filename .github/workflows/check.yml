@@ -2,7 +2,7 @@ name: Check
 
 on:
   push:
-    branches: [main]
+    branches: [violence-nk, violence-main, main]
   pull_request:
 
 concurrency:
@@ -43,10 +43,10 @@ jobs:
       - run: chmod +x gradlew
 
       - name: Tests
-        run: ./gradlew testDevDebugUnitTest
+        run: ./gradlew :app:testDevDebugUnitTest '-Pbitchord.bundleWear=false'
 
       - name: Build the dev APK
-        run: ./gradlew assembleDevDebug
+        run: ./gradlew :app:assembleDevDebug '-Pbitchord.bundleWear=false'
 
       - name: Upload the dev APK
         uses: actions/upload-artifact@v4

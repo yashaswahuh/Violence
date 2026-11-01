@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: [violence-main, main]
+    branches: [violence-nk, violence-main, main]
     paths:
       - 'app/**'
       - 'tv/**'

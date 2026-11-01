@@ -5,7 +5,7 @@ name: TV
 # one under tv/.
 on:
   push:
-    branches: [main]
+    branches: [violence-nk, violence-main, main]
     paths:
       - 'tv/**'
       - 'app/**'
