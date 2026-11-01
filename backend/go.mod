@@ -1,4 +1,4 @@
-module github.com/KabirSinghBhatia/BitChord/backend
+module github.com/yashaswahuh/Violence/backend
 
 go 1.27.0
 

@@ -1,4 +1,4 @@
-# BitChord — Listen Together
+# Violence: Listen Together (Jam server)
 
 The party server behind **Listen together**: create a six-character code, share
 it, and up to five signed-in devices listen to the same thing at the same time.
@@ -244,34 +244,7 @@ To keep memory, bandwidth, and latency strictly bounded:
   entirely such tracks succeeds without changing the queue. Hand-queued tracks
   are never filtered.
 
-## Deploying to Oracle Cloud (Always Free)
-
-This is what runs `https://api.bitchord.kushagrasingh.in`: one Always Free
-`VM.Standard.E2.1.Micro` (1 OCPU, 1 GB) on Ubuntu 24.04 in ap-mumbai-1, with
-Caddy in front for HTTPS and WebSockets. Files are in `deploy/`.
-
-1. **Create the VM**: Compute -> Instances -> Create. Image *Canonical Ubuntu
-   24.04*, shape *VM.Standard.E2.1.Micro* (tagged Always Free), public subnet,
-   public IPv4 on, paste your SSH public key.
-2. **Open 80/443 in the VCN**: Networking -> VCN -> Security -> *Default
-   Security List* -> Add Ingress Rule: source `0.0.0.0/0`, TCP, destination
-   ports `80,443`.
-3. **DNS**: an `A` record for the host name pointing at the VM's public IP.
-   It has to resolve before step 4 can get a certificate.
-4. **Install** (from a copy of `backend/` on the VM):
-
-   ```sh
-   sudo DOMAIN=api.bitchord.kushagrasingh.in bash deploy/setup.sh
-   ```
-
-   It installs Go, builds the server into `/opt/bitchord-jam`, runs it as the
-   `bitchord-jam` systemd service on `:8000`, installs Caddy for the domain, and
-   opens 80/443 in the VM's own iptables. Oracle's Ubuntu images carry a REJECT
-   rule besides the security list, so both have to be opened. Re-run the same
-   command to deploy a new build.
-
-Check it with `curl https://<domain>/healthz`. Logs are in
-`journalctl -u bitchord-jam` and `journalctl -u caddy`.
+> The original project's Oracle Cloud kit (`deploy/`) was removed: it was tied to the original author's domains and needs a credit card. Deployment for this fork is documented in `fork-docs/JAM_BACKEND_DEPLOY.md`.
 
 ## Deploying to Render
 
@@ -287,19 +260,17 @@ service by hand — which is one screen:
 - **Health check path** `/healthz`
 - **Instances** 1
 
-Then point the app at `https://<service>.onrender.com`, by adding this to
-`local.properties` at the repository root:
+Then point the app at https://<service>.onrender.com, by adding this to
+`local.properties` at the repository root (gitignored):
 
 ```properties
-LISTEN_TOGETHER_SERVER=https://<service>.onrender.com
+JAM_BACKEND_URL=https://<service>.onrender.com
 ```
 
 That becomes `BuildConfig.LISTEN_TOGETHER_SERVER` and seeds the address box on
-the Listen Together screen. It is only a default — anything typed into that box
-wins and persists, so running your own copy of this server never means editing
-the build. `local.properties` is gitignored, so a fresh checkout builds with an
-empty default and simply asks for an address the first time the screen is
-opened.
+the Listen Together screen. It is only a default: anything typed into that box
+wins and persists. With no value the Jam screen says Jam is not set up in this
+build instead of failing. For the web build set `VITE_PARTY_SERVER_URL`.
 
 Two things about Render specifically:
 
@@ -335,7 +306,8 @@ Every one of these is optional — `config/config.go` carries the same defaults.
 | `JAM_REQUEST_MAX_BYTES` | `16384` | Maximum REST request size. |
 | `JAM_WEBSOCKET_MAX_BYTES` | `16384` | Maximum incoming WebSocket message size. |
 | `JAM_CONNECTION_IDLE_MS` | `900000` | Close a WebSocket that sends no message for 15 minutes. |
-| `JAM_ALLOWED_ORIGINS` | *(none)* | Comma-separated browser Origin allowlist. Native clients send no Origin and remain supported. |
+| `JAM_ALLOWED_ORIGINS` | `https://yashaswahuh.is-a.dev,http://localhost,http://localhost:5173` | Comma-separated browser Origin allowlist. Native clients send no Origin and remain supported. |
+| `JAM_ENABLE_STATS` | `false` | Turns the open-app counter (`/api/presence`, `/api/stats/live`) back on. Violence leaves it off. |
 | `JAM_TRUST_PROXY` | `false` | Read `X-Forwarded-For` for rate limiting only when a trusted proxy terminates requests. |
 | `JAM_PUBLIC_ORIGIN` | *(none)* | Public origin emitted verbatim in invite deep links, e.g. `https://party.example.com`. Set it when TLS terminates upstream and `X-Forwarded-Proto` may be rewritten or dropped along the way. |
 | `PORT` | `8000` | Port the server listens on. |

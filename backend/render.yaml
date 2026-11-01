@@ -1,30 +1,31 @@
-# Render blueprint for BitChord Listen Together (Go backend)
+# Render blueprint for the Violence Jam server (Go backend)
 #
-# Deploy this service manually on Render Dashboard (Recommended):
-# - New -> Web Service, connect repo
+# Easiest: create the service by hand in the Render dashboard (see
+# fork-docs/JAM_BACKEND_DEPLOY.md), using the same values as below:
+# - New -> Web Service, connect the GitHub repo (branch: violence-nk)
 # - Root Directory: backend
-# - Runtime: Go
-# - Build Command: go build -o server .
-# - Start Command: ./server
-# - Health Check Path: /healthz
-# - Plan: Free
-# - Region: Singapore (or closest to you)
-# - Instances: 1 (Parties live in memory, so keep to 1 instance)
+# - Runtime: Go    Build Command: go build -o server .    Start Command: ./server
+#   (or Runtime: Docker, which uses backend/Dockerfile)
+# - Health Check Path: /healthz   Plan: Free   Instances: 1
+#   (Parties live in memory, so never run more than one instance.)
 
 services:
   - type: web
-    name: bitchord-listen-together
+    name: violence-jam
     runtime: go
     plan: free
     region: singapore
+    branch: violence-nk
     rootDir: backend
     buildCommand: go build -o server .
     startCommand: ./server
     healthCheckPath: /healthz
     numInstances: 1
     envVars:
+      # Core group is 4-6 people, friends and family bring it to 10-15 over a few
+      # rooms. The protocol allows up to 10 members in one room.
       - key: JAM_MAX_MEMBERS
-        value: "5"
+        value: "10"
       - key: JAM_STATE_HEARTBEAT_MS
         value: "5000"
       - key: JAM_MAX_UPCOMING_QUEUE
@@ -32,14 +33,17 @@ services:
       - key: JAM_MAX_PARTIES
         value: "50"
       - key: JAM_CREATE_RATE_PER_MINUTE
-        value: "2"
+        value: "6"
       - key: JAM_CONNECTION_IDLE_MS
         value: "900000"
+      # Browsers allowed to use the server (native apps send no Origin).
+      - key: JAM_ALLOWED_ORIGINS
+        value: "https://yashaswahuh.is-a.dev,http://localhost,http://localhost:5173"
       # Render terminates TLS and supplies the real client IP in X-Forwarded-For.
       - key: JAM_TRUST_PROXY
         value: "true"
-      # Set to the public https origin (e.g. https://party.example.com) when a
-      # proxy in front of Render may not carry X-Forwarded-Proto through;
-      # invite deep links then use it verbatim.
+      # The open-app counter stays off. Do not set JAM_ENABLE_STATS.
+      # Optional: the public https origin of this service (shown in invite links),
+      # e.g. https://violence-jam.onrender.com . Set it in the dashboard.
       - key: JAM_PUBLIC_ORIGIN
         sync: false
