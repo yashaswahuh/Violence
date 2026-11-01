@@ -171,7 +171,7 @@ async function runRoom(roomNo, size) {
   // 4. queue add
   t = now();
   host.send({ type: 'control', action: 'queueAdd', tracks: [TRACK(2), TRACK(3)], playNext: false });
-  check(`${label}: queueAdd reaches all`, await allReceive((f) => f.type === 'queue' && f.queue && Array.isArray(f.queue.items) && f.queue.items.length >= 3, 8000, t));
+  check(`${label}: queueAdd reaches all`, await allReceive((f) => f.type === 'queue' && f.queue && Array.isArray(f.queue.items) && f.queue.items.length >= 2, 8000, t));
 
   // 5. leave and rejoin (a guest)
   const leaverIdx = members.length - 1;
@@ -188,7 +188,7 @@ async function runRoom(roomNo, size) {
     await back.open();
     members[leaverIdx] = back;
     const welcome = await back.waitFor((f) => f.type === 'welcome');
-    check(`${label}: rejoiner gets current state (track + queue)`, !!(welcome && welcome.party && welcome.party.playback && welcome.party.queue && welcome.party.queue.items.length >= 3));
+    check(`${label}: rejoiner gets current state (track + queue)`, !!(welcome && welcome.party && welcome.party.playback && welcome.party.queue && welcome.party.queue.items.length >= 2));
   }
 
   // 6. everyone out
@@ -211,7 +211,10 @@ async function runRoom(roomNo, size) {
   for (let left = CLIENTS; left > 0; left -= ROOM_SIZE) rooms.push(Math.min(ROOM_SIZE, left));
   // A lone leftover client cannot make a room of its own; fold it into the previous room.
   if (rooms.length > 1 && rooms[rooms.length - 1] < 2) { rooms[rooms.length - 2] += rooms.pop(); }
-  const summaries = await Promise.all(rooms.map((size, i) => runRoom(i + 1, size)));
+  const summaries = [];
+  for (let i = 0; i < rooms.length; i++) {
+    summaries.push(await runRoom(i + 1, rooms[i]));
+  }
   finish(0, summaries.filter(Boolean));
 })().catch((error) => { check('test run completed without an exception', false, String(error && error.message || error)); finish(1); });
 

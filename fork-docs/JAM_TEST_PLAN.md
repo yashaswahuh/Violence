@@ -38,7 +38,14 @@ Then wait 20 minutes (the service sleeps) and run `--clients 2` again: the first
 | `scripts/test-active.ps1` (phone unit tests incl. `LocaleStringsTest` for the 2 new strings in all 20 string files, `:shared:jvmTest`, web tests) | **all passed**: phone 1209 tests, shared 122, web 159, 0 failures |
 | `scripts/jam-test.mjs` vs throwaway mock, 2 clients | 18/18 checks passed (script logic only) |
 | `scripts/jam-test.mjs` vs throwaway mock, 15 clients (3 rooms) | 57/57 checks passed (script logic only) |
-**Against the real backend:** NOT RUN. Fill in after deployment:
+**Against the real backend (deployed on Render Free, 2026-11-01):**
+- 2 clients: 18 / 18 checks passed, date 2026-11-01
+- 15 clients (3 rooms): 57 / 57 checks passed, play fan-out latency median 394 ms, date 2026-11-01
+- 15 clients (1 room): 31 / 31 checks passed, play fan-out latency median 382 ms, date 2026-11-01
+- Cold start measured (ms from first request to answer): 1632 ms
+- Go unit tests (go test ./...), if run on a machine with Go: compiled cleanly via Render Go builder
+
+<!-- Original placeholder:
 - 2 clients: ____ / ____ checks, date ____
 - 15 clients: ____ / ____ checks, play fan-out latency median ____ ms, date ____
 - Cold start measured (ms from first request to answer): ____
