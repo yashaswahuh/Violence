@@ -70,21 +70,18 @@ val jamInviteBaseUrl: String = (
     ).trim().trimEnd('/')
 
 /*
- * Bump this by hand before cutting each sideloaded test build ("beta2",
- * "beta3", ...) and blank it out before cutting the real release. Marks the
- * versionName below as a pre-release: AppUpdateChecker.isNewer() treats any
- * "-suffix" as older than a clean release of the same number, so testers
- * still get the update prompt once the matching tag is actually published.
- *
- * Applied to release builds as well as debug ones, and that is the whole
- * point of it. A sideloaded beta is a *release* build — signed with the real
- * key, installed over the real package — so leaving the marker off it is
- * exactly the case that strands a tester: their build calls itself 1.6.1,
- * the published 1.6.1 then matches it, isNewer() says no, and no prompt ever
- * comes. Blanking this line is the one step that turns a beta into a release,
- * so it is the one place to get right.
+ * Where the in-app updater looks for the update file (update.json, see fork-docs/RELEASE_GUIDE.md):
+ * UPDATE_INFO_URL in local.properties or the environment. A public https address, not a credential.
+ * Empty (the default) switches the updater off completely: no network call, no dialog.
  */
-val betaSuffix = ""
+val updateInfoUrl: String = (
+    localProps.getProperty("UPDATE_INFO_URL")
+        ?: System.getenv("UPDATE_INFO_URL")
+        ?: ""
+    ).trim()
+
+// The version comes from the root build.gradle.kts, the same one the phone app uses.
+val betaSuffix = rootProject.extra["bitchordBetaSuffix"] as String
 
 android {
     namespace = "com.music.bitchord"
@@ -99,8 +96,8 @@ android {
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
         targetSdk = 36
-        versionCode = 29
-        versionName = "1.9.0-violence.1"
+        versionCode = rootProject.extra["bitchordVersionCode"] as Int
+        versionName = rootProject.extra["bitchordVersionName"] as String
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -117,11 +114,10 @@ android {
             "JAM_INVITE_BASE_URL",
             "\"${jamInviteBaseUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
         )
-        // The TV APKs share a GitHub release with the phone ones and are told
-        // apart by name (BitChordTV-v1.8.apk, BitChordTV-v1.8_x86_64.apk), so
-        // the updater installs the TV app here, never the phone app. See
-        // AppUpdateChecker.apkAssetUrl.
-        buildConfigField("String", "UPDATE_APK_PREFIX", "\"ViolenceTV-\"")
+        // Which entry of update.json's "apks" is this app's, so the phone app never offers the TV
+        // APK and the other way round. See AppUpdateChecker.parseUpdate.
+        buildConfigField("String", "UPDATE_APK_KEY", "\"tv\"")
+        buildConfigField("String", "UPDATE_INFO_URL", "\"${updateInfoUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     splits {
@@ -226,7 +222,7 @@ android {
             )
             // Null without a keystore to sign with: fallback to debug signing
             // so the release build is fully R8 optimized and directly installable.
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release")
         }
         /*
          * The release build, installable next to the dev and prod apps: same R8,

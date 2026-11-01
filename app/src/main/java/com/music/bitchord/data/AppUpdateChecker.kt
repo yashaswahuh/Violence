@@ -12,37 +12,64 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
 import java.io.File
+import java.net.URI
+import java.security.MessageDigest
 
 /**
- * BitChord ships as a sideloaded APK off GitHub Releases rather than through
- * a store, so there's nothing to push an update notice on its own — this
- * polls the repo's "latest release" once per launch and compares its tag
- * against the running build.
+ * Violence is sideloaded, so there is nothing to push an update notice on its own. This reads one
+ * small JSON file from a free static host (`UPDATE_INFO_URL`, see fork-docs/RELEASE_GUIDE.md) at
+ * most once a day, compares its `versionCode` with the running build, and, when it is newer, offers
+ * the APK: downloaded into the app cache, checked against the file's SHA-256, and handed to the
+ * system package installer, so the whole round trip stays inside the app.
  *
- * The update itself is also handled here: the release's `.apk` asset is
- * downloaded into the app's cache and handed to the system package installer,
- * so the whole round trip stays inside the app instead of bouncing out to a
- * browser.
+ * With no `UPDATE_INFO_URL` in the build (the default) the checker does nothing at all and there is
+ * no network call. Nothing points at the original author's repository.
+ *
+ * The file, `update.json`:
+ * ```
+ * {
+ *   "versionCode": 36,
+ *   "versionName": "1.9.0-violence.2",
+ *   "changelog": ["Fixed ...", "Added ..."],          // a string or a list of lines
+ *   "page": "https://example.org/Violence/",           // optional: where to send people if there is no APK for them
+ *   "apks": {
+ *     "phone": { "url": "violence-phone-1.9.0-violence.2.apk", "sha256": "<hex>" },
+ *     "tv":    { "url": "violence-tv-1.9.0-violence.2.apk",    "sha256": "<hex>" }
+ *   }
+ * }
+ * ```
+ * APK `url`s may be relative to the JSON file's own address. Updates are compared by `versionCode`
+ * only (the fork's `-violence.N` suffix would otherwise read as a pre-release).
  */
 object AppUpdateChecker {
 
     data class UpdateInfo(
         val version: String,
+        /** Where to send the user when there is no APK for this app: the file's `page`, else the file itself. */
         val releaseUrl: String,
         val apkUrl: String?,
-        /** The release's own Markdown body, shown as this update's "what's new". */
+        /** The changelog, as plain text lines, shown as this update's "what's new". */
         val notes: String?,
+        /** Lower-case hex SHA-256 of the APK, when the file gives one; checked after the download. */
+        val sha256: String? = null,
     )
 
     private const val CACHE_SUBDIR = "updates"
+    private const val PREFS = "app_update"
+    private const val KEY_LAST_CHECK = "last_check_ms"
+    private const val KEY_LAST_BODY = "last_body"
 
-    private const val LATEST_RELEASE_URL = ""
+    /** The file is fetched at most this often; in between, the copy kept from the last fetch is used. */
+    internal const val CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -64,24 +91,77 @@ object AppUpdateChecker {
     @Volatile
     private var downloadCancelled = false
 
-    suspend fun check() = withContext(Dispatchers.IO) {
-        if (LATEST_RELEASE_URL.isBlank()) return@withContext
+    /**
+     * Looks for an update. A no-op without a configured address. The network is touched at most
+     * once per [CHECK_INTERVAL_MS]; a launch inside that window reads the kept copy of the file, so
+     * an update found yesterday is still offered today (until it is installed) without asking again.
+     * A failed fetch keeps whatever copy there is and tries again on the next launch.
+     */
+    suspend fun check(context: Context) = withContext(Dispatchers.IO) {
+        val infoUrl = BuildConfig.UPDATE_INFO_URL.trim()
+        if (infoUrl.isBlank() || !infoUrl.startsWith("https://", ignoreCase = true)) return@withContext
         runCatching {
-            val request = Request.Builder().url(LATEST_RELEASE_URL).build()
-            val body = Http.client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) null else response.body?.string()
-            } ?: return@runCatching
-            val release = json.parseToJsonElement(body) as? JsonObject ?: return@runCatching
-            val tag = release["tag_name"]?.jsonPrimitive?.contentOrNull ?: return@runCatching
-            val url = release["html_url"]?.jsonPrimitive?.contentOrNull ?: return@runCatching
-            val apkUrl = apkAssetUrl(release)
-            val notes = release["body"]?.jsonPrimitive?.contentOrNull
-            val latest = tag.removePrefix("v")
-            if (isNewer(latest, BuildConfig.VERSION_NAME)) {
-                _available.value = UpdateInfo(latest, url, apkUrl, notes)
+            val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val now = System.currentTimeMillis()
+            val last = prefs.getLong(KEY_LAST_CHECK, 0L)
+            var body = prefs.getString(KEY_LAST_BODY, null)
+            if (body == null || now - last >= CHECK_INTERVAL_MS || now < last) {
+                val fetched = fetch(infoUrl)
+                if (fetched != null) {
+                    body = fetched
+                    prefs.edit().putLong(KEY_LAST_CHECK, now).putString(KEY_LAST_BODY, fetched).apply()
+                }
+            }
+            val parsed = body?.let { parseUpdate(it, infoUrl, BuildConfig.UPDATE_APK_KEY) } ?: return@runCatching
+            if (parsed.versionCode > BuildConfig.VERSION_CODE) {
+                _available.value = UpdateInfo(parsed.versionName, parsed.page, parsed.apkUrl, parsed.notes, parsed.sha256)
             }
         }
     }
+
+    private fun fetch(url: String): String? {
+        val request = Request.Builder().url(url).header("Cache-Control", "no-cache").build()
+        return Http.client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) null else response.body?.string()
+        }
+    }
+
+    /** What [parseUpdate] reads out of the file. */
+    internal data class ParsedUpdate(
+        val versionCode: Int,
+        val versionName: String,
+        val notes: String?,
+        val page: String,
+        val apkUrl: String?,
+        val sha256: String?,
+    )
+
+    /**
+     * Reads the update file, or null if it is not one. [apkKey] is `"phone"` or `"tv"`: the entry of
+     * `apks` that belongs to this app. Relative APK addresses are resolved against [infoUrl]; anything
+     * that does not end up as an https address is dropped (an update is never fetched over plain http).
+     */
+    internal fun parseUpdate(body: String, infoUrl: String, apkKey: String): ParsedUpdate? = runCatching {
+        val root = json.parseToJsonElement(body).jsonObject
+        val code = root["versionCode"]?.jsonPrimitive?.intOrNull ?: return@runCatching null
+        val name = root["versionName"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() } ?: return@runCatching null
+        val notes = when (val c = root["changelog"]) {
+            is JsonArray -> c.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty) }
+                .joinToString("\n")
+            is JsonPrimitive -> c.contentOrNull?.trim()
+            else -> null
+        }?.takeIf { it.isNotEmpty() }
+        val page = root["page"]?.jsonPrimitive?.contentOrNull?.let { resolveHttps(infoUrl, it) } ?: infoUrl
+        val apk = (root["apks"] as? JsonObject)?.get(apkKey) as? JsonObject
+        val apkUrl = apk?.get("url")?.jsonPrimitive?.contentOrNull?.let { resolveHttps(infoUrl, it) }
+        val sha = apk?.get("sha256")?.jsonPrimitive?.contentOrNull?.trim()?.lowercase()
+            ?.takeIf { Regex("[0-9a-f]{64}").matches(it) }
+        ParsedUpdate(code, name, notes, page, apkUrl, sha)
+    }.getOrNull()
+
+    private fun resolveHttps(base: String, ref: String): String? = runCatching {
+        URI(base).resolve(ref.trim()).takeIf { it.scheme.equals("https", ignoreCase = true) }?.toString()
+    }.getOrNull()
 
     /**
      * Wipes any APK left over from a previous run. Called once at cold start
@@ -94,43 +174,10 @@ object AppUpdateChecker {
     }
 
     /**
-     * One release carries the phone app and the TV app, each as a universal
-     * APK plus per-ABI splits:
-     *
-     *     BitChord-v1.8.apk     BitChord-v1.8_arm64-v8a.apk     ...
-     *     BitChordTV-v1.8.apk   BitChordTV-v1.8_arm64-v8a.apk   ...
-     *
-     * so this app's APKs are the ones named with its own
-     * [BuildConfig.UPDATE_APK_PREFIX] — "BitChord-" never matches a TV file,
-     * since the prefix ends at the hyphen. The universal build (no `_ABI`
-     * suffix) is taken first, as it installs anywhere; failing that, the split
-     * for this device's ABI. A release with neither leaves
-     * [UpdateInfo.apkUrl] null and the UI falls back to opening the releases
-     * page.
-     */
-    private fun apkAssetUrl(release: JsonObject): String? = runCatching {
-        val apks = release["assets"]?.jsonArray
-            ?.mapNotNull { it as? JsonObject }
-            ?.mapNotNull { asset ->
-                val name = asset["name"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                val url = asset["browser_download_url"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                val ours = name.startsWith(BuildConfig.UPDATE_APK_PREFIX, ignoreCase = true) &&
-                    name.endsWith(".apk", ignoreCase = true) &&
-                    asset["state"]?.jsonPrimitive?.contentOrNull == "uploaded"
-                if (ours) name.removeSuffix(".apk").removeSuffix(".APK") to url else null
-            }
-            .orEmpty()
-        apks.firstOrNull { (name, _) -> '_' !in name }?.second
-            ?: Build.SUPPORTED_ABIS.firstNotNullOfOrNull { abi ->
-                apks.firstOrNull { (name, _) -> name.endsWith("_$abi") }?.second
-            }
-    }.getOrNull()
-
-    /**
      * Streams the current update's APK into the app cache, reporting progress
-     * through [download]. A finished file survives a cancelled dialog: until
-     * the state is reset, "Install Now" comes straight back without a second
-     * download.
+     * through [download], and checks it against the file's SHA-256 when there is one (a mismatch
+     * deletes it). A finished file survives a cancelled dialog: until the state is reset,
+     * "Install Now" comes straight back without a second download.
      */
     suspend fun downloadApk(context: Context): Unit = withContext(Dispatchers.IO) {
         val info = _available.value ?: return@withContext
@@ -142,7 +189,8 @@ object AppUpdateChecker {
             val dir = File(context.cacheDir, CACHE_SUBDIR).apply { mkdirs() }
             // Drop anything left over from an earlier attempt.
             dir.listFiles()?.forEach { it.delete() }
-            val target = File(dir, "bitchord-${info.version}.apk")
+            val target = File(dir, "violence-${info.version}.apk")
+            val digest = MessageDigest.getInstance("SHA-256")
 
             val request = Request.Builder().url(url).build()
             Http.client.newCall(request).execute().use { response ->
@@ -162,6 +210,7 @@ object AppUpdateChecker {
                             val read = input.read(buffer)
                             if (read == -1) break
                             output.write(buffer, 0, read)
+                            digest.update(buffer, 0, read)
                             readTotal += read
                             total?.let {
                                 _download.value =
@@ -169,6 +218,14 @@ object AppUpdateChecker {
                             }
                         }
                     }
+                }
+            }
+            val expected = info.sha256
+            if (expected != null) {
+                val actual = digest.digest().joinToString("") { "%02x".format(it) }
+                if (!actual.equals(expected, ignoreCase = true)) {
+                    target.delete()
+                    error("The download did not match its checksum, so it was discarded. Try again.")
                 }
             }
             _download.value = DownloadState.Ready(target)
@@ -199,6 +256,8 @@ object AppUpdateChecker {
      * the user is sent to that one switch first and taps Install again after.
      * Some TV builds have no such settings screen; there the installer is
      * launched anyway and shows its own "not allowed" prompt with a way in.
+     * The file is shared through the FileProvider (`<applicationId>.provider`, which is
+     * com.yashaswahuh.violencemusic.provider for the release app), limited to the `updates/` cache folder.
      */
     fun installApk(context: Context, file: File) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
@@ -224,33 +283,5 @@ object AppUpdateChecker {
                         Intent.FLAG_ACTIVITY_NEW_TASK,
                 ),
         )
-    }
-
-    /** A version split into its numeric dotted parts and whether it carries a "-suffix" (e.g. "-beta2"). */
-    private data class ParsedVersion(val parts: List<Int>, val isPreRelease: Boolean)
-
-    private fun parseVersion(raw: String): ParsedVersion {
-        val dash = raw.indexOf('-')
-        val base = if (dash >= 0) raw.substring(0, dash) else raw
-        return ParsedVersion(base.split(".").map { it.toIntOrNull() ?: 0 }, dash >= 0)
-    }
-
-    /**
-     * Numeric, dot-separated comparison — "1.10" outranks "1.9" — with one
-     * extra rule: a "-betaN" build (see the debug build type's
-     * `versionNameSuffix` in app/build.gradle.kts) is treated as older than a
-     * plain release of the same numbers, since the beta by definition predates
-     * the tag it was testing toward. Without this, a beta and the release it
-     * matches compare equal and testers never get nudged onto the real build.
-     */
-    private fun isNewer(latest: String, current: String): Boolean {
-        val l = parseVersion(latest)
-        val c = parseVersion(current)
-        for (i in 0 until maxOf(l.parts.size, c.parts.size)) {
-            val a = l.parts.getOrElse(i) { 0 }
-            val b = c.parts.getOrElse(i) { 0 }
-            if (a != b) return a > b
-        }
-        return c.isPreRelease && !l.isPreRelease
     }
 }

@@ -45,8 +45,8 @@ private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
  *
  * Closing the alert mid-download only hides it — the download keeps going, and
  * Settings' "Software Update" row reopens the alert onto wherever it got to.
- * A release with no TV APK on it (or a download that can't be installed) has
- * nowhere on a TV to send the user, as most have no browser, so the releases
+ * An update with no TV APK in it (or a download that can't be installed) has
+ * nowhere on a TV to send the user, as most have no browser, so the update's
  * page is offered as a code to scan with a phone instead.
  */
 @Composable
@@ -55,11 +55,13 @@ fun TvUpdateDialog(update: AppUpdateChecker.UpdateInfo, onDismiss: () -> Unit) {
     val notes = remember(update.notes) { update.notes?.let(::plainNotes) }
 
     TvDialog(
-        title = "BitChord ${update.version} Is Available",
+        title = "Violence ${update.version} Is Available",
         message = when {
-            update.apkUrl == null -> "Scan the code with your phone to get this update from GitHub."
+            update.apkUrl == null -> "Scan the code with your phone to see this update."
             state is DownloadState.Ready -> "Downloaded. Select Install Now to update."
             state is DownloadState.Failed -> (state as DownloadState.Failed).message
+            // The first time, the TV asks to allow installs from Violence: switch it on, then go back and select Install Now.
+            state is DownloadState.Idle -> "Your TV may ask you to allow installs from Violence the first time."
             else -> null
         },
         width = 512.dp,
@@ -172,7 +174,7 @@ private fun TvDownloadProgress(fraction: Float) {
 }
 
 /**
- * The release body is GitHub Markdown; an alert shows it as plain lines —
+ * The changelog may use light Markdown; an alert shows it as plain lines —
  * headings and emphasis markers dropped, list items as bullets, links as their
  * text.
  */
