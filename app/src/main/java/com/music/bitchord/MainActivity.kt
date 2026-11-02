@@ -424,6 +424,8 @@ class MainActivity : AppCompatActivity() {
         MusicLink.consume(intent)
         // And the Receive tile in Quick Settings.
         com.music.bitchord.share.ReceiveDeepLink.consume(intent)
+        // Brutal UI touch point 1: two failed new-UI starts in a row put the setting back to CURRENT.
+        com.music.bitchord.ui.brutal.safemode.BrutalSafeMode.startupCheck(this)
         // Debug builds only: frame times to logcat (tag VioFrames), tagged with the glass setting.
         FrameStats.attach(this) { "glass=" + (if (AppSettings.liquidGlass.value) "on" else "off") }
         setContent {
@@ -437,11 +439,13 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(highPerformance, performanceRefreshRate, composeView) {
                 applyPerformanceMode(highPerformance, performanceRefreshRate, composeView)
             }
-            val darkTheme = when (theme) {
+            val chosenDark = when (theme) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
+            // Brutal UI touch point 2: the new look is dark only; this is chosenDark when it is off.
+            val darkTheme = com.music.bitchord.ui.brutal.brutalEffectiveDark(chosenDark)
             BitChordTheme(darkTheme = darkTheme, font = appFont) {
                 // The glass surfaces sample this layer, and a layer records only
                 // what is drawn into it — which, for BitChord, is a page that
@@ -452,7 +456,8 @@ class MainActivity : AppCompatActivity() {
                 // and text came through it untouched. The window's background is
                 // the floor the pages have always been drawn against, so it is
                 // laid down here too and the recording is opaque like the screen.
-                val windowBackground = MaterialTheme.colorScheme.background
+                // Brutal UI touch point 3: the new look's page colour (unchanged with the current UI).
+                val windowBackground = com.music.bitchord.ui.brutal.brutalWindowBackground(MaterialTheme.colorScheme.background)
                 val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground) {
                     {
                         drawRect(windowBackground)
@@ -488,6 +493,9 @@ class MainActivity : AppCompatActivity() {
                 // longer exists and a page squeezed to a sliver to pay for it.
                 // A measured constraint cannot be stale — it is the very width
                 // the split is about to be laid out in.
+                // Brutal UI touch point 4: the one app-root decision. A pass-through with the current
+                // UI; the same composition shape in both looks (see ui/brutal/BrutalRoot.kt).
+                com.music.bitchord.ui.brutal.BrutalRoot(dark = darkTheme) {
                 BoxWithConstraints(
                     Modifier
                         .fillMaxSize()
@@ -500,6 +508,7 @@ class MainActivity : AppCompatActivity() {
                         windowHeight = maxHeight,
                         appBackdrop = appBackdrop,
                     )
+                }
                 }
                 }
             }
