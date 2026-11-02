@@ -129,3 +129,35 @@ If a primitive needs a new knob (for example a corner shape or tint), it is adde
 ## 7. Open items the owner should decide (also in `UI_DECISIONS.md`)
 
 1. Direction A, B, C or a mix. 2. Where the toggle goes (new "Experimental" category or the Advanced group). 3. Whether the new UI should also carry the current UI's Apple-style icon set (no, per the public-release goal) and which open set to use. 4. Whether to replace SF Pro and the SF Symbols port in the *current* UI before a public release. 5. Which phone is the performance reference.
+
+---
+
+## 8. What UI-1 actually built (2026-11-02)
+
+Direction: **A Lumen with Tide's solid pages and Aurora's wash on Now Playing only** (chosen in `UI_DECISIONS.md`). The Aurora wash itself is not built yet (UI-3).
+
+**Libraries added: none.** New resources: Sora and Inter variable fonts (SIL OFL 1.1; texts appended to `NOTICE`; bundled, no network). Icons use the Material icons already in the app (Apache-2.0).
+
+| Piece | File (under `app/src/main/java/com/music/bitchord/ui/v2/`) |
+|---|---|
+| Variant enum (CURRENT/NEW), parse | `UiVariant.kt`; stored as `ui_variant` in `bitchord_settings` via `AppSettings.uiVariant`/`setUiVariant`; default CURRENT |
+| Root switch | `V2Root.kt` (always the same composition shape; only values change, so the media controller, queue, Jam and downloads are untouched), `rememberNewUi()` |
+| Theme and tokens | `theme/V2Tokens.kt` (colours, dimens, shapes, elevation, motion with reduced-motion rule, type scale), `theme/V2Theme.kt` |
+| Contrast and adaptive accent | `theme/ContrastMath.kt` (ratio, `guard` = fine / scrim / solid, `ensureContrast`), `theme/ArtworkAccent.kt` |
+| Glass | `glass/GlassLevel.kt` (levels, `decideGlassLevel`, `GlassBudget`), `glass/V2Glass.kt` (`v2Glass`, `v2Solid`) |
+| Accessibility defaults | `a11y/V2A11y.kt` (`v2Interactive`: 48 dp minimum, label, role, state, focus ring) |
+| Shell | `chrome/V2Dock.kt` (dock, orb, `V2DockHost`), `chrome/V2HomePlaceholder.kt`, previews in `chrome/V2Previews.kt` |
+| Safe mode | `safemode/UiSafeModeLogic.kt` (pure), `safemode/UiSafeMode.kt` (Android store `violence_ui_boot`, `commit()`) |
+| Settings | `settings/V2SettingsRows.kt`: "New UI (experimental)" and "Reduce transparency", at the top of Settings, Advanced (there is no separate Experimental tab) |
+
+### Glass-level rules (as built)
+`decideGlassLevel`: **SOLID** if Android below 12 (API 31), or "Reduce transparency", or the existing "Reduce dynamic blur"; else **SIMPLIFIED** if low-RAM device, battery saver, reduced motion (the app's "Reduce animation" or system animator scale 0) or Android 12 (no lens shader, API below 33); else **FULL**. A `GlassBudget` allows 3 live backdrop surfaces at once; a fourth draws SIMPLIFIED. FULL maps to the existing `liquidGlass()`, SIMPLIFIED to a tint plus the existing rim (`HighlightElement`) plus hairline, SOLID to a surface and hairline. Under the New UI the existing `LocalLiquidGlassEnabled` is true only at FULL, so the old live-glass pieces (page backdrop recording, glass top controls) stop recording below FULL. "Reduce transparency" has no system equivalent on Android, so it is the app's own switch (default off); reduced motion defaults to the system setting.
+
+### Safe mode as built
+A marker is set when the New UI first composes and cleared two frames after it is displayed. A marker still set at the next launch counts as a failed start; after two failed starts in a row the next launch persists CURRENT, shows a one-time dialog, and the count resets. Healthy starts reset the count. (This is by marker, not by crash handler, as the UI-1 brief asked; so a kill during the first seconds also counts.)
+
+### What the New UI shows today
+Existing pages in the new palette and fonts; the dock and orb in place of the bars (tap the orb: open player; long-press: share; TalkBack custom actions: play/pause, next, previous); a placeholder Home with a tile for each non-tab destination (Profile, Friends, Jam, Receive, Downloads, Recent, History, Replay, Settings) and a button into the classic Home. Everything else is the current screens.
+
+### Known gaps (UI-1)
+The Hub avatar sheet, back chip, top bar and player morph are UI-2 and UI-3. The page backdrop floor in `setContent` (`paintBackdrop`) still uses the classic background colour, so under glass FULL the blurred floor can differ from the new palette by a shade. Compose UI tests: the project has no Compose test setup (no Robolectric, no ui-test dependency); see `PHASES.md`.

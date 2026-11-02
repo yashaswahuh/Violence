@@ -67,3 +67,5 @@ Append one line per change: `date | file | what changed | why it could affect a 
 - `sharedUi/.../ui/player/PlayerFrost.kt` (new `LocalGlassDisc`, default null) and `PlayerControls.kt` (`CircleGlyph` uses it when set): the Android app supplies Liquid Glass for the player's round buttons; desktop leaves it null and is unchanged. Desktop was not built or tested.
 
 - Part 4: no further shared-code change (the player's buttons use the existing LocalGlassDisc hook, now supplied with a snapshot-backed glass inside the phone's player window). Desktop is not built or tested.
+
+- 2026-11-02, UI-1: `sharedUi/.../ui/screens/HomeScreen.kt` `HomeTitle` now draws the text wordmark VIOLENCE instead of the logo image (owner request). Affects desktop's Home too; desktop not built or tested.

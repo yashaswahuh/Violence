@@ -1,4 +1,4 @@
-# Project Roadmap & Implementation Phases
+﻿# Project Roadmap & Implementation Phases
 
 **Audit Date:** 2026-10-29  
 **Execution Model:** Phased implementation. Each phase is scoped to be executed independently in a fresh AI chat session.  
@@ -9,36 +9,36 @@
 ## Phase Summary Overview
 
 ```
-Phase 0 (Current) ──► Phase 1: Repo Hygiene & Author Decoupling
-                   │
-                   ▼
+Phase 0 (Current) â”€â”€â–º Phase 1: Repo Hygiene & Author Decoupling
+                   â”‚
+                   â–¼
 Phase 2: Complete Rebrand & Visual Identity
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 3: Dormant targets, build scripts, CI re-wiring
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 4: Free Backend Deployment & Jam Binding
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 5: Jam Resilience & Protocol Hardening
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 6: Static Web & Extension Deployment (Cloudflare Pages)
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 7: TV verification, release signing, private in-app updates, App Links   (merged the old 7, 8 and 9)
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 8: In-app profiles (local profile, friends list, profile in Jam)
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 9: NFC, QR and link sharing of songs, profile cards and Jam invites          (done)
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 10: Final audit and handover                                                 (planned)
-                   │
-                   ▼
+                   â”‚
+                   â–¼
 Phase 11: Playback sources and login flows log                                     (planned)
 ```
 
@@ -268,9 +268,10 @@ A second, switchable phone UI (Liquid Glass kept; its own identity, accessible, 
 | Phase | What | Status |
 |---|---|---|
 | UI-0 | Design documents and static concept boards: `UI_AUDIT.md`, `UI_DESIGN.md`, `UI_PLAN.md`, `UI_DECISIONS.md` (owner template), `ui-concepts/` (A Lumen, B Aurora, C Tide) | **DONE (2026-11-02)**, documentation only, no app code changed. Waiting for the owner to fill in `UI_DECISIONS.md` |
-| UI-1 | Setting, theme, glass tiers, safe mode, strings | planned |
+| UI-1 | Setting, theme, glass tiers, safe mode, strings, dock and placeholder Home | **DONE (2026-11-02)**, direction A Lumen with Tide solid pages. Built and phone/shared/web tests pass; not run on a device. What was built: `UI_PLAN.md` section 8. No Compose UI tests (project has no Compose test setup) |
 | UI-2 | Navigation chrome | planned |
 | UI-3 | Now Playing, Jam, sharing surfaces | planned |
 | UI-4 | Pages, polish, performance, release hardening | planned |
 
 **Phase 10 (Final audit and handover) waits until the custom UI work is finished.** Phase 11 is independent.
+
