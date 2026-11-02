@@ -285,7 +285,8 @@ A new "brutal" look (black pages, one acid accent, heavy type, glass with an opt
 | C-1 | **Components** (`ui/brutal/components/`): StickerLabel, Wordmark and tag, VerticalLabel, DateStamp, ArtTile and PlayButton, TrackRow and DurationChip, GenreRailTab, RoundGlassButton, MasonryColumns, skeleton, empty and error states; rotation that takes part in layout; focus ring; contrast pairs; gallery with ten previews. No screens | **BUILT (2026-11-02)** without an emulator or adb: unit, Robolectric native and JVM pixel-render tests (`BRUTAL_UI_PLAN.md` section 10). Renders in `brutal-ui/screens/components-*.png` are JVM renders, **not device screenshots**; nothing seen on a phone |
 | B-2 | Navigation chrome (rail, mini player bar, dock, header, Hub) | not started |
 | B-3 | Components and the Glow layers | not started |
-| B-4 | Pages, performance, accessibility pass, translations | not started |
+| N-1 | **Navigation and two pages** (`ui/brutal/chrome/`): rail with collapse, search and tabs, PLAYING bar, Hub, Home and Library on the masonry grid, behind the New UI switch | **BUILT (2026-11-03)**, JVM tests and renders only, nothing seen on a phone; no dock, other pages not redrawn (`BRUTAL_UI_PLAN.md` section 11) |
+| B-4 | Remaining pages, performance, accessibility pass, translations | not started |
 
 **Phase 10 (Final audit and handover) waits until the custom UI work is finished.** Phase 11 is independent.
 
