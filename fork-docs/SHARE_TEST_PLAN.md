@@ -23,7 +23,7 @@ Repeat each row with A as sender, then B as sender. "Receive" = the Receive scre
 
 | # | Sender does | Receiver | Expected |
 |---|---|---|---|
-| 2.1 | Play a song, three dots > **Share** > **Tap to share** | Receive open | Dialog "**Open this song?**" with the title and artist. **Play now** starts that song, **Add to queue** adds it (toast), **Add to playlist** opens the playlist picker. Cancel does nothing. Nothing plays before a choice. |
+| 2.1 | Play a song, three dots > **Share** > **Tap to share** | Receive open | A card "**Shared with you**" with the song's **cover art, title, artist, album and length** (it fills in a second after it opens). **Play now** starts that song, **Add to queue** adds it (toast), **Add to playlist** opens the playlist picker. Cancel does nothing. Nothing plays before a choice. |
 | 2.2 | Settings > Profile > **Share my profile** > Tap to share | Receive open | "Add <name> as a friend?" (section 1). Tapping again adds nobody twice (the friend's details are only refreshed). |
 | 2.3 | Start a Jam, open the invite sheet, **Tap to share** | Receive open | The Listen Together screen opens with the code ready and the party preview; **Join** asks before joining. |
 | 2.4 | any of the above | **app closed** (swipe it away, screen on and unlocked) | The phone opens Violence by itself and shows the same confirmation. If the phone shows "no app found" or does nothing, that is the system tag dispatch not reading an emulated tag (UNVERIFIED, see design section 4.1); the in-app Receive route (2.1 to 2.3) is the supported path. |
@@ -77,7 +77,7 @@ The TV has no NFC and no camera: it shows codes and links, and confirms incoming
 ## 7. Privacy spot checks
 - A shared song/profile/invite link contains only that item (no email, account id, token, device id, photo). Read the link (Copy link) and check.
 - Nothing is logged: `adb logcat` while sharing and receiving shows no names, ids or links from Violence (it logs nothing in this code).
-- Scanning, tapping and pasting do **not** make a network request by themselves; only **Play now / Add to queue / Add to playlist** do (the normal YouTube Music lookup). With the phone offline, the dialog appears and choosing an action says "Could not find that song."
+- Scanning, tapping and pasting do **not** make a network request by themselves. When a **song** link arrives, the card looks the song up (the normal YouTube Music lookup) to show its cover and details; with the phone offline the card shows the title from the link and "Could not find that song." and only Cancel works.
 
 ## 8. Report template
 ```
@@ -90,3 +90,15 @@ Anything shown on the sender?
 
 ## 9. What was run on the build PC (2026-11-02)
 See `PHASES.md`, Phase 9, for the exact numbers. In short: shared, app (NFC byte-level, QR decode, hub) and web unit tests; phone, TV and web builds; the local Pages check for the new link shapes. **Not run:** anything with a real NFC chip or camera, App Links verification, the Jam server with the new links.
+
+## 10. Part 1 fixes: what to check (2026-11-02)
+| # | Steps | Expected |
+|---|---|---|
+| 10.1 | Settings main page | Only **one** profile row (your picture and name, or "Create your profile") sits above Audio Quality. Searching Settings for "friends", "nfc", "qr" or "receive" still finds it. |
+| 10.2 | Settings > Profile | Under the title: **Friends** (with a count) and **Receive**. A clear gap between the privacy paragraph and **Share my profile**. |
+| 10.3 | Profile > **Choose a photo** > pick any picture | The photo is accepted and shows next to the row (no "could not be read"). **Remove photo** works. The photo never appears on another phone. |
+| 10.4 | Share sheet > **Share Violence link** > pick any app | The text is `violence://...` (not https). **Copy link** still gives the https link. |
+| 10.5 | Tap to share (any item): watch the sender | Two phones touching, looping. When the receiver has read it: a green check and "Sent", then back to waiting after about two seconds. Check it is readable in **both light and dark theme** (the phone line art should follow the theme's text colour, the ripple is red). |
+| 10.6 | Receiver, Receive screen | The same two-phones animation while waiting; "Received" with a check when a tap was accepted. |
+| 10.7 | **Jam invite** > Tap to share, receiver on Receive | The invite arrives (Listen Together opens with the code ready). **If it still fails, note the message the receiver shows**: it now says which of "not sharing", "moved apart", "could not read" it was, and that tells us what to fix next. Also say what the sender's screen showed (the pulsing phones, or "Tap to share is not available right now"). |
+| 10.8 | Receiver, tap while the sender is NOT on Tap to share | "The other phone is not sharing right now. Ask them to open Tap to share, then try again." (once, not repeatedly). |

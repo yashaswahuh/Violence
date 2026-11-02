@@ -75,11 +75,14 @@ private const val AVATAR_COLUMNS = 6
 fun ProfileScreen(
     contentPadding: PaddingValues,
     onClose: () -> Unit,
+    onFriends: () -> Unit,
+    onReceive: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val saved by ProfileManager.profile.collectAsStateWithLifecycle()
+    val friendCount by ProfileManager.friends.collectAsStateWithLifecycle()
 
     var name by rememberSaveable(saved?.id) { mutableStateOf(saved?.displayName.orEmpty()) }
     var avatarId by rememberSaveable(saved?.id) {
@@ -116,6 +119,25 @@ fun ProfileScreen(
             .padding(contentPadding),
     ) {
         SettingsPageTitle(stringResource(R.string.profile_title))
+
+        // Reached from here rather than from the main Settings list, which would otherwise carry
+        // three profile rows. Neither needs a profile to be made first.
+        SettingsGroup(topSpacing = 0.dp) {
+            SettingsRow(
+                icon = SfIcons.Groups,
+                title = stringResource(R.string.friends_title),
+                subtitle = stringResource(R.string.friends_row_subtitle),
+                badge = friendCount.size.takeIf { it > 0 }?.toString(),
+                onClick = onFriends,
+            )
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+            SettingsRow(
+                icon = SfIcons.Add,
+                title = stringResource(R.string.receive_title),
+                subtitle = stringResource(R.string.receive_row_subtitle),
+                onClick = onReceive,
+            )
+        }
 
         // What other people will see, large, so the choices below have an obvious effect.
         Box(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp), contentAlignment = Alignment.Center) {
@@ -251,7 +273,7 @@ fun ProfileScreen(
         }
 
         if (saved != null) {
-            SettingsGroup(topSpacing = 0.dp) {
+            SettingsGroup {
                 SettingsRow(
                     icon = Icons.Rounded.IosShare,
                     title = stringResource(R.string.share_my_profile),

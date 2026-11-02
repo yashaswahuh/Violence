@@ -1599,4 +1599,11 @@
     <string name="incoming_malformed">That Violence link is damaged or not valid.</string>
     <string name="incoming_too_long">That link is too long.</string>
     <string name="incoming_empty">Nothing to open.</string>
+    <!-- Sharing fixes (Phase 9, part 1). English placeholders, not yet translated. -->
+    <string name="tap_to_share_sent">Sent</string>
+    <string name="tap_to_share_sent_body">Tap another phone to send it again, or press Done.</string>
+    <string name="receive_received">Received</string>
+    <string name="receive_read_not_sharing">The other phone is not sharing right now. Ask them to open Tap to share, then try again.</string>
+    <string name="receive_read_interrupted">The phones moved apart too soon. Hold them together a little longer.</string>
+    <string name="incoming_song_overline">Shared with you</string>
 </resources>

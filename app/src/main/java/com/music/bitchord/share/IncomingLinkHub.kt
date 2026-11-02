@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 enum class LinkSource { INTENT, NFC, QR, PASTE }
 
 /** Something the user should be told about an incoming link that was refused. Never carries the link. */
-enum class LinkNotice { NOT_A_VIOLENCE_LINK, UNSUPPORTED_VERSION, MALFORMED, TOO_LONG, EMPTY, UNREADABLE }
+enum class LinkNotice { NOT_A_VIOLENCE_LINK, UNSUPPORTED_VERSION, MALFORMED, TOO_LONG, EMPTY, UNREADABLE, NFC_NOT_SHARING, NFC_INTERRUPTED }
 
 /**
  * The one door every incoming link goes through: an NFC tap (system dispatch or the Receive
@@ -51,9 +51,24 @@ object IncomingLinkHub {
     private val _notices = MutableSharedFlow<LinkNotice>(extraBufferCapacity = 4)
     val notices: SharedFlow<LinkNotice> = _notices.asSharedFlow()
 
-    /** Called by the Receive screen when a tag was found but held no link. */
-    fun unreadable() {
-        _notices.tryEmit(LinkNotice.UNREADABLE)
+    @Volatile
+    private var lastTapProblemAt = 0L
+
+    /**
+     * Called by the Receive screen when a tap was not read. While two phones touch, the reader can
+     * fail on every presence check, so the same kind of message is shown at most once every few seconds.
+     */
+    fun tapFailed(reason: com.music.bitchord.nfc.NfcReadFailure) {
+        val now = clock()
+        if (now - lastTapProblemAt < 3_000) return
+        lastTapProblemAt = now
+        _notices.tryEmit(
+            when (reason) {
+                com.music.bitchord.nfc.NfcReadFailure.NOT_SHARING -> LinkNotice.NFC_NOT_SHARING
+                com.music.bitchord.nfc.NfcReadFailure.INTERRUPTED -> LinkNotice.NFC_INTERRUPTED
+                com.music.bitchord.nfc.NfcReadFailure.UNREADABLE -> LinkNotice.UNREADABLE
+            },
+        )
     }
 
     /**
