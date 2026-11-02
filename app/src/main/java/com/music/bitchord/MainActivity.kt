@@ -4902,7 +4902,7 @@ private fun BitChordApp(
                         CompositionLocalProvider(
                             LocalPlayerDock provides activeDock,
                             com.music.bitchord.ui.player.LocalGlassDisc provides
-                                (if (playerStills && isGlassSupported()) discGlass else rootDisc),
+                                null,
                             LocalAppStill provides playerDialogStill.takeIf { playerStills },
                         ) {
                             nowPlaying(playerSong)
