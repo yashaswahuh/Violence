@@ -1,10 +1,11 @@
 package com.music.bitchord.data.share
 
 import com.music.bitchord.data.listentogether.JamInvite
+import com.music.bitchord.data.profile.ProfileCard
 import com.music.bitchord.data.profile.ProfileCardCodec
 
 /** A Jam invite read out of a link: the party code and, when the party is on a custom server, its address. */
-data class PartyInvite(val code: String, val serverUrl: String? = null)
+data class PartyInvite(val code: String, val serverUrl: String? = null, val from: ProfileCard? = null)
 
 /**
  * Reading Jam invite links that arrive from outside (an NFC tag, a QR code, a pasted link).
@@ -62,7 +63,10 @@ object PartyLinks {
         }
         val normalized = normalizeCode(code) ?: return null
         val server = queryParam(query, "server")?.let(::cleanServer)
-        return PartyInvite(normalized, server)
+        // "Sent by": a label and a convenience only; a damaged one is simply ignored.
+        val fromFields = SharedFrom.KEYS.mapNotNull { key -> rawParam(query, key)?.let { key to it } }.toMap()
+        val from = (SharedFrom.read(fromFields) as? SharedFrom.Read.Ok)?.card
+        return PartyInvite(normalized, server, from)
     }
 
     private fun webCode(path: String, extraWebBases: List<String>): String? {
@@ -75,6 +79,15 @@ object PartyLinks {
                     if ('/' !in code) return code
                 }
             }
+        }
+        return null
+    }
+
+    /** The still percent-encoded value of [name]. */
+    private fun rawParam(query: String?, name: String): String? {
+        if (query.isNullOrEmpty()) return null
+        for (pair in query.split('&')) {
+            if (pair.substringBefore('=') == name && pair.contains('=')) return pair.substringAfter('=')
         }
         return null
     }

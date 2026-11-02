@@ -83,6 +83,7 @@ fun ProfileScreen(
     val scope = rememberCoroutineScope()
     val saved by ProfileManager.profile.collectAsStateWithLifecycle()
     val friendCount by ProfileManager.friends.collectAsStateWithLifecycle()
+    val autoJoin by ProfileManager.autoJoinFriends.collectAsStateWithLifecycle()
 
     var name by rememberSaveable(saved?.id) { mutableStateOf(saved?.displayName.orEmpty()) }
     var avatarId by rememberSaveable(saved?.id) {
@@ -136,6 +137,14 @@ fun ProfileScreen(
                 title = stringResource(R.string.receive_title),
                 subtitle = stringResource(R.string.receive_row_subtitle),
                 onClick = onReceive,
+            )
+        }
+
+        SettingsGroup(footer = stringResource(R.string.profile_auto_join_footer)) {
+            SettingsSubRow(
+                title = stringResource(R.string.profile_auto_join),
+                checked = autoJoin,
+                onCheckedChange = ProfileManager::setAutoJoinFriends,
             )
         }
 

@@ -134,6 +134,8 @@ fun ListenTogetherScreen(
     signedIn: Boolean,
     inviteCode: String? = null,
     inviteServer: String? = null,
+    /** The invite came by a tap from a friend and the user allowed joining without the preview. */
+    inviteAutoJoin: Boolean = false,
     onInviteHandled: () -> Unit = {},
     onSignIn: () -> Unit,
     contentPadding: PaddingValues,
@@ -261,7 +263,7 @@ fun ListenTogetherScreen(
 
     // A link tap is already an explicit request to join. Signed-out users keep
     // the populated code while the sign-in page is open.
-    LaunchedEffect(inviteCode, inviteServer, signedIn) {
+    LaunchedEffect(inviteCode, inviteServer, signedIn, inviteAutoJoin) {
         val code = inviteCode ?: return@LaunchedEffect
         if (!signedIn || busy) return@LaunchedEffect
 
@@ -280,6 +282,31 @@ fun ListenTogetherScreen(
 
         if (state.code.equals(code, ignoreCase = true)) {
             onInviteHandled()
+            return@LaunchedEffect
+        }
+
+        if (inviteAutoJoin) {
+            busy = true
+            failure = null
+            onInviteHandled()
+            scope.launch {
+                failure = if (!targetServer.isNullOrBlank() || state.inParty) {
+                    when (
+                        val switched = ListenTogether.switchPartyWithRecovery(
+                            ListenTogether.resolveSwitchTarget(targetServer, customServer),
+                            code,
+                            nickname,
+                        )
+                    ) {
+                        is ListenTogether.SwitchPartyResult.Success -> null
+                        is ListenTogether.SwitchPartyResult.TargetFailedRecovered -> switched.targetError
+                        is ListenTogether.SwitchPartyResult.TargetFailedNoParty -> switched.targetError
+                    }
+                } else {
+                    ListenTogether.joinParty(code, nickname).exceptionOrNull()?.message
+                }
+                busy = false
+            }
             return@LaunchedEffect
         }
 

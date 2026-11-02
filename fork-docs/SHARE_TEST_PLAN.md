@@ -102,3 +102,17 @@ See `PHASES.md`, Phase 9, for the exact numbers. In short: shared, app (NFC byte
 | 10.6 | Receiver, Receive screen | The same two-phones animation while waiting; "Received" with a check when a tap was accepted. |
 | 10.7 | **Jam invite** > Tap to share, receiver on Receive | The invite arrives (Listen Together opens with the code ready). **If it still fails, note the message the receiver shows**: it now says which of "not sharing", "moved apart", "could not read" it was, and that tells us what to fix next. Also say what the sender's screen showed (the pulsing phones, or "Tap to share is not available right now"). |
 | 10.8 | Receiver, tap while the sender is NOT on Tap to share | "The other phone is not sharing right now. Ask them to open Tap to share, then try again." (once, not repeatedly). |
+
+## 11. Sharing ideas, part 2 (2026-11-02)
+
+| # | Do this | Expect |
+|---|---|---|
+| 11.1 | Profile > turn on **Join friends Jams by tap**; friends A and B have added each other. A: Jam invite > Tap to share; B taps | B joins at once (a short "Joining the Jam from A" message), no preview. |
+| 11.2 | Same, switch left OFF (default) | The preview appears as before. |
+| 11.3 | Same, but B has NOT added A | The preview appears. |
+| 11.4 | Share a song by tap/QR/link, both people have a profile | The received card shows "From <name>" with their avatar. |
+| 11.5 | Receive a song while inside a Jam | **Add to Jam queue** shows; the song lands in the queue. Outside a Jam the button is absent. |
+| 11.6 | Long-press the mini-player | The share sheet for the playing song opens (with a small buzz). A normal tap still expands the player. |
+| 11.7 | Tap to share a song | A short tick on "Sent" (sender) and "Received" (receiver). |
+| 11.8 | Share sheet > **Copy app link**, paste in the Receive page | A `violence://` link; the paste is accepted. **Copy link** still copies the https link. |
+

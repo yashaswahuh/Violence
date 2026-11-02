@@ -72,6 +72,8 @@ import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import com.music.bitchord.data.model.CARD_ART_PX
 import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.profile.ProfileManager
+import androidx.compose.foundation.layout.Row
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.nfc.NfcReadFailure
 import kotlinx.coroutines.delay
@@ -162,6 +164,17 @@ internal fun noticeRes(notice: LinkNotice): Int = when (notice) {
 internal fun noticeText(notice: LinkNotice): String = stringResource(noticeRes(notice))
 
 // ---------------------------------------------------------------- share sheet --
+
+/** A short confirming tick (it follows the system's touch-feedback setting). */
+@Composable
+private fun rememberTick(): () -> Unit {
+    val view = androidx.compose.ui.platform.LocalView.current
+    return {
+        view.performHapticFeedback(
+            if (android.os.Build.VERSION.SDK_INT >= 30) android.view.HapticFeedbackConstants.CONFIRM else android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+        )
+    }
+}
 
 @Composable
 private fun GroupDivider() {
@@ -286,6 +299,15 @@ fun ShareSheet(item: ShareItem, onDismiss: () -> Unit) {
                 )
                 GroupDivider()
                 SettingsRow(
+                    icon = Icons.Rounded.ContentCopy,
+                    title = stringResource(R.string.share_copy_app_link),
+                    onClick = {
+                        clipboard.setText(AnnotatedString(item.uri))
+                        Toast.makeText(context, R.string.share_link_copied, Toast.LENGTH_SHORT).show()
+                    },
+                )
+                GroupDivider()
+                SettingsRow(
                     icon = Icons.Rounded.Link,
                     title = stringResource(R.string.share_via_apps),
                     onClick = {
@@ -359,8 +381,10 @@ fun TapToShareDialog(uri: String, onDismiss: () -> Unit) {
     val delivered by NfcShareSession.delivered.collectAsState()
     var acknowledged by remember { mutableIntStateOf(delivered) }
     val sent = delivered > acknowledged
+    val tick = rememberTick()
     LaunchedEffect(sent) {
         if (sent) {
+            tick()
             delay(2_200)
             acknowledged = delivered
         }
@@ -429,8 +453,10 @@ fun ReceiveScreen(contentPadding: PaddingValues, modifier: Modifier = Modifier) 
     var pasted by rememberSaveable { mutableStateOf("") }
     // A moment of "Received" with a check after a tap was accepted.
     var received by remember { mutableStateOf(false) }
+    val confirmTick = rememberTick()
     LaunchedEffect(received) {
         if (received) {
+            confirmTick()
             delay(1_800)
             received = false
         }
@@ -717,6 +743,8 @@ fun IncomingSongDialog(
     onAddToQueue: () -> Unit,
     onAddToPlaylist: () -> Unit,
     onDismiss: () -> Unit,
+    /** Shown only while in a Jam. */
+    onAddToJam: (() -> Unit)? = null,
 ) {
     val title = song?.title?.takeIf { it.isNotBlank() } ?: ref.title ?: stringResource(R.string.incoming_song_unknown)
     val artist = song?.artist?.takeIf { it.isNotBlank() } ?: ref.artist
@@ -736,6 +764,19 @@ fun IncomingSongDialog(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
+                // Who sent it, when they said (a label from the link, shown as plain text).
+                ref.from?.let { sender ->
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ProfileAvatar(sender.avatarId, sender.color, sender.displayName, 22.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.incoming_song_from, ProfileManager.friendName(sender.id) ?: sender.displayName),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 Spacer(Modifier.height(14.dp))
                 Box(
                     modifier = Modifier
@@ -822,6 +863,15 @@ fun IncomingSongDialog(
                     shape = RoundedCornerShape(percent = 50),
                     modifier = Modifier.fillMaxWidth().height(46.dp),
                 ) { Text(stringResource(R.string.incoming_add_playlist)) }
+                if (onAddToJam != null) {
+                    Spacer(Modifier.height(8.dp))
+                    FilledTonalButton(
+                        onClick = onAddToJam,
+                        enabled = ready,
+                        shape = RoundedCornerShape(percent = 50),
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                    ) { Text(stringResource(R.string.incoming_add_jam)) }
+                }
                 TextButton(onClick = onDismiss, modifier = Modifier.padding(top = 2.dp)) { Text(stringResource(R.string.cancel)) }
             }
         }

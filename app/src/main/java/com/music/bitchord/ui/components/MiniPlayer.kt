@@ -5,6 +5,7 @@ import com.music.bitchord.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
@@ -345,7 +346,7 @@ internal fun Modifier.playerDockArt(dock: PlayerDock?, corner: Dp): Modifier {
 private val VIDEO_ART_WIDTH = 71.dp
 
 /** Frosted mini player that rides just above the floating tab bar. */
-@OptIn(ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalHazeMaterialsApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun MiniPlayer(
     song: Song,
@@ -356,6 +357,8 @@ fun MiniPlayer(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onExpand: () -> Unit,
+    /** Long-press on the bar (the app uses it to share the song). Null = no long-press. */
+    onLongPress: (() -> Unit)? = null,
     /** @see com.music.bitchord.data.listentogether.ListenTogether.State.controlsLocked */
     controlsLocked: Boolean = false,
     onBlockedControl: () -> Unit = {},
@@ -367,6 +370,7 @@ fun MiniPlayer(
 ) {
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
+    val longPressFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
     // percent rather than a dp figure, so the corner stays exactly half the
     // height if the row's contents ever change it — which is what keeps a pill
     // a pill instead of a rounded rectangle. Same idiom as [FloatingBottomBar]
@@ -404,7 +408,15 @@ fun MiniPlayer(
             // Deliberately silent: the whole bar is the target, so it catches
             // stray taps meant for the page behind it, and the sheet rising is
             // its own confirmation. The glyphs on it still buzz.
-            .clickable(onClick = onExpand),
+            .combinedClickable(
+                onClick = onExpand,
+                onLongClick = onLongPress?.let { press ->
+                    {
+                        longPressFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        press()
+                    }
+                },
+            ),
     ) {
         Row(
             modifier = Modifier

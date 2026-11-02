@@ -5,7 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
@@ -27,6 +29,25 @@ object ProfileManager {
     private const val PHOTO_EDGE_PX = 256
 
     private lateinit var repository: ProfileRepository
+    private var settings: android.content.SharedPreferences? = null
+    private const val KEY_AUTO_JOIN = "auto_join_friends"
+
+    private val _autoJoinFriends = MutableStateFlow(false)
+
+    /** Join a Jam straight away when a friend on the list shares it by NFC tap. Off unless switched on. */
+    val autoJoinFriends: StateFlow<Boolean> = _autoJoinFriends.asStateFlow()
+
+    fun setAutoJoinFriends(value: Boolean) {
+        _autoJoinFriends.value = value
+        settings?.edit()?.putBoolean(KEY_AUTO_JOIN, value)?.apply()
+    }
+
+    /** Whether [id] is on the friends list (false before [init], as in a unit test). */
+    fun isFriend(id: String): Boolean = ::repository.isInitialized && repository.friends.value.any { it.id == id }
+
+    /** The name the user gave [id] (or their own), if they are a friend. */
+    fun friendName(id: String): String? =
+        if (::repository.isInitialized) repository.friends.value.firstOrNull { it.id == id }?.shownName else null
     private lateinit var photoFile: File
 
     /** Call once from `Application.onCreate`, before anything reads the profile. */
@@ -44,6 +65,8 @@ object ProfileManager {
             nowMs = { System.currentTimeMillis() },
         )
         photoFile = File(File(app.filesDir, PHOTO_DIR), PHOTO_FILE)
+        settings = prefs
+        _autoJoinFriends.value = prefs.getBoolean(KEY_AUTO_JOIN, false)
     }
 
     val profile: StateFlow<InAppProfile?> get() = repository.profile

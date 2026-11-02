@@ -5,6 +5,7 @@ import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import com.music.bitchord.data.listentogether.JamInviteLink
 import com.music.bitchord.data.listentogether.ParsedJamInvite
+import com.music.bitchord.data.profile.ProfileManager
 import com.music.bitchord.data.share.IncomingLink
 import com.music.bitchord.data.share.IncomingLinkGate
 import com.music.bitchord.data.share.IncomingLinks
@@ -93,7 +94,25 @@ object IncomingLinkHub {
         val admitted = synchronized(gate) { gate.admit(key, clock()) }
         if (!admitted) return false
         when (link) {
-            is IncomingLink.Party -> JamInviteLink.offer(ParsedJamInvite(link.invite.code, link.invite.serverUrl))
+            is IncomingLink.Party -> {
+                val invite = link.invite
+                val sender = invite.from
+                // A convenience, never a trust decision: the sender is only a claim in the link, so it
+                // skips the preview only for a physical tap, only from somebody already on the list,
+                // and only if the user switched it on.
+                val auto = source == LinkSource.NFC && sender != null &&
+                    ProfileManager.autoJoinFriends.value &&
+                    sender.id != ProfileManager.current()?.id &&
+                    ProfileManager.isFriend(sender.id)
+                JamInviteLink.offer(
+                    ParsedJamInvite(
+                        code = invite.code,
+                        serverUrl = invite.serverUrl,
+                        autoJoin = auto,
+                        fromName = sender?.let { ProfileManager.friendName(it.id) ?: it.displayName },
+                    ),
+                )
+            }
             is IncomingLink.Song, is IncomingLink.Profile -> _pending.value = link
             is IncomingLink.Invalid -> return false
         }

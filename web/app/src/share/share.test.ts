@@ -220,3 +220,10 @@ describe('incoming links', () => {
     expect(extractIncoming('  ')).toEqual({ kind: 'invalid', reason: 'empty' });
   });
 });
+
+describe('song links: sender card', () => {
+  it('accepts the optional sent-by fields', () => {
+    const link = 'violence://song/yt/dQw4w9WgXcQ?v=1&t=Hi&f=123e4567-e89b-42d3-a456-426614174000&fn=Alex&fa=cat&fc=ff8800';
+    expect(parseSongLink(link).ok).toBe(true);
+  });
+});

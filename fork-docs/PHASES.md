@@ -251,3 +251,6 @@ A document of the playback sources and the login flows (YouTube Music, Spotify) 
 | Date | Upstream version | Branch | Result | Details |
 |---|---|---|---|---|
 | 2026-10-31 | BitChord v1.9 (`04f64c9`) | `violence-nk` | DONE: phone + TV + web build, tests pass | `fork-docs/UPSTREAM_SYNC_LOG.md`, playbook in `fork-docs/UPSTREAM_SYNC.md`. Kept desktop (upstream deleted it). Version now `1.9.0-violence.1`. |
+
+> **Phase 9, part 2 (2026-11-02):** sender card in links ("From Alex"), opt-in auto-join of friends' Jams by NFC tap (default off), Add to Jam queue, mini-player long-press share, haptic tick, Copy app link. See `SHARE_DESIGN.md` section 17 and `SHARE_TEST_PLAN.md` section 11. Phone and TV debug builds, shared/phone/web tests pass; real-device behaviour UNVERIFIED.
+
