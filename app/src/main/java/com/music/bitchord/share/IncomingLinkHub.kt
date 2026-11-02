@@ -113,7 +113,7 @@ object IncomingLinkHub {
                     ),
                 )
             }
-            is IncomingLink.Song, is IncomingLink.Profile -> _pending.value = link
+            is IncomingLink.Song, is IncomingLink.Playlist, is IncomingLink.Profile -> _pending.value = link
             is IncomingLink.Invalid -> return false
         }
         return true

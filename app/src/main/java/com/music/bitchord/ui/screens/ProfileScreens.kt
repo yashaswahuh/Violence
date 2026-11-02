@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.components.GlassAlertDialog
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -140,16 +141,8 @@ fun ProfileScreen(
             )
         }
 
-        SettingsGroup(footer = stringResource(R.string.profile_auto_join_footer)) {
-            SettingsSubRow(
-                title = stringResource(R.string.profile_auto_join),
-                checked = autoJoin,
-                onCheckedChange = ProfileManager::setAutoJoinFriends,
-            )
-        }
-
         // What other people will see, large, so the choices below have an obvious effect.
-        Box(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 12.dp), contentAlignment = Alignment.Center) {
             ProfileAvatar(avatarId = avatarId, color = color, name = name, size = 96.dp)
         }
 
@@ -247,6 +240,14 @@ fun ProfileScreen(
         }
 
         // Save sits before the optional bits so the main path is the short one.
+        SettingsGroup(footer = stringResource(R.string.profile_auto_join_footer)) {
+            SettingsSubRow(
+                title = stringResource(R.string.profile_auto_join),
+                checked = autoJoin,
+                onCheckedChange = ProfileManager::setAutoJoinFriends,
+            )
+        }
+
         SettingsGroup(footer = stringResource(R.string.profile_privacy_footer)) {
             Box(
                 modifier = Modifier
@@ -330,7 +331,7 @@ fun ProfileScreen(
     }
 
     if (confirmDelete) {
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text(stringResource(R.string.profile_delete_title)) },
             text = { Text(stringResource(R.string.profile_delete_body)) },
@@ -460,7 +461,7 @@ fun FriendsScreen(
     editing?.let { friend ->
         var nickname by rememberSaveable(friend.id) { mutableStateOf(friend.nickname.orEmpty()) }
         val valid = nickname.isBlank() || ProfileRules.normalizeName(nickname) != null
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { editing = null },
             title = { Text(stringResource(R.string.friends_edit_title)) },
             text = {
@@ -499,7 +500,7 @@ fun FriendsScreen(
     }
 
     if (confirmClear) {
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { confirmClear = false },
             title = { Text(stringResource(R.string.friends_clear_title)) },
             text = { Text(stringResource(R.string.friends_clear_body)) },
@@ -534,7 +535,7 @@ private fun PasteProfileLinkDialog(
         }
     }
 
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.friends_paste_title)) },
         text = {
@@ -585,7 +586,7 @@ fun ProfileSuggestionDialog(
     onCreate: () -> Unit,
     onSkip: () -> Unit,
 ) {
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onSkip,
         title = { Text(stringResource(R.string.profile_suggest_title)) },
         text = { Text(stringResource(R.string.profile_suggest_body)) },
@@ -606,7 +607,7 @@ fun ProfileSuggestionDialog(
 @Composable
 fun AddFriendDialog(card: ProfileCard, onFinished: () -> Unit, onCancel: () -> Unit) {
     val context = LocalContext.current
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onCancel,
         title = { Text(stringResource(R.string.friends_add_title, card.displayName)) },
         text = {

@@ -10,6 +10,7 @@ enum class InvalidReason { EMPTY, TOO_LONG, NOT_A_VIOLENCE_LINK, UNSUPPORTED_VER
 /** What an incoming link turned out to be. Always a candidate: nothing here acts on its own. */
 sealed interface IncomingLink {
     data class Song(val ref: SongRef) : IncomingLink
+    data class Playlist(val ref: PlaylistRef) : IncomingLink
     data class Profile(val card: ProfileCard) : IncomingLink
     data class Party(val invite: PartyInvite) : IncomingLink
     data class Invalid(val reason: InvalidReason) : IncomingLink
@@ -18,6 +19,7 @@ sealed interface IncomingLink {
     val key: String?
         get() = when (this) {
             is Song -> ref.key
+            is Playlist -> ref.key
             is Profile -> "profile:${card.id}"
             is Party -> "party:${invite.code}"
             is Invalid -> null
@@ -50,6 +52,14 @@ object IncomingLinks {
                     is SongLinks.Result.Ok -> IncomingLink.Song(r.ref)
                     is SongLinks.Result.Rejected -> IncomingLink.Invalid(
                         if (r.error == SongLinks.Error.WRONG_VERSION) InvalidReason.UNSUPPORTED_VERSION else InvalidReason.MALFORMED,
+                    )
+                }
+
+            lower.startsWith(PlaylistLinks.CUSTOM_PREFIX) || lower.startsWith(PlaylistLinks.WEB_PREFIX.lowercase()) ->
+                when (val r = PlaylistLinks.parse(text)) {
+                    is PlaylistLinks.Result.Ok -> IncomingLink.Playlist(r.ref)
+                    is PlaylistLinks.Result.Rejected -> IncomingLink.Invalid(
+                        if (r.wrongVersion) InvalidReason.UNSUPPORTED_VERSION else InvalidReason.MALFORMED,
                     )
                 }
 

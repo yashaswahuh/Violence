@@ -116,3 +116,16 @@ See `PHASES.md`, Phase 9, for the exact numbers. In short: shared, app (NFC byte
 | 11.7 | Tap to share a song | A short tick on "Sent" (sender) and "Received" (receiver). |
 | 11.8 | Share sheet > **Copy app link**, paste in the Receive page | A `violence://` link; the paste is accepted. **Copy link** still copies the https link. |
 
+## 12. Part 2 bug fixes (2026-11-02)
+
+| # | Do this | Expect |
+|---|---|---|
+| 12.1 | Profile page | The avatar has clear air below the Friends/Receive group. The auto-join switch is now near the bottom. |
+| 12.2 | Open Replay stories on a tall phone | The backdrop fills the screen edge to edge; text and the share button stay clear of the status and gesture bars. |
+| 12.3 | Any page with the top bar | A Receive (NFC) icon left of the Downloads/account buttons opens Receive. Web: an inbox icon in the sidebar footer and mobile bar opens the paste page. |
+| 12.4 | Playlist menu (YouTube Music playlist) > Share | The share sheet (Tap to share / QR / copy). Tap to another phone: "Playlist shared with you" > Open playlist. |
+| 12.5 | A phone-only playlist > Share, tap | The receiver sees "N songs" > Save as playlist; it appears in the library. |
+| 12.6 | Liquid Glass on: scroll Home, fold/unfold the bar | Looks as before; compare smoothness against the previous build. |
+| 12.7 | Liquid Glass on: open a dialog, the share sheet, Settings | Panels carry the glass tint and light edge; text stays readable. Off: exactly as before. |
+| 12.8 | Glass on: long-press the now-playing part of the bar | The share sheet opens (the glass bar previously ignored the long-press). |
+

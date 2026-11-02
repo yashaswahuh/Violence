@@ -1491,4 +1491,12 @@
     <string name="jam_auto_joining">Joining the Jam from %1$s</string>
     <string name="profile_auto_join">Join friends Jams by tap</string>
     <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
+    <string name="incoming_playlist_overline">Playlist shared with you</string>
+    <string name="incoming_playlist_songs">%1$d songs</string>
+    <string name="incoming_playlist_open">Open playlist</string>
+    <string name="incoming_playlist_save">Save as playlist</string>
+    <string name="incoming_playlist_saving">Saving…</string>
+    <string name="incoming_playlist_saved">Playlist saved</string>
+    <string name="incoming_playlist_failed">Could not look those songs up</string>
 </resources>

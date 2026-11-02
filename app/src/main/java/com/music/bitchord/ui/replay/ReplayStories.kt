@@ -221,13 +221,12 @@ fun ReplayStories(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color.Black)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+            .background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
-        StoryFrame {
+        StoryFrame { contentWidth ->
             Stage(
+                contentWidth = contentWidth,
                 pages = pages,
                 pagerState = pagerState,
                 summary = summary,
@@ -246,37 +245,27 @@ fun ReplayStories(
 }
 
 /**
- * Holds a story to 9:16 whatever shape the screen is.
+ * Gives the story the whole screen, edge to edge, and works out how wide its
+ * content may be.
  *
- * A story is a fixed canvas, not a responsive layout: the type sizes, the
- * collage offsets and the room the headline is allowed are all set against one
- * set of proportions, and a 20:9 phone stretches that into a column with a hole
- * in the middle while a tablet flattens it. It is also the shape the shared
- * image comes out as, so a card the user sends looks like the card they were
- * looking at when they tapped share.
- *
- * Fitted rather than filled — whichever of width and height runs out first is
- * the one that sets the size, and the rest is black. Letterboxing is the honest
- * failure here: cropping would take the headline or the share button off the
- * edge of the screen on the exact devices most likely to be running this.
+ * The backdrop fills every screen, whatever its shape, and sits behind the
+ * system bars; the type and the collage are laid out inside the safe area (see
+ * [Stage]) and spread over the height they are given rather than being cut to a
+ * fixed 9:16 canvas. On a screen wider than 9:16 (a tablet, or a phone on its
+ * side) the content column stops at 9:16 width and is centred, so the headline
+ * lines never run the length of a wide window.
  */
 @Composable
-private fun StoryFrame(content: @Composable () -> Unit) {
+private fun StoryFrame(content: @Composable (contentWidth: Dp) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        val fitsByWidth = maxWidth / maxHeight < STORY_ASPECT
-        Box(
-            Modifier
-                .then(if (fitsByWidth) Modifier.fillMaxWidth() else Modifier.fillMaxHeight())
-                .aspectRatio(STORY_ASPECT),
-        ) {
-            content()
-        }
+        content(minOf(maxWidth, maxHeight * STORY_ASPECT))
     }
 }
 
 /** The story card itself, inside whatever box [StoryFrame] gave it. */
 @Composable
 private fun Stage(
+    contentWidth: Dp,
     pages: List<ReplayStoryPage>,
     pagerState: PagerState,
     summary: ReplaySummary,
@@ -340,17 +329,27 @@ private fun Stage(
                 ),
         )
 
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { index ->
-            StoryPage(page = pages[index], summary = summary, onShare = onShare)
-        }
+        // The content sits inside the system bars; the backdrop above does not.
+        Box(
+            Modifier
+                .align(Alignment.Center)
+                .width(contentWidth)
+                .fillMaxHeight()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+        ) {
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { index ->
+                StoryPage(page = pages[index], summary = summary, onShare = onShare)
+            }
 
-        StoryChrome(
-            label = summary.localizedLabel(LocalContext.current),
-            count = pages.size,
-            current = current,
-            progress = progress.value,
-            onClose = onClose,
-        )
+            StoryChrome(
+                label = summary.localizedLabel(LocalContext.current),
+                count = pages.size,
+                current = current,
+                progress = progress.value,
+                onClose = onClose,
+            )
+        }
     }
 }
 

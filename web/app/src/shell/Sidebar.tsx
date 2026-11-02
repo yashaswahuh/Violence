@@ -1,4 +1,4 @@
-import { ArrowUpRight, ListMusic, Settings } from 'lucide-react';
+import { ArrowUpRight, Inbox, ListMusic, Settings } from 'lucide-react';
 import { MdOutlineExtension } from 'react-icons/md';
 import { PrefetchLink, PrefetchNavLink } from '@/components/PrefetchLink';
 import { LogoMark } from '@/components/icons/LogoMark';
@@ -183,9 +183,14 @@ export function Sidebar() {
                 <ArrowUpRight size={14} strokeWidth={2} />
               </a>
             ) : <span />}
+            <div className="flex items-center gap-1">
+            <PrefetchNavLink to="/settings/friends" className="grid size-7 place-items-center rounded-nav text-secondary hover:bg-quinary hover:text-primary aria-[current=page]:bg-quinary aria-[current=page]:text-primary" aria-label="Receive: paste a song, Jam or profile link" title="Receive a song, Jam or profile" onClick={close}>
+              <Inbox size={17} strokeWidth={1.9} />
+            </PrefetchNavLink>
             <PrefetchNavLink to="/settings" className="grid size-7 place-items-center rounded-nav text-secondary hover:bg-quinary hover:text-primary aria-[current=page]:bg-quinary aria-[current=page]:text-primary" aria-label="Settings" title="Settings" onClick={close}>
               <Settings size={17} strokeWidth={1.9} />
             </PrefetchNavLink>
+            </div>
           </div>
           <div className="px-1 pt-1 text-[11px] leading-tight text-tertiary">
             Fork of <a href="https://github.com/kushagrasinghx/BitChord" target="_blank" rel="noreferrer" className="underline hover:text-secondary">BitChord</a> by Kushagra Singh (GPL-3.0)

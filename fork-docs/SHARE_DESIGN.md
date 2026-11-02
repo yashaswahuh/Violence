@@ -227,3 +227,7 @@ Implemented as designed on phone, TV and web; **nothing has run on a real NFC ch
 - **Mini-player long-press** opens the share sheet for the current song. **Haptic tick** on "Sent" and "Received" (system touch-feedback setting applies). **Copy app link** copies the `violence://` link.
 - **UNVERIFIED:** all of the above on real hardware (auto-join over a real tap, the haptic strength, long-press feel).
 
+## 18. Playlists (2026-11-02)
+
+`violence://playlist/yt/<playlistId>?v=1&t=<title>` (a YouTube Music playlist; the receiver opens its page, which only works if the playlist is public or unlisted: UNVERIFIED) and `violence://playlist/songs?v=1&t=<title>&s=<id>,<id>,...` (a playlist kept only on the sender's phone: its first songs that have a real YouTube id, as many as fit 200 bytes for a tap; at most 30). Optional sender card as for songs. Parsed strictly like the other links (`PlaylistLinks`); the card offers "Open playlist" or "Save as playlist" (looks the songs up, then keeps them as a phone playlist). There is no https landing page yet, so QR/copy carry the `violence://` link, which Violence's own scanner and paste box read.
+

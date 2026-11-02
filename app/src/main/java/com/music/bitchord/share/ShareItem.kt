@@ -5,6 +5,8 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.profile.ProfileCard
 import com.music.bitchord.data.profile.ProfileCardCodec
 import com.music.bitchord.data.profile.ProfileManager
+import com.music.bitchord.data.share.PlaylistLinks
+import com.music.bitchord.data.share.PlaylistRef
 import com.music.bitchord.data.share.SongLinks
 import com.music.bitchord.data.share.SongRef
 
@@ -27,6 +29,15 @@ sealed interface ShareItem {
         override val webUrl: String = SongLinks.toWebUrl(ref)
     }
 
+    /**
+     * A playlist. There is no https landing page for it yet, so QR, copy and the share sheet
+     * carry the `violence://` link, which Violence's own scanner and paste box read.
+     */
+    data class PlaylistItem(val ref: PlaylistRef) : ShareItem {
+        override val uri: String = PlaylistLinks.toUri(ref)
+        override val webUrl: String? = null
+    }
+
     data class ProfileItem(val card: ProfileCard) : ShareItem {
         override val uri: String = ProfileCardCodec.toUri(card)
         override val webUrl: String = ProfileCardCodec.toWebUrl(card)
@@ -44,6 +55,14 @@ sealed interface ShareItem {
          * The share item for [song]: its YouTube id when it has a real one, otherwise a
          * search by title and artist, or null if there is nothing to go on.
          */
+        /** A YouTube Music playlist by id (`PL...` or `VL...`), or null if [browseId] is not one. */
+        fun ofPlaylist(browseId: String, title: String, from: ProfileCard? = ProfileManager.current()?.toCard()): ShareItem? =
+            PlaylistLinks.youtube(browseId, title, from)?.let(::PlaylistItem)
+
+        /** A playlist kept on this phone: its first songs that have a real YouTube id. */
+        fun ofPlaylist(title: String, songs: List<Song>, from: ProfileCard? = ProfileManager.current()?.toCard()): ShareItem? =
+            PlaylistLinks.songs(title, songs.map { it.videoId }, from)?.let(::PlaylistItem)
+
         fun of(song: Song, from: ProfileCard? = ProfileManager.current()?.toCard()): ShareItem? {
             val ref = SongLinks.youtube(song.videoId, song.title, song.artist)
                 ?: SongLinks.search(song.title, song.artist)

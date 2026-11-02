@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.components
 
+import com.music.bitchord.ui.components.GlassAlertDialog
 import com.music.bitchord.R
 
 import androidx.compose.foundation.background
@@ -208,7 +209,7 @@ fun LyricsSourcesDialog(
 
     if (showPaxSenixKeyDialog) {
         var input by remember(paxSenixApiKey) { mutableStateOf(paxSenixApiKey) }
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { showPaxSenixKeyDialog = false },
             title = { Text(stringResource(R.string.paxsenix_api_key)) },
             text = {
