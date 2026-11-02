@@ -260,3 +260,17 @@ A document of the playback sources and the login flows (YouTube Music, Spotify) 
 > **Part 3 (2026-11-02):** mini-player long-press now detected on the way down (works on the glass bar); Copy link rows removed from the share sheet; Recent shares page, vibration/chime switches, Quick Settings "Receive" tile, "Last read" note on Receive, My QR / Send song / Invite to Jam on Friends, playlist web landing page and cover/Add to Jam queue on the playlist card; debug frame-time logging (`adb logcat -s VioFrames`); credits reworded to "a fork of BitChord, created by Kushagra Singh"; top-bar Receive and Downloads buttons fold under the account photo on scroll; Home re-tap scrolls to top and refreshes; Liquid Glass on the player menu and its round buttons; sheet rim removed (it outlined the screen above the sheet). Newest sharing strings translated into the 17 other languages (older Phase 8/9 strings are still English). NOT done: shared Replay comparison between friends. UNVERIFIED on a device: all of it.
 
 > **Part 4 (2026-11-02):** Liquid Glass rebuilt on the bars' own pipeline for dialogs and sheets (a small still of the page, taken once and shared: blur, edge lens, rim, shadow; plain Material when glass is off or under Reduce dynamic blur), the player's round buttons (glass over a still of the player, retaken on song change; lightweight look only over a live Canvas), and the player menu (thinner fill so the lens shows). Top-bar actions tuck under their neighbour with one critically damped spring (no clipping, no double animation). Adding a friend now offers your own card back, since friends are stored per phone. Unverified on device: glass look and frame times.
+
+## Extra: Custom UI (UI-0 to UI-4)
+
+A second, switchable phone UI (Liquid Glass kept; its own identity, accessible, fast), selected by a `UiVariant` toggle (default OFF) in Settings. The current UI stays exactly as it is. Scope: Android phone only (TV, web, Wear OS and desktop keep the current UI).
+
+| Phase | What | Status |
+|---|---|---|
+| UI-0 | Design documents and static concept boards: `UI_AUDIT.md`, `UI_DESIGN.md`, `UI_PLAN.md`, `UI_DECISIONS.md` (owner template), `ui-concepts/` (A Lumen, B Aurora, C Tide) | **DONE (2026-11-02)**, documentation only, no app code changed. Waiting for the owner to fill in `UI_DECISIONS.md` |
+| UI-1 | Setting, theme, glass tiers, safe mode, strings | planned |
+| UI-2 | Navigation chrome | planned |
+| UI-3 | Now Playing, Jam, sharing surfaces | planned |
+| UI-4 | Pages, polish, performance, release hardening | planned |
+
+**Phase 10 (Final audit and handover) waits until the custom UI work is finished.** Phase 11 is independent.

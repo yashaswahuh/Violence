@@ -217,11 +217,11 @@ fun Modifier.snapshotGlassDisc(
                         refractionHeight = lensHeightPx,
                         refractionAmount = lensAmountPx,
                         depthEffect = true,
-                        chromaticAberration = true,
+                        chromaticAberration = false,
                     )
                 }
             },
-            highlight = { Highlight.Default },
+            highlight = null,
             shadow = null,
             onDrawSurface = { drawRect(tint, size = size) },
             backdropScale = DISC_SCALE,
