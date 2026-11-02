@@ -27,7 +27,7 @@ declare const __DISCORD_PRESENCE__: boolean;
  */
 
 /** BitChord's own Discord application (DiscordApplication.kt). */
-export const APPLICATION_ID = '1543679166967193620';
+export const APPLICATION_ID = '1566782172302413885';
 const GATEWAY = 'wss://gateway.discord.gg/?v=9&encoding=json';
 const API = 'https://discord.com/api/v9';
 const PROJECT_URL = 'https://github.com/yashaswahuh/Violence';

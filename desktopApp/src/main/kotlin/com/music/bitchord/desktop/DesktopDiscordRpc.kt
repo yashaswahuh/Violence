@@ -207,6 +207,7 @@ internal object DesktopDiscordRpc {
                 }
             }
             if (_token.value.isBlank()) return@launch
+            val artwork = song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }
             val gatewayFailure = runCatching {
                 val client = rpc ?: KizzyRPC(
                     token = _token.value,
@@ -223,12 +224,9 @@ internal object DesktopDiscordRpc {
                     details = title,
                     state = song.artist,
                     detailsUrl = watchUrl(song),
-                    // No usable artwork sends none, and Discord draws the
-                    // BitChord application's icon instead.
-                    largeImage = song.artworkAt(ART_PX)
-                        ?.takeIf { it.startsWith("http") }
-                        ?.let(RpcImage::ExternalImage),
-                    smallImage = null,
+                        largeImage = RpcImage.ExternalImage(artwork ?: DiscordApplication.LOGO_URL),
+                    smallImage = artwork?.let { RpcImage.ExternalImage(DiscordApplication.LOGO_URL) },
+                    smallText = if (artwork != null) DesktopDiscordSettings.APP_NAME else null,
                     largeText = quality,
                     buttons = buttonLabels(song).takeIf { it.isNotEmpty() },
                     type = when (DesktopDiscordSettings.activityType.value) {
@@ -278,18 +276,23 @@ internal object DesktopDiscordRpc {
         quality: String?,
     ): JsonObject = buildJsonObject {
         put("type", DesktopDiscordSettings.activityNumber(DesktopDiscordSettings.activityType.value))
-        DesktopDiscordSettings.activityName.value.takeIf(String::isNotBlank)?.let { put("name", it) }
+        put("name", DesktopDiscordSettings.activityName.value.ifBlank { DesktopDiscordSettings.APP_NAME })
         put("details", title)
         put("state", song.artist)
         // Which line Discord bolds, and repeats beside the name in a member
         // list — the whole point of "Lead with the song".
-        put("status_display_type", if (DesktopDiscordSettings.useDetails.value) 1 else 2)
+        put("status_display_type", if (DesktopDiscordSettings.useDetails.value) 2 else 1)
         putJsonObject("timestamps") {
             put("start", startMs)
             put("end", endMs)
         }
         putJsonObject("assets") {
-            song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }?.let { put("large_image", it) }
+            val artwork = song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }
+            put("large_image", artwork ?: DiscordApplication.LOGO_URL)
+            if (artwork != null) {
+                put("small_image", DiscordApplication.LOGO_URL)
+                put("small_text", DesktopDiscordSettings.APP_NAME)
+            }
             quality?.let { put("large_text", it) }
         }
         val labels = buttonLabels(song)
@@ -313,11 +316,11 @@ internal object DesktopDiscordRpc {
         val settings = DesktopDiscordSettings
         if (settings.button1Visible.value) {
             val text = settings.button1Text.value.ifEmpty { DesktopDiscordSettings.DEFAULT_BUTTON_1 }
-            add(settings.resolveVariables(text, song.title, song.artist, song.albumName) to watchUrl(song))
+            add(settings.resolveVariables(text, song.title, song.artist, song.albumName).take(DiscordApplication.BUTTON_LABEL_MAX) to watchUrl(song))
         }
         if (settings.button2Visible.value) {
             val text = settings.button2Text.value.ifEmpty { DesktopDiscordSettings.DEFAULT_BUTTON_2 }
-            add(settings.resolveVariables(text, song.title, song.artist, song.albumName) to PROJECT_URL)
+            add(settings.resolveVariables(text, song.title, song.artist, song.albumName).take(DiscordApplication.BUTTON_LABEL_MAX) to PROJECT_URL)
         }
     }
 
