@@ -12,6 +12,10 @@ import java.net.URLEncoder
 data class ParsedJamInvite(
     val code: String,
     val serverUrl: String? = null,
+    /** Join without the preview: set only for a tap from somebody on the friends list (see IncomingLinkHub). */
+    val autoJoin: Boolean = false,
+    /** Who sent it, for the "joining Alex's Jam" message. */
+    val fromName: String? = null,
 )
 
 /**
@@ -136,14 +140,22 @@ object JamInviteLink {
     }
 
     /** `violence://party/<CODE>`, which opens the app. Carries the Jam server when it is a custom one. */
-    fun schemeUrl(code: String, customServer: String? = null): String {
+    fun schemeUrl(
+        code: String,
+        customServer: String? = null,
+        /** The sender's card, so the receiver can say who it is from. Default: this device's profile, if any. */
+        from: com.music.bitchord.data.profile.ProfileCard? = com.music.bitchord.data.profile.ProfileManager.current()?.toCard(),
+    ): String {
         val normalizedCode = code.uppercase()
         val server = customServer?.trim()?.trimEnd('/')
-        return if (!server.isNullOrBlank()) {
+        val base = if (!server.isNullOrBlank()) {
             "violence://party/$normalizedCode?server=${encode(server)}"
         } else {
             "violence://party/$normalizedCode"
         }
+        // Dropped when it would push the link past what fits on an NFC tag.
+        val withFrom = from?.let { base + (if ('?' in base) "&" else "?") + com.music.bitchord.data.share.SharedFrom.query(it).removePrefix("&") }
+        return if (withFrom != null && withFrom.encodeToByteArray().size <= com.music.bitchord.nfc.NdefUri.MAX_URI_BYTES) withFrom else base
     }
 
     /** What a QR code should hold: the web link when there is one, else the app link. */

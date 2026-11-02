@@ -4,6 +4,7 @@ import com.music.bitchord.data.listentogether.JamInviteLink
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.profile.ProfileCard
 import com.music.bitchord.data.profile.ProfileCardCodec
+import com.music.bitchord.data.profile.ProfileManager
 import com.music.bitchord.data.share.SongLinks
 import com.music.bitchord.data.share.SongRef
 
@@ -43,11 +44,11 @@ sealed interface ShareItem {
          * The share item for [song]: its YouTube id when it has a real one, otherwise a
          * search by title and artist, or null if there is nothing to go on.
          */
-        fun of(song: Song): ShareItem? {
+        fun of(song: Song, from: ProfileCard? = ProfileManager.current()?.toCard()): ShareItem? {
             val ref = SongLinks.youtube(song.videoId, song.title, song.artist)
                 ?: SongLinks.search(song.title, song.artist)
                 ?: return null
-            return SongItem(ref)
+            return SongItem(ref.copy(from = from))
         }
     }
 }

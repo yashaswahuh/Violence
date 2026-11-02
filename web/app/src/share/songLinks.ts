@@ -44,6 +44,7 @@ export const SONG_TARGET_BYTES = 200;
 export const SONG_MAX_INPUT_CHARS = 512;
 export const TITLE_MAX = 120;
 export const ARTIST_MAX = 80;
+const SENDER_KEYS = ['f', 'fn', 'fa', 'fc'];
 export const SEARCH_ID = 'search';
 
 export const isYouTubeId = (id: string): boolean => /^[A-Za-z0-9_-]{11}$/.test(id);
@@ -148,7 +149,8 @@ export function parseSongLink(input: string | null | undefined): SongResult {
     const eq = pair.indexOf('=');
     const key = eq < 0 ? pair : pair.slice(0, eq);
     const value = eq < 0 ? '' : pair.slice(eq + 1);
-    if (key !== 'v' && key !== 't' && key !== 'a') return reject('unknown-field');
+    // f, fn, fa, fc: the optional "sent by" card. The web page does not show it (the app does), so it is only accepted.
+    if (key !== 'v' && key !== 't' && key !== 'a' && !SENDER_KEYS.includes(key)) return reject('unknown-field');
     if (fields.has(key)) return reject('duplicate-field');
     fields.set(key, value);
   }

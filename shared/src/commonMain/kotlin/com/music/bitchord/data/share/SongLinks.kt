@@ -1,6 +1,7 @@
 package com.music.bitchord.data.share
 
 import com.music.bitchord.data.listentogether.JamInvite
+import com.music.bitchord.data.profile.ProfileCard
 import com.music.bitchord.data.profile.ProfileCardCodec
 import com.music.bitchord.data.profile.ProfileRules
 
@@ -27,6 +28,8 @@ data class SongRef(
     val id: String,
     val title: String? = null,
     val artist: String? = null,
+    /** Who sent it, if they chose to say (see [SharedFrom]). A label, never part of the song's identity. */
+    val from: ProfileCard? = null,
 ) {
     /** The same song, whatever hints came with it: used to spot a repeated link. */
     val key: String get() = "song:${source.code}:${if (source == SongSource.SEARCH) searchWords() else id}"
@@ -71,6 +74,7 @@ object SongLinks {
         BAD_ENCODING,
         BAD_TITLE,
         BAD_ARTIST,
+        BAD_FROM,
     }
 
     sealed interface Result {
@@ -102,14 +106,20 @@ object SongLinks {
     fun fit(ref: SongRef, maxBytes: Int = TARGET_BYTES): SongRef {
         var title = ref.title
         var artist = ref.artist
-        while (build(CUSTOM_PREFIX, ref.copy(title = title, artist = artist)).encodeToByteArray().size > maxBytes) {
+        var from = ref.from
+        while (build(CUSTOM_PREFIX, ref.copy(title = title, artist = artist, from = from)).encodeToByteArray().size > maxBytes) {
             // Cut the longer of the two, one character at a time, never mid-character.
             val tLen = title?.let { ProfileCardCodec.percentEncode(it).length } ?: 0
             val aLen = artist?.let { ProfileCardCodec.percentEncode(it).length } ?: 0
-            if (tLen == 0 && aLen == 0) break
+            if (tLen == 0 && aLen == 0) {
+                // Nothing left to shorten: the "sent by" label is the next thing to give up.
+                if (from == null) break
+                from = null
+                continue
+            }
             if (aLen >= tLen) artist = artist?.let { ShareText.dropLast(it) } else title = title?.let { ShareText.dropLast(it) }
         }
-        return ref.copy(title = title?.takeIf { it.isNotEmpty() }, artist = artist?.takeIf { it.isNotEmpty() })
+        return ref.copy(title = title?.takeIf { it.isNotEmpty() }, artist = artist?.takeIf { it.isNotEmpty() }, from = from)
     }
 
     /** `violence://song/...`, at most [maxBytes] bytes (hints shortened to fit). */
@@ -122,6 +132,7 @@ object SongLinks {
         val sb = StringBuilder(prefix).append(ref.source.code).append('/').append(ref.id).append("?v=").append(VERSION)
         ref.title?.let { sb.append("&t=").append(ProfileCardCodec.percentEncode(it)) }
         ref.artist?.let { sb.append("&a=").append(ProfileCardCodec.percentEncode(it)) }
+        ref.from?.let { sb.append(SharedFrom.query(it)) }
         return sb.toString()
     }
 
@@ -155,7 +166,7 @@ object SongLinks {
             if (pair.isEmpty()) continue
             val key = pair.substringBefore('=')
             val value = if (pair.contains('=')) pair.substringAfter('=') else ""
-            if (key != "v" && key != "t" && key != "a") return Result.Rejected(Error.UNKNOWN_FIELD)
+            if (key != "v" && key != "t" && key != "a" && key !in SharedFrom.KEYS) return Result.Rejected(Error.UNKNOWN_FIELD)
             if (fields.put(key, value) != null) return Result.Rejected(Error.DUPLICATE_FIELD)
         }
         val version = fields["v"] ?: return Result.Rejected(Error.MISSING_FIELD)
@@ -172,7 +183,12 @@ object SongLinks {
         if ((source == SongSource.SEARCH || source == SongSource.SPOTIFY) && title == null) {
             return Result.Rejected(Error.MISSING_FIELD)
         }
-        return Result.Ok(SongRef(source, id, title, artist))
+        val from = when (val read = SharedFrom.read(fields)) {
+            SharedFrom.Read.None -> null
+            SharedFrom.Read.Bad -> return Result.Rejected(Error.BAD_FROM)
+            is SharedFrom.Read.Ok -> read.card
+        }
+        return Result.Ok(SongRef(source, id, title, artist, from))
     }
 
     private fun cleanHint(decoded: String, max: Int): String? =

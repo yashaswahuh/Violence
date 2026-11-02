@@ -182,6 +182,7 @@ import com.music.bitchord.ui.screens.ReceiveScreen
 import com.music.bitchord.ui.screens.ShareSheet
 import com.music.bitchord.ui.screens.noticeRes
 import com.music.bitchord.share.IncomingLinkHub
+import com.music.bitchord.playback.toPartyTrack
 import com.music.bitchord.share.ShareItem
 import com.music.bitchord.share.SharedSongResolver
 import com.music.bitchord.data.share.IncomingLink
@@ -889,6 +890,7 @@ private fun BitChordApp(
     val incomingJamInvite by JamInviteLink.pending.collectAsStateWithLifecycle()
     var activeJamInviteCode by rememberSaveable { mutableStateOf<String?>(null) }
     var activeJamInviteServer by rememberSaveable { mutableStateOf<String?>(null) }
+    var activeJamInviteAuto by rememberSaveable { mutableStateOf(false) }
 
     // An invite is navigation and an action: reveal the Jam settings page now,
     // then let that page join once an account is available. Keeping the code
@@ -897,6 +899,10 @@ private fun BitChordApp(
         val invite = incomingJamInvite ?: return@LaunchedEffect
         activeJamInviteCode = invite.code
         activeJamInviteServer = invite.serverUrl
+        activeJamInviteAuto = invite.autoJoin
+        if (invite.autoJoin) {
+            Toast.makeText(context, context.getString(R.string.jam_auto_joining, invite.fromName.orEmpty()), Toast.LENGTH_SHORT).show()
+        }
         dismissPlayer()
         replayStory = null
         showReplayShare = false
@@ -3073,9 +3079,11 @@ private fun BitChordApp(
                                 signedIn = canJam,
                                 inviteCode = activeJamInviteCode,
                                 inviteServer = activeJamInviteServer,
+                                inviteAutoJoin = activeJamInviteAuto,
                                 onInviteHandled = {
                                     activeJamInviteCode = null
                                     activeJamInviteServer = null
+                                    activeJamInviteAuto = false
                                 },
                                 onSignIn = {
                                     navigator.clear()
@@ -4218,6 +4226,8 @@ private fun BitChordApp(
                             },
                             onNext = { controller?.seekToNextMediaItem() },
                             onPrevious = { controller?.seekToPrevious() },
+                            // Long-press: share what is playing (Tap to share, QR, links).
+                            onLongPress = { ShareItem.of(song)?.let { shareItem = it } },
                             onExpand = if (reducePlayerMotion) {
                                 { showNowPlaying = true }
                             } else {
@@ -5441,6 +5451,20 @@ private fun BitChordApp(
                                 playlistTarget = song
                                 IncomingLinkHub.handled()
                             }
+                        },
+                        // Only while in a Jam: the song goes into the party's shared queue.
+                        onAddToJam = if (ListenTogether.state.value.inParty) {
+                            {
+                                found?.let { song ->
+                                    if (!refusedByHost()) {
+                                        ListenTogether.queueAdd(listOf(song.toPartyTrack(0L)))
+                                        Toast.makeText(context, context.getString(R.string.incoming_added_jam), Toast.LENGTH_SHORT).show()
+                                        IncomingLinkHub.handled()
+                                    }
+                                }
+                            }
+                        } else {
+                            null
                         },
                         onDismiss = { IncomingLinkHub.dismiss() },
                     )

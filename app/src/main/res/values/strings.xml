@@ -1431,4 +1431,12 @@
     <string name="receive_read_not_sharing">The other phone is not sharing right now. Ask them to open Tap to share, then try again.</string>
     <string name="receive_read_interrupted">The phones moved apart too soon. Hold them together a little longer.</string>
     <string name="incoming_song_overline">Shared with you</string>
+    <!-- Sharing ideas (Phase 9, part 2). English only for now; other languages get this text as a placeholder. -->
+    <string name="share_copy_app_link">Copy app link</string>
+    <string name="incoming_song_from">From %1$s</string>
+    <string name="incoming_add_jam">Add to Jam queue</string>
+    <string name="incoming_added_jam">Added to the Jam queue</string>
+    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
+    <string name="profile_auto_join">Join friends Jams by tap</string>
+    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
 </resources>
