@@ -21,11 +21,16 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,11 +59,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.music.bitchord.R
+import com.music.bitchord.data.model.PlaylistSort
 import com.music.bitchord.data.model.ROW_ART_PX
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.UiState
 import com.music.bitchord.data.model.UserPlaylist
 import com.music.bitchord.data.model.artworkAt
+import com.music.bitchord.data.model.sortedPlaylist
 import com.music.bitchord.ui.theme.ArtworkPalette
 
 /**
@@ -92,6 +99,18 @@ fun ReorderPlaylistPage(
     BackHandler(onBack = onClose)
     val original = (entries as? UiState.Success)?.data.orEmpty()
     val order = remember(original) { mutableStateListOf<Song>().apply { addAll(original) } }
+    var sortMenu by remember { mutableStateOf(false) }
+    var sortKey by remember(original) { mutableStateOf<PlaylistSort?>(null) }
+    var descending by remember(original) { mutableStateOf(false) }
+    // Choosing the active key again flips its direction; only the local list
+    // changes, so nothing is sent until Save.
+    fun applySort(key: PlaylistSort) {
+        descending = sortKey == key && !descending
+        sortKey = key
+        val sorted = sortedPlaylist(original, key, descending)
+        order.clear()
+        order.addAll(sorted)
+    }
     val changed = order.map { it.setVideoId } != original.map { it.setVideoId }
 
     Column(modifier.fillMaxSize().padding(top = topBarContentPadding())) {
@@ -121,6 +140,49 @@ fun ReorderPlaylistPage(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            if (original.size > 1) Box {
+                IconButton(onClick = { sortMenu = true }, enabled = !saving) {
+                    Icon(
+                        Icons.AutoMirrored.Rounded.Sort,
+                        contentDescription = stringResource(R.string.sort_songs),
+                        tint = palette.onBackground,
+                    )
+                }
+                DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
+                    listOf(
+                        PlaylistSort.TITLE to R.string.sort_title,
+                        PlaylistSort.ARTIST to R.string.sort_artist,
+                        PlaylistSort.ALBUM to R.string.sort_album,
+                        PlaylistSort.DURATION to R.string.sort_duration,
+                    ).forEach { (key, label) ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(label)) },
+                            trailingIcon = if (sortKey == key) {
+                                {
+                                    Icon(
+                                        if (descending) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward,
+                                        contentDescription = null,
+                                    )
+                                }
+                            } else null,
+                            onClick = {
+                                sortMenu = false
+                                applySort(key)
+                            },
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.sort_original)) },
+                        onClick = {
+                            sortMenu = false
+                            sortKey = null
+                            descending = false
+                            order.clear()
+                            order.addAll(original)
+                        },
+                    )
+                }
             }
             // The page's filled pill — white with dark text, as its Play is.
             Button(

@@ -4034,7 +4034,7 @@ private fun BitChordApp(
                             // folder offers (see `LocalSearchField`), adapted to
                             // the one thing a playlist or album card carries: a
                             // title.
-                            if (route is AppRoute.LibraryShowAll) {
+                            if (route is AppRoute.LibraryShowAll || (route == null && detail == null && selectedTab == TAB_LIBRARY)) {
                                 Box {
                                     IconButton(onClick = { librarySortMenuOpen = true }) {
                                         Icon(
@@ -6198,6 +6198,7 @@ private fun tween(durationMillis: Int) =
 @Composable
 private fun LibrarySort.localizedLabel(): String = when (this) {
     LibrarySort.DEFAULT -> stringResource(R.string.sort_default)
+    LibrarySort.DEFAULT_REVERSED -> stringResource(R.string.sort_default_reversed)
     LibrarySort.TITLE_ASC -> stringResource(R.string.sort_title_ascending)
     LibrarySort.TITLE_DESC -> stringResource(R.string.sort_title_descending)
 }

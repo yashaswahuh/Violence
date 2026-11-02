@@ -1587,4 +1587,10 @@
     <string name="friends_back_body">Friends are kept on each phone, so their list stays empty until %1$s adds your card. Show your QR code or tap phones now.</string>
     <string name="friends_back_show">Show my card</string>
     <string name="friends_back_later">Not now</string>
+    <string name="sort_title">Title</string>
+    <string name="sort_artist">Artist</string>
+    <string name="sort_album">Album</string>
+    <string name="sort_duration">Length</string>
+    <string name="sort_original">Original order</string>
+    <string name="sort_default_reversed">Reverse order</string>
 </resources>

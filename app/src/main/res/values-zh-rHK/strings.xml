@@ -1417,4 +1417,10 @@
     <string name="listen_together_not_configured">Jam is not set up in this build yet. Add a party server address under Use your own server, or ask the owner for a build that has one.</string>
     <string name="listen_together_track_unavailable">Can\'t play %1$s on this device. You\'ll rejoin the party on the next song.</string>
     <string name="listen_together_share_code">Share code</string>
+    <string name="sort_title">Title</string>
+    <string name="sort_artist">Artist</string>
+    <string name="sort_album">Album</string>
+    <string name="sort_duration">Length</string>
+    <string name="sort_original">Original order</string>
+    <string name="sort_default_reversed">Reverse order</string>
 </resources>

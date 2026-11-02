@@ -118,6 +118,7 @@ fun LibraryScreen(
     showTitle: Boolean = true,
 ) {
     val pinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
+    val librarySort by AppUi.host.librarySort.collectAsStateWithLifecycle()
     val onDevice = stringResource(Res.string.on_device)
     PullToRefresh(
         refreshing = refreshing,
@@ -203,7 +204,9 @@ fun LibraryScreen(
                     shelves.forEach { shelf ->
                         item(key = "shelf:${shelf.title}") {
                             if (shelf.title == PLAYLISTS) {
-                                val pinnedFirst = shelf.pinnedFirst(pinnedPlaylists)
+                                // Same rule as the grid: an explicit sort reorders the
+                                // whole row, pinned cards included.
+                                val pinnedFirst = shelf.pinnedFirst(pinnedPlaylists).sortedForLibrary(librarySort)
                                 PlaylistShelf(
                                     shelf = pinnedFirst,
                                     onItemClick = onShelfItemClick,
@@ -468,6 +471,7 @@ private fun HomeShelf.pinnedFirst(pinned: List<String>): HomeShelf {
  */
 private fun HomeShelf.sortedForLibrary(sort: LibrarySort): HomeShelf = when (sort) {
     LibrarySort.DEFAULT -> this
+    LibrarySort.DEFAULT_REVERSED -> copy(items = items.asReversed())
     LibrarySort.TITLE_ASC -> copy(items = items.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }))
     LibrarySort.TITLE_DESC -> copy(
         items = items.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.title }),
