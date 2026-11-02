@@ -471,12 +471,6 @@ object AppSettings {
     /** Real backdrop-sampled glass (blur, lens refraction) on the floating nav bar, Android 12+ only. */
     val liquidGlass = MutableStateFlow(false)
 
-    /** Custom UI (ui/v2): which look the phone app wears. CURRENT unless the user switched it. */
-    val uiVariant = MutableStateFlow(com.music.bitchord.ui.v2.UiVariant.CURRENT)
-
-    /** Custom UI: draw every surface solid (no glass). The app's own switch; there is no system one. */
-    val reduceTransparency = MutableStateFlow(false)
-
     /**
      * Blurs what scrolls under the status bar and the top controls, easing out
      * just below them, instead of fading it to the page colour. A Liquid Glass
@@ -989,8 +983,6 @@ object AppSettings {
         smartVersionAlignment.value = prefs.getBoolean(KEY_SMART_VERSION_ALIGNMENT, true)
         reduceDynamicBlur.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
         liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, false)
-        uiVariant.value = com.music.bitchord.ui.v2.UiVariant.parse(prefs.getString(KEY_UI_VARIANT, null))
-        reduceTransparency.value = prefs.getBoolean(KEY_REDUCE_TRANSPARENCY, false)
         progressiveBlur.value = prefs.getBoolean(KEY_PROGRESSIVE_BLUR, false)
         lyricsBlur.value = prefs.getBoolean(KEY_LYRICS_BLUR, true)
         lyricsOffsetMs.value = prefs.getInt(KEY_LYRICS_OFFSET_MS, 0)
@@ -1415,16 +1407,6 @@ object AppSettings {
     fun setLiquidGlass(value: Boolean) {
         liquidGlass.value = value
         prefs.edit().putBoolean(KEY_LIQUID_GLASS, value).apply()
-    }
-
-    fun setUiVariant(value: com.music.bitchord.ui.v2.UiVariant) {
-        uiVariant.value = value
-        prefs.edit().putString(KEY_UI_VARIANT, value.name).apply()
-    }
-
-    fun setReduceTransparency(value: Boolean) {
-        reduceTransparency.value = value
-        prefs.edit().putBoolean(KEY_REDUCE_TRANSPARENCY, value).apply()
     }
 
     fun setProgressiveBlur(value: Boolean) {
@@ -2198,8 +2180,6 @@ object AppSettings {
     private const val KEY_SMART_VERSION_ALIGNMENT = "smart_version_alignment"
     private const val KEY_REDUCE_BLUR = "reduce_dynamic_blur"
     private const val KEY_LIQUID_GLASS = "liquid_glass"
-    private const val KEY_UI_VARIANT = "ui_variant"
-    private const val KEY_REDUCE_TRANSPARENCY = "ui_reduce_transparency"
     private const val KEY_PROGRESSIVE_BLUR = "progressive_blur"
     private const val KEY_LYRICS_BLUR = "lyrics_blur"
     private const val KEY_LYRICS_OFFSET_MS = "lyrics_offset_ms"

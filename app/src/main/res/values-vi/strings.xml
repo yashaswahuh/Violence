@@ -1521,40 +1521,4 @@
     <string name="friends_back_body">Friends are kept on each phone, so their list stays empty until %1$s adds your card. Show your QR code or tap phones now.</string>
     <string name="friends_back_show">Show my card</string>
     <string name="friends_back_later">Not now</string>
-    <!-- Custom UI (experimental). English placeholders, not yet translated. -->
-    <string name="v2_new_ui_title">New UI (experimental)</string>
-    <string name="v2_new_ui_subtitle">Try the new look: a floating dock with a music orb. The current UI is unchanged and stays the default. Switching does not interrupt playback.</string>
-    <string name="v2_reduce_transparency_title">Reduce transparency</string>
-    <string name="v2_reduce_transparency_subtitle">New UI only: draw surfaces solid instead of glass.</string>
-    <string name="v2_safe_mode_title">Back to the classic look</string>
-    <string name="v2_safe_mode_body">The new look did not start correctly twice in a row, so Violence switched back to the classic look. You can try the new UI again under Settings, Advanced.</string>
-    <string name="v2_dock_orb_playing">Now playing: %1$s by %2$s. Opens the player.</string>
-    <string name="v2_dock_orb_idle">Nothing is playing</string>
-    <string name="v2_dock_orb_share_hint">Hold to share the song</string>
-    <string name="v2_action_play">Play</string>
-    <string name="v2_action_pause">Pause</string>
-    <string name="v2_action_next">Next song</string>
-    <string name="v2_action_previous">Previous song</string>
-    <string name="v2_dock_label">Main navigation</string>
-    <string name="v2_home_preview_title">New look preview</string>
-    <string name="v2_home_preview_body">This is the first piece of the new UI. Every page behind these tiles is still the current one.</string>
-    <string name="v2_home_everything_else">Everything else</string>
-    <string name="v2_open_classic_home">Open the classic Home</string>
-    <string name="v2_back_to_preview_home">Back to the preview</string>
-    <!-- Custom UI, UI-2. English placeholders, not yet translated. -->
-    <string name="v2_hub_title">Everything</string>
-    <string name="v2_hub_all">All</string>
-    <string name="v2_hub_people">People</string>
-    <string name="v2_hub_share">Share</string>
-    <string name="v2_hub_music">Music</string>
-    <string name="v2_hub_you">You</string>
-    <string name="v2_controls_locked">The host controls playback in this Jam.</string>
-    <string name="v2_open_full_player">Queue, lyrics and more</string>
-    <string name="v2_share_song">Share</string>
-    <string name="v2_seek_label">Song position</string>
-    <string name="v2_seek_state">%1$s of %2$s</string>
-    <string name="v2_seek_back_10">Back 10 seconds</string>
-    <string name="v2_seek_forward_10">Forward 10 seconds</string>
-    <string name="v2_jam_listening">Jam: %1$d listening. Opens the Jam page.</string>
-    <string name="v2_jam_host">host</string>
 </resources>
