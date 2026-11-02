@@ -240,8 +240,9 @@ fun V2Orb(
 
 
 /**
- * [V2Dock] wired to the media controller. Exists so `BitChordApp` (already close to the JVM's
- * method-size limit) carries one small call instead of a block of lambdas.
+ * [V2Dock] wired to the media controller, plus the two sheets it opens: Now Playing (orb tap) and
+ * the Hub (account avatar). Exists so BitChordApp (already close to the JVM's method-size
+ * limit) carries one small call instead of a block of lambdas.
  */
 @Composable
 fun V2DockHost(
@@ -252,6 +253,10 @@ fun V2DockHost(
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
     controller: androidx.media3.session.MediaController?,
+    position: com.music.bitchord.playback.PlaybackPosition,
+    durationMs: Long,
+    navigator: com.music.bitchord.ui.navigation.AppNavigator,
+    /** Opens the full player (queue, lyrics, output, quality). */
     onExpand: () -> Unit,
     onShare: (Song) -> Unit,
     modifier: Modifier = Modifier,
@@ -265,13 +270,26 @@ fun V2DockHost(
         onPlayPause = onPlayPause,
         onNext = { controller?.seekToNextMediaItem() },
         onPrevious = { controller?.seekToPrevious() },
-        onExpand = onExpand,
+        onExpand = { V2NowState.open = true },
         onLongPress = { song?.let(onShare) },
         modifier = modifier,
     )
+    if (V2NowState.open && song != null) {
+        V2NowPanel(
+            song = song,
+            isPlaying = isPlaying,
+            position = position,
+            durationMs = durationMs,
+            onPlayPause = onPlayPause,
+            onNext = { controller?.seekToNextMediaItem() },
+            onPrevious = { controller?.seekToPrevious() },
+            onSeek = { controller?.seekTo(it) },
+            onOpenFullPlayer = { V2NowState.open = false; onExpand() },
+            onShare = { onShare(song) },
+            onOpenJam = { V2NowState.open = false; navigator.push(com.music.bitchord.ui.navigation.AppRoute.ListenTogether) },
+            onDismiss = { V2NowState.open = false },
+        )
+    }
+    if (V2HubState.open) V2Hub(navigator = navigator, onDismiss = { V2HubState.open = false })
 }
 
-/** Whether the placeholder Home gives way to the classic one (UI-1 only; process-wide, resets with the variant). */
-object V2HomeState {
-    var classic by androidx.compose.runtime.mutableStateOf(false)
-}

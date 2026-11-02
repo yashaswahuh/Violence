@@ -331,6 +331,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.shape.CornerBasedShape
 import com.music.bitchord.ui.components.lightweightLiquidGlass
 import com.music.bitchord.ui.components.AppStill
+import com.music.bitchord.ui.v2.chrome.plusTop
 import com.music.bitchord.ui.components.LocalAppStill
 import com.music.bitchord.ui.components.snapshotGlassDisc
 import com.music.bitchord.ui.components.CollapsingTopAction
@@ -3442,12 +3443,9 @@ private fun BitChordApp(
                                 },
                             )
                         } else when ((destination as? AppDestination.Tab)?.index ?: selectedTab) {
-                            // Custom UI touch point 4: the placeholder Home (UI-1), with a way into the
-                            // classic one.
-                            TAB_HOME -> if (newUi && !com.music.bitchord.ui.v2.chrome.V2HomeState.classic) com.music.bitchord.ui.v2.chrome.V2HomePlaceholder(
-                                navigator = navigator,
-                                topPadding = topBarContentPadding(),
-                            ) else HomeScreen(
+                            // Custom UI touch point 4: Home and Library are hosted inside the new shell with a
+                            // shortcut strip above them (see ui/v2/chrome/V2Frames.kt).
+                            TAB_HOME -> com.music.bitchord.ui.v2.chrome.V2ShortcutFrame(com.music.bitchord.ui.v2.chrome.V2Shortcuts.HOME, navigator, topBarContentPadding()) { extraTop -> HomeScreen(
                                 state = homeState,
                                 listState = homeListState,
                                 currentSong = player.song,
@@ -3479,7 +3477,7 @@ private fun BitChordApp(
                                 refreshing = MainViewModel.Feed.HOME in refreshing,
                                 onRefresh = { viewModel.refresh(MainViewModel.Feed.HOME) },
                                 pullState = homePull,
-                                contentPadding = listPadding,
+                                contentPadding = listPadding.plusTop(extraTop),
                                 onLoadMore = viewModel::loadMoreHome,
                                 loadingMore = homeLoadingMore,
                                 recentlyPlayedLoading = homeRecentlyPlayedLoading,
@@ -3503,7 +3501,7 @@ private fun BitChordApp(
                                         )
                                     }
                                 },
-                            )
+                            ) }
                             TAB_EXPLORE -> selectedMoodGenre?.let { category ->
                                 MoodGenrePlaylistsScreen(
                                     title = category.title,
@@ -3730,7 +3728,7 @@ private fun BitChordApp(
                                     )
                                 },
                             )
-                            else -> LibraryScreen(
+                            else -> com.music.bitchord.ui.v2.chrome.V2ShortcutFrame(com.music.bitchord.ui.v2.chrome.V2Shortcuts.LIBRARY, navigator, topBarContentPadding()) { extraTop -> LibraryScreen(
                                 signedIn = signedIn,
                                 state = libraryState,
                                 listState = libraryListState,
@@ -3760,10 +3758,10 @@ private fun BitChordApp(
                                 refreshing = MainViewModel.Feed.LIBRARY in refreshing,
                                 onRefresh = { viewModel.refresh(MainViewModel.Feed.LIBRARY) },
                                 pullState = libraryPull,
-                                contentPadding = listPadding,
+                                contentPadding = listPadding.plusTop(extraTop),
                                 links = libraryLinks(),
                                 deviceItems = libraryDeviceItems(downloadedReleases) + localPlaylistItems,
-                            )
+                            ) }
                         }
                     }
                     // A pushed page keeps its saved state — a scroll position,
@@ -4208,7 +4206,9 @@ private fun BitChordApp(
                             if (!isReleaseDetail) TopBarAccountButton(
                                 account = account,
                                 onClick = {
-                                    if (signedIn) {
+                                    // New UI: the avatar opens the Hub (Settings and accounts are in it).
+                                    if (newUi) com.music.bitchord.ui.v2.chrome.V2HubState.open = true
+                                    else if (signedIn) {
                                         viewModel.loadChannels()
                                         showAccountSelector = true
                                     } else navigator.push(AppRoute.Settings)
@@ -4277,6 +4277,9 @@ private fun BitChordApp(
                         isPlaying = player.isPlaying,
                         onPlayPause = togglePlayPause,
                         controller = controller,
+                        position = player.position,
+                        durationMs = player.durationMs,
+                        navigator = navigator,
                         onExpand = if (reducePlayerMotion) {
                             { showNowPlaying = true }
                         } else {
