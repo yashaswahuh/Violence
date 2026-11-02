@@ -17,6 +17,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -100,6 +101,8 @@ fun GlassNavBar(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onExpand: () -> Unit,
+    /** Long-press on the playing bar (the app uses it to share the song). */
+    onLongPress: (() -> Unit)? = null,
     /** @see com.music.bitchord.data.listentogether.ListenTogether.State.controlsLocked */
     controlsLocked: Boolean = false,
     onBlockedControl: () -> Unit = {},
@@ -156,6 +159,7 @@ fun GlassNavBar(
                     onNext = onNext,
                     onPrevious = onPrevious,
                     onExpand = onExpand,
+                    onLongPress = onLongPress,
                     controlsLocked = controlsLocked,
                     onBlockedControl = onBlockedControl,
                     dock = dock,
@@ -176,6 +180,7 @@ fun GlassNavBar(
                     onNext = onNext,
                     onPrevious = onPrevious,
                     onExpand = onExpand,
+                    onLongPress = onLongPress,
                     controlsLocked = controlsLocked,
                     onBlockedControl = onBlockedControl,
                     dock = dock,
@@ -302,6 +307,7 @@ private fun GlassNowPlaying(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onExpand: () -> Unit,
+    onLongPress: (() -> Unit)?,
     controlsLocked: Boolean,
     onBlockedControl: () -> Unit,
     dock: PlayerDock?,
@@ -309,6 +315,7 @@ private fun GlassNowPlaying(
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberHaptics()
+    val longPressFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
     val pressSource = remember { MutableInteractionSource() }
     val isPressed by pressSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
@@ -362,10 +369,16 @@ private fun GlassNowPlaying(
                 scaleY = pressScale
             }
             .then(modifier)
-            .clickable(
+            .combinedClickable(
                 interactionSource = pressSource,
                 indication = null,
                 onClick = onExpand,
+                onLongClick = onLongPress?.let { press ->
+                    {
+                        longPressFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        press()
+                    }
+                },
             ),
     ) {
         Row(

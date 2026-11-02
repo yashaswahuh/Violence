@@ -1,5 +1,8 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.components.GlassBottomSheet
+import com.music.bitchord.ui.components.glassPanelColor
+import com.music.bitchord.ui.components.glassPanelEdge
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -89,6 +92,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import com.music.bitchord.data.share.PlaylistRef
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -198,16 +204,18 @@ fun ShareSheet(item: ShareItem, onDismiss: () -> Unit) {
 
     val title = when (item) {
         is ShareItem.SongItem -> item.ref.title ?: stringResource(R.string.share_song_fallback)
+        is ShareItem.PlaylistItem -> item.ref.title
         is ShareItem.ProfileItem -> item.card.displayName
         is ShareItem.JamItem -> stringResource(R.string.share_jam_label) + " " + item.code
     }
     val subtitle = when (item) {
         is ShareItem.SongItem -> item.ref.artist
+        is ShareItem.PlaylistItem -> stringResource(R.string.incoming_playlist_overline)
         is ShareItem.ProfileItem -> stringResource(R.string.share_profile_label)
         is ShareItem.JamItem -> null
     }
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.background,
@@ -755,8 +763,9 @@ fun IncomingSongDialog(
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 380.dp),
+            color = glassPanelColor(MaterialTheme.colorScheme.surface),
+            modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 380.dp)
+                .glassPanelEdge(RoundedCornerShape(28.dp)),
         ) {
             Column(Modifier.padding(horizontal = 22.dp, vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -873,6 +882,84 @@ fun IncomingSongDialog(
                     ) { Text(stringResource(R.string.incoming_add_jam)) }
                 }
                 TextButton(onClick = onDismiss, modifier = Modifier.padding(top = 2.dp)) { Text(stringResource(R.string.cancel)) }
+            }
+        }
+    }
+}
+
+/**
+ * The card for a playlist that arrived by tap, QR or link. Nothing is fetched or saved before a
+ * choice: "Open" goes to the YouTube Music page, "Save" looks the songs up and keeps them as a
+ * playlist of this phone's own.
+ */
+@Composable
+fun IncomingPlaylistDialog(
+    ref: PlaylistRef,
+    busy: Boolean,
+    onOpen: () -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = glassPanelColor(MaterialTheme.colorScheme.surface),
+            modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 380.dp)
+                .glassPanelEdge(RoundedCornerShape(28.dp)),
+        ) {
+            Column(Modifier.padding(horizontal = 22.dp, vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stringResource(R.string.incoming_playlist_overline),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                ref.from?.let { sender ->
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ProfileAvatar(sender.avatarId, sender.color, sender.displayName, 22.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.incoming_song_from, ProfileManager.friendName(sender.id) ?: sender.displayName),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = ref.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (ref.kind == PlaylistRef.Kind.SONGS) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.incoming_playlist_songs, ref.videoIds.size),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(20.dp))
+                if (ref.kind == PlaylistRef.Kind.YOUTUBE) {
+                    Button(
+                        onClick = onOpen,
+                        shape = RoundedCornerShape(percent = 50),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                    ) { Text(stringResource(R.string.incoming_playlist_open)) }
+                } else {
+                    Button(
+                        onClick = onSave,
+                        enabled = !busy,
+                        shape = RoundedCornerShape(percent = 50),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                    ) { Text(stringResource(if (busy) R.string.incoming_playlist_saving else R.string.incoming_playlist_save)) }
+                }
+                TextButton(onClick = onDismiss, modifier = Modifier.padding(top = 4.dp)) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
         }
     }

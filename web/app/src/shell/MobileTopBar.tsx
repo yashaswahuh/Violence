@@ -1,4 +1,4 @@
-import { Menu } from 'lucide-react';
+import { Inbox, Menu } from 'lucide-react';
 import { PrefetchLink } from '@/components/PrefetchLink';
 import { LogoMark } from '@/components/icons/LogoMark';
 import { useUi } from '@/state/ui';
@@ -15,7 +15,9 @@ export function MobileTopBar() {
         <LogoMark size={20} className="text-primary" />
         <span>Violence</span>
       </PrefetchLink>
-      <span className="w-11" />
+      <PrefetchLink to="/settings/friends" className="grid size-11 place-items-center rounded-full" aria-label="Receive: paste a song, Jam or profile link">
+        <Inbox size={22} strokeWidth={2} />
+      </PrefetchLink>
     </header>
   );
 }

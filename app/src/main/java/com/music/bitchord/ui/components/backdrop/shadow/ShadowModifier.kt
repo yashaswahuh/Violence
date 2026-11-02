@@ -79,6 +79,22 @@ internal class ShadowNode(
 
     private val paint = Paint()
 
+    // Vendored change: what the shadow layer was last recorded for. Upstream records it
+    // (a blurred outline on an offscreen layer) on every draw of whatever this wraps;
+    // a glass bar is redrawn constantly while its page scrolls or its content
+    // animates, and the shadow only changes when its size, shape or look does.
+    private var recorded: ShadowRecord? = null
+
+    private data class ShadowRecord(
+        val width: Float,
+        val height: Float,
+        val density: Float,
+        val fontScale: Float,
+        val layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+        val shadow: Shadow,
+        val shape: androidx.compose.ui.graphics.Shape,
+    )
+
     override fun ContentDrawScope.draw() {
         val shadow = shadow() ?: return drawContent()
 
@@ -95,19 +111,24 @@ internal class ShadowNode(
                 ceil(size.width + radius * 4f + offsetX).toInt(),
                 ceil(size.height + radius * 4f + offsetY).toInt()
             )
-            val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
-
-            configurePaint(shadow)
-
             shadowLayer.alpha = shadow.alpha
             shadowLayer.blendMode = shadow.blendMode
-            shadowLayer.record(shadowSize) {
-                translate(radius * 2f + offsetX, radius * 2f + offsetY) {
-                    val canvas = drawContext.canvas
-                    canvas.drawOutline(outline, paint)
-                    canvas.translate(-offsetX, -offsetY)
-                    canvas.drawOutline(outline, ShadowMaskPaint)
-                    canvas.translate(offsetX, offsetY)
+            val record = ShadowRecord(
+                size.width, size.height, density.density, density.fontScale,
+                layoutDirection, shadow, shapeProvider.innerShape,
+            )
+            if (record != recorded) {
+                recorded = record
+                val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
+                configurePaint(shadow)
+                shadowLayer.record(shadowSize) {
+                    translate(radius * 2f + offsetX, radius * 2f + offsetY) {
+                        val canvas = drawContext.canvas
+                        canvas.drawOutline(outline, paint)
+                        canvas.translate(-offsetX, -offsetY)
+                        canvas.drawOutline(outline, ShadowMaskPaint)
+                        canvas.translate(offsetX, offsetY)
+                    }
                 }
             }
 
@@ -133,6 +154,7 @@ internal class ShadowNode(
             graphicsContext.releaseGraphicsLayer(layer)
             shadowLayer = null
         }
+        recorded = null
     }
 
     private fun DrawScope.configurePaint(shadow: Shadow) {

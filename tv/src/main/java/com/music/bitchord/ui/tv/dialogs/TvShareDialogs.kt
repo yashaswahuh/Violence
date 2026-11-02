@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 fun TvShareDialog(item: ShareItem, onDismiss: () -> Unit) {
     val title = when (item) {
         is ShareItem.SongItem -> item.ref.title ?: "Share a Song"
+        is ShareItem.PlaylistItem -> item.ref.title
         is ShareItem.ProfileItem -> "Share ${item.card.displayName}"
         is ShareItem.JamItem -> "Invite to Jam ${item.code}"
     }

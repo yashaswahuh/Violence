@@ -1,5 +1,7 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.components.GlassBottomSheet
+import com.music.bitchord.ui.components.GlassAlertDialog
 import com.music.bitchord.ui.icons.SfIcons
 import android.content.Intent
 import android.text.format.DateFormat
@@ -320,7 +322,7 @@ fun ListenTogetherScreen(
 
     pendingServerSwitchInvite?.let { (codeToJoin, serverToSet) ->
         val isSwitchToOfficial = serverToSet.isBlank()
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = {
                 pendingServerSwitchInvite = null
                 onInviteHandled()
@@ -388,7 +390,7 @@ fun ListenTogetherScreen(
     tapUri?.let { link -> TapToShareDialog(uri = link, onDismiss = { tapUri = null }) }
 
     sheet?.let { open ->
-        ModalBottomSheet(
+        GlassBottomSheet(
             onDismissRequest = {
                 sheet = null
                 // Closed with the message unread is still read: leaving it set

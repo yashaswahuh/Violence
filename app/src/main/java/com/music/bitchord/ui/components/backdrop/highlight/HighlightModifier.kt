@@ -93,6 +93,21 @@ internal class HighlightNode(
 
     private var prevStyle: HighlightStyle? = null
 
+    // Vendored change: what the highlight layer was last recorded for. Upstream records it
+    // (a blurred, shader-stroked outline) on every draw of whatever this wraps; it only
+    // changes when the size, shape or look does.
+    private var recorded: HighlightRecord? = null
+
+    private data class HighlightRecord(
+        val width: Float,
+        val height: Float,
+        val density: Float,
+        val fontScale: Float,
+        val layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+        val highlight: Highlight,
+        val shape: androidx.compose.ui.graphics.Shape,
+    )
+
     override fun ContentDrawScope.draw() {
         val highlight = highlight()
         if (highlight == null || highlight.width.value <= 0f) {
@@ -113,25 +128,32 @@ internal class HighlightNode(
                     ceil(size.height).toInt() + 2
                 )
 
-            val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
-            val clipPath =
-                if (outline is Outline.Rounded) {
-                    clipPath ?: Path().also { clipPath = it }
-                } else {
-                    null
-                }
-
-            configurePaint(highlight)
-
             highlightLayer.alpha = highlight.alpha
             highlightLayer.blendMode = highlight.style.blendMode
-            highlightLayer.record(safeSize) {
-                translate(1f, 1f) {
-                    val canvas = drawContext.canvas
-                    canvas.save()
-                    canvas.clipOutline(outline, clipPath)
-                    canvas.drawOutline(outline, paint)
-                    canvas.restore()
+            val record = HighlightRecord(
+                size.width, size.height, density.density, density.fontScale,
+                layoutDirection, highlight, shapeProvider.innerShape,
+            )
+            if (record != recorded) {
+                recorded = record
+                val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
+                val clipPath =
+                    if (outline is Outline.Rounded) {
+                        clipPath ?: Path().also { clipPath = it }
+                    } else {
+                        null
+                    }
+
+                configurePaint(highlight)
+
+                highlightLayer.record(safeSize) {
+                    translate(1f, 1f) {
+                        val canvas = drawContext.canvas
+                        canvas.save()
+                        canvas.clipOutline(outline, clipPath)
+                        canvas.drawOutline(outline, paint)
+                        canvas.restore()
+                    }
                 }
             }
 
@@ -155,6 +177,7 @@ internal class HighlightNode(
         clipPath = null
         runtimeShaderCache.clear()
         prevStyle = null
+        recorded = null
     }
 
     private fun DrawScope.configurePaint(highlight: Highlight) {

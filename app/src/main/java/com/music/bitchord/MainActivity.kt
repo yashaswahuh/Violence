@@ -1,5 +1,6 @@
 package com.music.bitchord
 
+import com.music.bitchord.ui.components.GlassBottomSheet
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -71,6 +72,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.IosShare
+import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sort
@@ -178,6 +180,7 @@ import com.music.bitchord.ui.screens.ProfileScreen
 import com.music.bitchord.ui.screens.ProfileSuggestionDialog
 import com.music.bitchord.ui.screens.AddFriendDialog
 import com.music.bitchord.ui.screens.IncomingSongDialog
+import com.music.bitchord.ui.screens.IncomingPlaylistDialog
 import com.music.bitchord.ui.screens.ReceiveScreen
 import com.music.bitchord.ui.screens.ShareSheet
 import com.music.bitchord.ui.screens.noticeRes
@@ -4110,6 +4113,19 @@ private fun BitChordApp(
                             // [TopBarDownloadButton], which decides that for
                             // itself rather than being told. Not on the page it
                             // opens, where it would only lead back to itself.
+                            // Receive (tap phones, scan, paste): a phone being
+                            // shared to has to be on that page, so it is one tap
+                            // from anywhere. Not on a release page (crowded), nor on
+                            // the page it opens.
+                            if (!isReleaseDetail && route != AppRoute.Receive) {
+                                IconButton(onClick = { navigator.push(AppRoute.Receive) }) {
+                                    Icon(
+                                        Icons.Rounded.Nfc,
+                                        contentDescription = stringResource(R.string.receive_title),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
                             if (route != AppRoute.Downloads) {
                                 TopBarDownloadButton(onClick = { navigator.push(AppRoute.Downloads) })
                             }
@@ -4189,6 +4205,7 @@ private fun BitChordApp(
                         },
                         onNext = { controller?.seekToNextMediaItem() },
                         onPrevious = { controller?.seekToPrevious() },
+                        onLongPress = { player.song?.let { current -> ShareItem.of(current)?.let { shareItem = it } } },
                         onExpand = if (reducePlayerMotion) {
                             { showNowPlaying = true }
                         } else {
@@ -4833,7 +4850,7 @@ private fun BitChordApp(
         // ---- Share the Replay ----
         if (showReplayShare) {
             replay.summary?.takeUnless { it.isEmpty }?.let { summary ->
-                ModalBottomSheet(
+                GlassBottomSheet(
                     onDismissRequest = { showReplayShare = false },
                     // Straight to full height. The sheet is a picture and two
                     // buttons, and half-open it showed the picture with both
@@ -5067,6 +5084,17 @@ private fun BitChordApp(
                 ?.takeIf { signedIn && ownedPlaylists[it] == true }
                 ?.let { id -> playlists.firstOrNull { it.browseId == id } }
             val remote = target.browseId?.startsWith("local:") == false
+            // A playlist is shared through Violence's own sheet (Tap to share, QR, links): a
+            // YouTube Music playlist by id, one kept on this phone by its first songs.
+            val playlistShare: (() -> Unit)? = target.browseId?.takeIf { target.type == BrowseType.PLAYLIST }?.let { id ->
+                val item = if (remote) {
+                    ShareItem.ofPlaylist(id, target.title)
+                } else {
+                    com.music.bitchord.data.spotify.LocalPlaylistStore.getPlaylist(id.removePrefix("local:playlist:"))
+                        ?.let { ShareItem.ofPlaylist(it.title, it.songs) }
+                }
+                item?.let { found -> { shareItem = found; browseActions = null } }
+            }
             // Spotify playlists saved on this device ("local:playlist:sp_local_…")
             // carry real YouTube video ids, so they download like a remote
             // playlist — but they have no YouTube Music page, so Share stays
@@ -5149,8 +5177,8 @@ private fun BitChordApp(
                 // account. Left off an artist card (Share there is a
                 // channel link, not a release, and nobody asked for it)
                 // and off anything with no real browse id behind it.
-                onShare = target.browseId
-                    ?.takeIf { remote && (target.type == BrowseType.ALBUM || target.type == BrowseType.PLAYLIST) }
+                onShare = playlistShare ?: target.browseId
+                    ?.takeIf { remote && target.type == BrowseType.ALBUM }
                     ?.let { id ->
                         {
                             val url = if (target.type == BrowseType.PLAYLIST) {
@@ -5249,7 +5277,7 @@ private fun BitChordApp(
             // floating over the page: the menu hands it on, and the form comes up
             // here on a sheet of its own.
             browseActions?.takeIf { browseRenameInSheet }?.let { target ->
-                ModalBottomSheet(
+                GlassBottomSheet(
                     onDismissRequest = { browseActions = null },
                     containerColor = MaterialTheme.colorScheme.background,
                 ) {
@@ -5465,6 +5493,36 @@ private fun BitChordApp(
                             }
                         } else {
                             null
+                        },
+                        onDismiss = { IncomingLinkHub.dismiss() },
+                    )
+                }
+                is IncomingLink.Playlist -> {
+                    var saving by remember(link.ref) { mutableStateOf(false) }
+                    val savedScope = rememberCoroutineScope()
+                    IncomingPlaylistDialog(
+                        ref = link.ref,
+                        busy = saving,
+                        onOpen = {
+                            link.ref.id?.let { id ->
+                                viewModel.openDetail("VL$id", link.ref.title, type = BrowseType.PLAYLIST)
+                            }
+                            IncomingLinkHub.handled()
+                        },
+                        onSave = {
+                            saving = true
+                            savedScope.launch {
+                                val songs = link.ref.videoIds.mapNotNull { SharedSongResolver.resolve(SongRef(SongSource.YOUTUBE, it)) }
+                                saving = false
+                                if (songs.isEmpty()) {
+                                    Toast.makeText(context, context.getString(R.string.incoming_playlist_failed), Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val saved = com.music.bitchord.data.spotify.LocalPlaylistStore.savePlaylist(link.ref.title, songs)
+                                    Toast.makeText(context, context.getString(R.string.incoming_playlist_saved), Toast.LENGTH_SHORT).show()
+                                    viewModel.openDetail(saved.browseId, saved.title, type = BrowseType.PLAYLIST)
+                                    IncomingLinkHub.handled()
+                                }
+                            }
                         },
                         onDismiss = { IncomingLinkHub.dismiss() },
                     )

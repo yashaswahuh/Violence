@@ -223,27 +223,36 @@ fun Modifier.liquidGlass(
     }
     val surfaceTintColor = surfaceTint ?: themeTint.copy(alpha = SURFACE_OPACITY)
 
-    return drawBackdrop(
-        backdrop = backdrop,
-        shape = { shape },
-        effects = {
-            colorControls(saturation = 1f + 0.5f * VIBRANCY)
-            blur(blurPx)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                lens(
-                    refractionHeight = lensHeightPx,
-                    refractionAmount = lensAmountPx,
-                    depthEffect = true,
-                    chromaticAberration = true,
-                )
-            }
-        },
-        highlight = { Highlight.Default },
-        shadow = { Shadow.Default },
-        onDrawSurface = {
-            drawRect(color = surfaceTintColor, size = size)
-        },
-        exportedBackdrop = exportedBackdrop,
-        backdropScale = GLASS_RESOLUTION_SCALE,
-    )
+    // Built once per set of inputs, not once per recomposition. Every lambda below is a new
+    // object each time this runs, and the backdrop modifier compares its lambdas by identity,
+    // so a rebuilt chain was never "equal" to the last one: each recomposition of a bar (its
+    // fold, the mini player's progress, a scroll-driven state) made the backdrop node throw
+    // away and rebuild its whole RenderEffect chain (blur, colour matrix, lens shader) and
+    // record again. Held, an unchanged surface is left alone.
+    val glass = remember(backdrop, exportedBackdrop, shape, blurPx, lensHeightPx, lensAmountPx, surfaceTintColor) {
+        Modifier.drawBackdrop(
+            backdrop = backdrop,
+            shape = { shape },
+            effects = {
+                colorControls(saturation = 1f + 0.5f * VIBRANCY)
+                blur(blurPx)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    lens(
+                        refractionHeight = lensHeightPx,
+                        refractionAmount = lensAmountPx,
+                        depthEffect = true,
+                        chromaticAberration = true,
+                    )
+                }
+            },
+            highlight = { Highlight.Default },
+            shadow = { Shadow.Default },
+            onDrawSurface = {
+                drawRect(color = surfaceTintColor, size = size)
+            },
+            exportedBackdrop = exportedBackdrop,
+            backdropScale = GLASS_RESOLUTION_SCALE,
+        )
+    }
+    return then(glass)
 }
