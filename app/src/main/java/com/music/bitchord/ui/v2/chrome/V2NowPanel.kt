@@ -258,23 +258,13 @@ fun V2SeekBar(
     val back = stringResource(R.string.v2_seek_back_10)
     val forward = stringResource(R.string.v2_seek_forward_10)
     Column(modifier.fillMaxWidth()) {
-        Slider(
-            value = fraction,
-            onValueChange = { dragging = it },
-            onValueChangeFinished = {
-                dragging?.let { onSeek((it * duration).toLong()) }
-                dragging = null
-            },
-            enabled = enabled && durationMs > 0,
-            colors = SliderDefaults.colors(
-                thumbColor = accent,
-                activeTrackColor = accent,
-                inactiveTrackColor = colors.outline,
-            ),
+        // The semantics sit on a 48 dp box around the slider (whose own track is 44 dp), so the
+        // control TalkBack announces and the area a finger can hit are at least 48 dp.
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = V2Dimens.MinTouch)
-                .semantics {
+                .semantics(mergeDescendants = true) {
                     contentDescription = label
                     stateDescription = state
                     customActions = listOf(
@@ -282,7 +272,24 @@ fun V2SeekBar(
                         CustomAccessibilityAction(forward) { onSeek((shownMs + 10_000L).coerceAtMost(durationMs)); true },
                     )
                 },
-        )
+            contentAlignment = Alignment.Center,
+        ) {
+            Slider(
+                value = fraction,
+                onValueChange = { dragging = it },
+                onValueChangeFinished = {
+                    dragging?.let { onSeek((it * duration).toLong()) }
+                    dragging = null
+                },
+                enabled = enabled && durationMs > 0,
+                colors = SliderDefaults.colors(
+                    thumbColor = accent,
+                    activeTrackColor = accent,
+                    inactiveTrackColor = colors.outline,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(formatClock(shownMs), style = V2Type.caption, color = colors.ink2)
             Text("-" + formatClock((durationMs - shownMs).coerceAtLeast(0L)), style = V2Type.caption, color = colors.ink2)

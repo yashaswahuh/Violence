@@ -39,3 +39,4 @@ Edits to upstream-owned files for the New UI toggle. New code lives in `app/src/
 - `app/src/main/res/values*/strings.xml` (18 files): `v2_*` strings appended.
 - `NOTICE`: Sora and Inter font licences appended. `app/src/main/res/font/v2_sora.ttf`, `v2_inter.ttf` added.
 - `sharedUi/.../ui/screens/HomeScreen.kt` (shared with dormant desktop): `HomeTitle` shows the text wordmark "VIOLENCE" instead of the `ic_logo` image. Logged in `FROZEN_TARGETS.md`.
+- UI-2 additions to the touch points: `MainActivity.kt` now also (a) wraps the Home tab and the Library tab (`else -> LibraryScreen(`) in `V2ShortcutFrame(...) { extraTop -> ... }` and adds `.plusTop(extraTop)` to both pages' `contentPadding`, (b) passes `position`, `durationMs`, `navigator` to `V2DockHost`, (c) the account avatar's `onClick` starts with `if (newUi) V2HubState.open = true else ...`. `app/build.gradle.kts`: test dependencies (Robolectric, Compose ui-test) and `isIncludeAndroidResources = true`.

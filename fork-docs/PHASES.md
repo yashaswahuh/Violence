@@ -269,9 +269,10 @@ A second, switchable phone UI (Liquid Glass kept; its own identity, accessible, 
 |---|---|---|
 | UI-0 | Design documents and static concept boards: `UI_AUDIT.md`, `UI_DESIGN.md`, `UI_PLAN.md`, `UI_DECISIONS.md` (owner template), `ui-concepts/` (A Lumen, B Aurora, C Tide) | **DONE (2026-11-02)**, documentation only, no app code changed. Waiting for the owner to fill in `UI_DECISIONS.md` |
 | UI-1 | Setting, theme, glass tiers, safe mode, strings, dock and placeholder Home | **DONE (2026-11-02)**, direction A Lumen with Tide solid pages. Built and phone/shared/web tests pass; not run on a device. What was built: `UI_PLAN.md` section 8. No Compose UI tests (project has no Compose test setup) |
-| UI-2 | Navigation chrome | planned |
+| UI-2 | Navigation chrome, Now Playing panel, Home/Library shortcut strips | **DONE (2026-11-02), partial vs the brief**: Hub sheet, Now Playing panel (accessible seek bar, transport, Jam chips, share), shortcut strips; Search, Library, queue/lyrics/output and the orb-to-player morph still use the current screens (UI-3 list in `UI_PLAN.md` section 9). 13 Robolectric UI tests + logic tests pass; `UI_TEST_PLAN.md` manual checklist not yet run on a device |
 | UI-3 | Now Playing, Jam, sharing surfaces | planned |
 | UI-4 | Pages, polish, performance, release hardening | planned |
 
 **Phase 10 (Final audit and handover) waits until the custom UI work is finished.** Phase 11 is independent.
+
 

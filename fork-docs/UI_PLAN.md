@@ -161,3 +161,30 @@ Existing pages in the new palette and fonts; the dock and orb in place of the ba
 
 ### Known gaps (UI-1)
 The Hub avatar sheet, back chip, top bar and player morph are UI-2 and UI-3. The page backdrop floor in `setContent` (`paintBackdrop`) still uses the classic background colour, so under glass FULL the blurred floor can differ from the new palette by a shade. Compose UI tests: the project has no Compose test setup (no Robolectric, no ui-test dependency); see `PHASES.md`.
+
+---
+
+## 9. What UI-2 built, and what is left for UI-3 (2026-11-02)
+
+**Libraries added (test only):** Robolectric 4.14.1 (Apache-2.0), `androidx.compose.ui:ui-test-junit4` and `ui-test-manifest` (Apache-2.0, BOM-managed). `isIncludeAndroidResources = true` for unit tests. Tests need `@Config(application = android.app.Application::class)` (the app's own Application pulls in a Java 21 dependency that JDK 17 cannot load) and `@ConscryptMode(OFF)` on Windows.
+
+**Built** (`ui/v2/chrome/`):
+- `V2Hub.kt`: the **Hub** sheet (glass via `GlassBottomSheet`), opened by the account avatar when the New UI is on; every non-tab destination in four headed groups (People, Share, Music, You): Profile, Friends, Jam, Receive, Recent shares, Downloads, History, Replay, Spotify import, Sources, Equalizer, Accounts and scrobbling, Settings. The avatar's old action (account selector, or Settings when signed out) is replaced by the Hub in the New UI; the account selector is reached through Settings, Accounts.
+- `V2NowPanel.kt`: **Now Playing panel**, opened by tapping the orb: artwork, title, artist, Jam presence chips with profile avatars and "host", accessible seek bar (`Slider` in a 48 dp box; state "1:24 of 3:30"; actions Back/Forward 10 s), transport (48 dp or more; disabled and explained when the Jam host has locked controls), actions (full player, share, Jam). Colour from the artwork through `ArtworkAccent` (contrast guaranteed) plus the artwork wash behind the sheet. Seek goes to `MediaController.seekTo` once, when the finger lifts.
+- `V2Frames.kt`: **shortcut strips** pinned above the current Home and Library pages (solid, scrolls sideways, chips 48 dp), with the page's top padding raised by the strip's height. The pages are unchanged and keep their own skeletons, empty and error states, pull to refresh, sorting and filtering.
+- `V2Dock.kt`: `V2DockHost` now also hosts the panel and the Hub.
+- Deep links and incoming links: no change needed. `IncomingLinkHub` and its dialogs, the route stack and `AppNavigator` live in `BitChordApp`, which is the same composition in both UIs, so a link lands where it does today (to be confirmed on a device: `UI_TEST_PLAN.md` 2.8). State restoration: the selected tab is `rememberSaveable` as before; the Hub and panel are not restored (UNCLEAR whether that matters).
+
+**Fallbacks to replace in UI-3 (each is still reachable):**
+1. Queue, lyrics, audio output and quality, add to playlist, the track menu: via "Queue, lyrics and more", which opens the current full player.
+2. Search: the current Search page, no changes.
+3. Library: the current page plus the shortcut strip.
+4. The orb-to-player **morph**: the panel is a glass sheet rising from the bottom (not a shape morph from the orb). The full player is the current one.
+5. Top bar: the current floating top bar (with the avatar now opening the Hub).
+6. Predictive back: not changed; the manifest does not set `enableOnBackInvokedCallback` (changing it affects the current UI too). UNCLEAR how the sheets behave under the predictive-back gesture.
+7. Two-pane layouts: none. The dock is capped in width and centred, and sheets use the standard maximum width, so wide windows do not stretch; no window-size-class logic yet.
+8. Home: the current Home content, not a redesign.
+
+**Performance notes.** No device measurement was possible here. By reasoning: the panel recomposes once a second at most (it reads `PlaybackPosition.positionMs`; no per-frame work); the seek drag keeps its value in local state and seeks once; lists in the pages are the existing lazy lists with their own keys; the dock and the panel add at most 2 to 3 live glass surfaces (budget in `GlassBudget`); image loading is Coil with the app's cache. Hotspots to check on a phone: the Full-glass page backdrop recording (existing cost, now also on under the New UI), the glass sheet's backdrop still being captured on open, and the shortcut strip's `onSizeChanged` causing one extra layout pass when it first measures. Compose compiler metrics and layout inspector were not run.
+
+**Risks seen.** `BitChordApp` is at the JVM method-size limit: keep additions single calls. The `Slider` track is 44 dp, so the 48 dp touch area is the wrapping box, not the slider.
