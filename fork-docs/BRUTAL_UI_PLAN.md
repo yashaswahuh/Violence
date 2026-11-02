@@ -94,7 +94,7 @@ A marker (own file `violence_brutal_boot`, written with `commit()`) is set when 
 
 ### 3.7 Strings
 
-29 `brutal_*` keys with **English placeholders** in all 20 `strings.xml` files (default plus 19 locale folders, including the 17 supported languages and the `zh-rHK` and `b+zh+Hant` extras). **Translations are not done**: those rows read in English in every language until a translation pass. `LocaleStringsTest` guards that no locale misses a key.
+29 `brutal_*` keys (46 after the components phase, section 10: 17 more) with **English placeholders** in all 20 `strings.xml` files (default plus 19 locale folders, including the 17 supported languages and the `zh-rHK` and `b+zh+Hant` extras). **Translations are not done**: those rows read in English in every language until a translation pass. `LocaleStringsTest` guards that no locale misses a key.
 
 ## 4. Deviations from the brief and from the spec in B-1 (decided, not hidden)
 
@@ -261,3 +261,90 @@ Compared on rendered pictures (`brutal-ui/screens/glass-*.png`, drawn with the r
 5. `liquidGlass()` fixes its lens at 24 dp x 24 dp and its blur at 8 dp; the mockup's bevel suggests a smaller lens. Left as is so the app's glass fixes carry over; a defaulted parameter on `liquidGlass()` would be the upstream-friendly change if the look needs it on a device.
 6. A Panel at FULL in the preview gallery falls to SIMPLIFIED (no page still is provided there), as it would anywhere without one.
 7. The previews compile but were not opened in Android Studio; the same gallery is what the pixel tests render.
+
+---
+
+## 10. Components (C-1): `ui/brutal/components/`, no screens yet
+
+Built on 2026-11-02 on the glass kit (section 9). Every component of the mockup that is not a glass surface in itself, plus the composites. All text is in `sp`, nothing sits in a fixed-height box, every control has a 48 dp target, a label and a role, and a focus ring in the accent.
+
+### 10.1 What exists
+
+| Component | File | What it is | Accessibility |
+|---|---|---|---|
+| `StickerLabel` | `StickerLabel.kt` | solid accent plate, about -12 degrees (token `BrutalAngles.STICKER`), heavy italic caps rows (the first row Archivo Black, later rows a lighter Figtree 800), 2 dp ink rules, a last row with a label and a mono value ("VERSION 0.4") | **one heading node** read as one phrase ("About, Privacy, Version 0.4"); rows and tilt are hidden from TalkBack. The tilt is a static `graphicsLayer`. At 200 percent font the plate wraps and grows taller, never clips (tested) |
+| `Wordmark`, `ExperimentalTag`, `WordmarkMasthead` | `Wordmark.kt` | "V I O L E N C E" at 1.3 em tracking, optically centred; the tag (text from a string, tilted -4 degrees) shows while `BrutalFlags.EXPERIMENTAL`; the masthead is the tilted (-8.5 degrees) glass tile around it, drawn without a live backdrop | one heading node "Violence, Experimental"; the word is a Latin brand name in every language and, as a logo, exempt from font scaling |
+| `VerticalLabel` | `Labels.kt`, `RotatedLayout.kt` | text turned -90 degrees **with its layout size swapped** (`verticalText()`): the parent measures a lane as wide as one line is tall and as tall as the text is long; one line, ellipsised at the incoming height | an ordinary text node, read once; at 200 percent the lane widens (tested) |
+| `DateStamp` | `Labels.kt` | accent mono `dd mm yy`, turned bottom to top | the date is spoken in words in the device language ("November 28, 2022"), not as digits |
+| `DurationChip` | `Labels.kt` | accent pill with the length (`03:45`, `1:02:03`), at least 20 dp, grows with the font | read as "3 minutes 45 seconds" (string resources, 17 languages once translated); not a separate stop inside a row |
+| `PlayButton` | `ArtTile.kt` | solid accent disc, on-accent triangle, optional glow, drawn at 28 dp | **48 dp touch target** even when drawn smaller (tested at 20 dp); "Play <title>" |
+| `ArtTile` | `ArtTile.kt` | artwork in the glass kit's **Tile** frame (never a live backdrop), aspect clamped to 1.0 to 1.8, Coil `AsyncImage` through the app's loader and cache (or an `artwork` slot for previews and tests), the play button at the bottom end | the tile is a button "Open <title>" with a long-press hook; the play button is a **sibling**, not a child (`clickable` merges children into one node), so tile then play button are two stops (tested) |
+| `LabeledArtTile` | `ArtTile.kt` | the tile with its lane: date above title, turned bottom to top along the start edge, bottom aligned, as tall as the tile | the lane repeats what the tile says, so it is hidden from TalkBack; pass the spoken date as the tile's subtitle |
+| `TrackRow`, `OverflowButton` | `TrackRow.kt` | title (white, up to two lines), artist (accent), duration chip, rounded-square thumbnail at the end, a visible 48 dp "more options" button | the row is one phrase ("Too Young, Post Malone, 3 minutes 45 seconds"), a button "Open <title>", long-press hook, the menu also as a TalkBack custom action; the overflow button is a sibling; at least 72 dp, grows with the font |
+| `GenreRailTab` | `RailControls.kt` | vertical glass pill, label turned bottom to top; selected = solid accent plate with on-accent text and the accent under-glow | role Tab, selected state, position (`CollectionItemInfo`, "tab 2 of 4"); 48 dp wide, at least 48 dp tall and as tall as its label needs; no live backdrop |
+| `RoundGlassButton` | `RailControls.kt` | round (or tall, for search) glass button with an accent icon | button, label, optional state ("expanded"); 48 x 48 dp (72 dp tall for search) |
+| `BrutalButton` | `RailControls.kt` | solid accent stadium button | button, 48 dp at least, grows with the text |
+| `MasonryColumns` | `MasonryColumns.kt` | the broken grid (10.3) | stable keys; collection semantics come from the lazy grid |
+| `BrutalSkeleton`, `BrutalSkeletonTile`, `BrutalSkeletonRow`, `BrutalLoadingGroup` | `States.kt` | glass-body fill with a static diagonal hatch; no shimmer (nothing animates while idle) | the group says "Loading" once as a polite live region; single skeletons are silent |
+| `BrutalEmptyState`, `BrutalErrorState` | `States.kt` | the sticker as the title, a line of text, an accent button | the error is an assertive live region with a retry button |
+| `brutalClickable`, `brutalSelectable`, `Modifier.brutalHalo` | `BrutalInteraction.kt`, glass kit | press (slightly less opaque, no ripple), the accent focus ring, roles and labels; the optional `interactionSource` lets a caller observe or drive focus | the focus ring is drawn in the accent-text colour (the lightened accent), so it keeps 3:1 even on the brightest glass |
+| `brutalContrastPairs` | `ComponentContrast.kt` | every foreground and background pair the components draw (sticker, chip, tab, button, artist, date, titles, muted text, icons, focus ring, text over the bleed) | used by the contrast tests |
+| `BrutalComponentsGallery`, `BrutalPreviewHost` | `BrutalComponentsGallery.kt` | every component on one page with ten `@Preview`s: yellow glow and no-glow at 1x and 2x font, red and blue, light page at 1x and 2x | |
+
+### 10.2 Layout rules that make them safe
+
+- **Rotation takes part in layout** (`rotatedLayout`, `verticalText`). `rotate` and `graphicsLayer` alone only move pixels, so the parent measures the unrotated box and a tilted sticker clips. These two modifiers report the rotated size. A child may be measured only once in Compose, so `rotatedLayout` finds the width with intrinsic measurements and measures once (the first version measured twice and Compose threw: caught by the tests).
+- **Display text** (sticker rows) is drawn at a font scale capped at 1.3 (spec 5.2); the sticker still grows because lines wrap. Everything else scales fully. The wordmark is a logo and does not scale.
+- **No fixed-height box holds text.** Rows, chips and pills use minimum heights; the thumbnail (a square, not text) is the only fixed size.
+- **Non-Latin languages** get no italic and no uppercase (the `ScriptProfile` rule of section 3.4).
+
+### 10.3 Masonry: approach and limits
+
+One `LazyVerticalStaggeredGrid` (platform staggered layout, foundation 1.10): items go to the shortest column, heights come from each tile's aspect (1.0 to 1.8), only visible items are composed, items have stable keys, one scroll container (no nested scrolling). The "broken" part is cosmetic and bounded: each item is nudged by a deterministic offset from its key (at most 6 dp vertically, 3 dp sideways, a `graphicsLayer` translation, so layout, scrolling and keys are unaffected) and the first item of every odd column starts 24 dp lower. **Limits:** the overlap is drawn, not laid out (tiles can kiss, not cover each other); heights come from aspect ratios, not content; items cannot span columns; the column count is fixed per call; the label lane takes width and tiles narrow at large fonts; no sticky headers; the grid clips to its bounds, so the content padding must stay at 24 dp or more for the 21 dp tile glow to show.
+
+### 10.4 Contrast
+
+`ComponentContrastTest` runs all 15 pairs for every one of the eight presets with Glow on and off, for 3,000 random custom colours, and for ten edge colours (black, white, mid grey, the page colour, the pure primaries, the ink and the two glass greys). Text pairs must reach 4.5:1 and icon, stroke and focus pairs 3:1. They all do: the accent derivation (spec 3.2) repairs whatever the user picks. While listing the pairs I noticed that the raw blue accent (`#2F5BFF`) is only 2.70:1 on the brightest glass, below the 3:1 a focus ring needs, so the ring is drawn in the lightened accent-text colour instead (the test then passes for every colour).
+
+### 10.5 How it was checked (no emulator)
+
+- **JVM renders.** The whole gallery is drawn to PNG on the JVM with Robolectric native graphics (a real Compose layout and Skia drawing, with the bundled fonts); `captureToImage` times out there, so the test draws the activity's decor view into a bitmap (`JvmRender.kt`). The ten renders in `brutal-ui/screens/components-*.png` are those, at 360 dp wide: yellow glow and no-glow at 1x and 2x font, red glow 1x, blue glow 1x, blue no-glow 2x, yellow glow and no-glow on a light page, red no-glow on a light page at 2x. `focus-ring.png` shows a focused control. They are **not** emulator or device screenshots.
+- Pixel assertions: the accent plate really is drawn in the derived fill colour for every render; a focused control really shows its ring and loses it again.
+- Layout and semantics tests (Robolectric, native graphics): one node and a heading for the sticker, text not separately reachable, the plate never wider than its window at 200 percent and taller there, the vertical label swapping its size and ellipsising at its height, the lane widening at 200 percent, 48 dp targets (play at a 20 dp visual, overflow, rail, round buttons), tile and play button as two controls with clicks reaching the right one, aspect clamping, long-press and overflow hooks, the TalkBack custom action, selected tabs with their role and position, the masonry in two columns with the second lower, loading announced once, the error state assertive with a working retry.
+
+### 10.6 Comparison with the mockups
+
+Compared on the JVM renders against the crops used for `BRUTAL_UI_SPEC.md`.
+
+| Aspect | Mockup | Built | Verdict |
+|---|---|---|---|
+| Sticker | yellow plate about -12 degrees, bleeding off the top-start corner, heavy caps, black rules, a small version row | the same, with italic caps (the brief's "heavy italic"), the second row lighter, "0.4" in mono | matches in character; the font is Archivo Black, a wider face than the mockup's (see spec 4.2); the mockup's perspective skew is not reproduced |
+| Wordmark and tag | very wide tracking, white, in a tilted glass tile, yellow tilted tag | the same, tag from a string | matches; the glass is the SIMPLIFIED look here (no refraction, section 9.7) |
+| Vertical labels and date stamps | yellow condensed dates and white titles along the tile edge | accent mono dates (as the brief says; the spec measured a condensed face) and white Figtree titles, date above title, bottom aligned | approximate: the mono digits are wider than the mockup's condensed ones |
+| Tiles | glass frame, artwork, round yellow play button at the bottom end | the Tile frame (ring, dark inner line, rim, arcs), accent play disc with a glow | matches in character; the mockup's frame refracts the artwork, this one is gradients |
+| Rail | glass pills with rotated labels, the selected one solid yellow, round collapse and search buttons | the same, no live backdrop | matches; labels are Home, Explore, Library, Search in the gallery |
+| List rows | white title, yellow artist, yellow chip, thumbnail at the end | the same, plus a visible overflow button the mockup does not have | matches; the overflow button is a deliberate addition (a long-press needs a visible equivalent) |
+| Broken grid | tiles of different heights, offset columns, overlaps | staggered columns, a 24 dp lead on the odd column, up to 6 dp of overlap | approximate: the mockup overlaps more and with more rotation |
+| Skeleton, empty, error | not in the mockup | designed in the same language | n/a |
+| NO-GLOW | clear glass | no accent in glass; accent still appears in plates, text and icons | by design |
+
+**Not built here** (section 6 chrome and the player are the next phase): the PLAYING and PAUSE bars and the transport bar, the "Components" oval and the hand-drawn arrow of the mockup (illustration, not a component), the rail and dock as screens, and any real page.
+
+### 10.7 Deviations and limits
+
+1. The sticker angle is the spec's measured -12 degrees, not the brief's "about -10".
+2. The date stamp is mono as the brief says; the spec preferred a condensed face (Archivo Narrow, bundled, used by the `stamp` style but not by `DateStamp`).
+3. Italic is synthesised by Compose (no italic font file is bundled), Latin only.
+4. The wordmark ignores the font scale (it is a logo); the sticker caps at 1.3 but grows by wrapping.
+5. A long-press is the "menu hook" and always paired with a visible overflow button on rows; tiles take the hook but have no overflow button of their own (a tile is not a row: add one in the screen if a tile needs it).
+6. The skeleton does not shimmer: no continuous animation while idle is a rule of this look.
+7. Whether rotating right-to-left text by -90 degrees reads well is UNCLEAR until checked in Hebrew on a device.
+8. **At 200 percent font the rail does not fit its container** (the gallery draws it in a 560 dp box and the lower tabs are cut off in `components-*-2x.png`). That is the case the spec gives to the rail-to-dock fallback (section 6.9: font scale of 1.5 or more, or not enough height): it is chrome, so it is not built here. The tabs and buttons themselves are never clipped by their own size.
+9. On a short tile at a large font the date stamp (eight characters) can take the whole lane; it then ellipsises and the title is dropped from the lane (TalkBack still hears both through the tile).
+10. Previews compile but were not opened in Android Studio; the JVM renders are the visual check. Nothing here was run on an emulator or a phone.
+
+### 10.8 Results (2026-11-03, on the final code, through `scripts/`)
+
+`build-active.ps1 -Target phone` BUILD SUCCESSFUL (1m 15s); `build-active.ps1 -Target tv` BUILD SUCCESSFUL (43s); `test-active.ps1 -Target phone`: `:app:testDevDebugUnitTest` and `:shared:jvmTest` both passed. Report files read afterwards: **app 1,508 tests, 0 failures, 0 errors, 1 skipped** (`GeniusTest`, not ours), of which **68 are the components'** (logic and contrast 23, Robolectric structure 33, JVM pixel renders 11, the render smoke test 1); **shared 234 tests, 0 failures**. `LocaleStringsTest` passed with the 17 new strings in all locales. Web: not run (no web file changed). Wear OS and desktop: dormant, not checked.
+
+How it got here, so the numbers are not read as first-try: the first run threw "measure() may not be called multiple times" (a real bug in `rotatedLayout` and `LabeledArtTile`, fixed by predicting sizes with intrinsics and measuring once); the masonry showed no tiles until the lane width came from the type styles instead of an intrinsic query through the turned text; the legacy Robolectric graphics gave fake text metrics and no path hit-testing, so the structure tests run in native graphics mode; one test expectation (rail tab width at 200 percent) was wrong and was corrected, not the component.
