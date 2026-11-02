@@ -20,7 +20,7 @@ internal object DesktopDiscordSettings {
     private val _button1Text = MutableStateFlow(persistence.string(KEY_BUTTON_1_TEXT, ""))
     private val _button1Visible = MutableStateFlow(persistence.boolean(KEY_BUTTON_1_VISIBLE, true))
     private val _button2Text = MutableStateFlow(persistence.string(KEY_BUTTON_2_TEXT, ""))
-    private val _button2Visible = MutableStateFlow(persistence.boolean(KEY_BUTTON_2_VISIBLE, false))
+    private val _button2Visible = MutableStateFlow(persistence.boolean(KEY_BUTTON_2_VISIBLE, true))
     private val _showAudioQuality = MutableStateFlow(persistence.boolean(KEY_SHOW_AUDIO_QUALITY, true))
 
     /** Whether the song goes on the bold line instead of the artist. */

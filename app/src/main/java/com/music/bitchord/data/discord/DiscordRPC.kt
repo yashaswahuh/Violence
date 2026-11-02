@@ -88,14 +88,14 @@ class DiscordRPC(
                 button1Text.ifEmpty { DEFAULT_BUTTON_1 },
                 song,
             )
-            buttonsList.add(resolvedText to watchUrl(song))
+            buttonsList.add(resolvedText.take(DiscordApplication.BUTTON_LABEL_MAX) to watchUrl(song))
         }
         if (button2Visible) {
             val resolvedText = resolveVariables(
                 button2Text.ifEmpty { DEFAULT_BUTTON_2 },
                 song,
             )
-            buttonsList.add(resolvedText to PROJECT_URL)
+            buttonsList.add(resolvedText.take(DiscordApplication.BUTTON_LABEL_MAX) to PROJECT_URL)
         }
 
         val type = when (activityType) {
@@ -106,6 +106,7 @@ class DiscordRPC(
         }
 
         val name = activityName.ifEmpty { appName() }
+        val artwork = song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }
 
         setActivity(
             name = name,
@@ -118,16 +119,14 @@ class DiscordRPC(
             //
             // A track with no artwork — or with artwork Discord can't reach,
             // which is anything that isn't an http URL — sends none, and Discord
-            // draws the BitChord application's own icon in its place.
-            largeImage = song.artworkAt(ART_PX)
-                ?.takeIf { it.startsWith("http") }
-                ?.let(RpcImage::ExternalImage),
-            smallImage = null,
+            // is replaced by the Violence logo.
+            largeImage = RpcImage.ExternalImage(artwork ?: DiscordApplication.LOGO_URL),
+            smallImage = artwork?.let { RpcImage.ExternalImage(DiscordApplication.LOGO_URL) },
             // The card's optional third information line. Kept absent for
             // ordinary lossy streams so Discord only calls attention to a
             // measured premium format.
             largeText = audioQuality,
-            smallText = null,
+            smallText = if (artwork != null) name else null,
             buttons = if (buttonsList.isNotEmpty()) buttonsList else null,
             type = type,
             statusDisplayType = if (useDetails) StatusDisplayType.DETAILS else StatusDisplayType.STATE,
