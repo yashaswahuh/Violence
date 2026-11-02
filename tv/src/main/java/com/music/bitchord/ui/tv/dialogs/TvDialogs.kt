@@ -1219,7 +1219,7 @@ fun TvAboutDialog(onDismiss: () -> Unit) {
         }
         Spacer(modifier = Modifier.height(14.dp))
         Text(
-            text = "Unofficial modified fork of BitChord (https://github.com/kushagrasinghx/BitChord) by Kushagra Singh.\nLicensed under GPL-3.0. Modifications began Oct 30, 2026.\nNot affiliated with or endorsed by Kushagra Singh, YouTube, Google, Spotify, Last.fm, or Apple.",
+            text = "Violence Music is a fork of BitChord (https://github.com/kushagrasinghx/BitChord), created by Kushagra Singh.\nBuilt on BitChord's open-source foundation and licensed under GPL-3.0. Modified from October 30, 2026.\nNot endorsed by YouTube, Google, Spotify, Last.fm, or Apple.",
             style = TvType.Caption,
             color = TvGlass.TextTertiary,
             textAlign = TextAlign.Center,

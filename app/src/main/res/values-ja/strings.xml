@@ -1546,18 +1546,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">%1$s さんから</string>
+    <string name="incoming_add_jam">Jam のキューに追加</string>
+    <string name="incoming_added_jam">Jam のキューに追加しました</string>
+    <string name="jam_auto_joining">%1$s さんの Jam に参加中</string>
+    <string name="profile_auto_join">タッチで友だちの Jam に参加</string>
+    <string name="profile_auto_join_footer">リストにいる友だちが NFC のタッチで Jam への招待を共有すると、プレビューを表示せずにすぐ参加します。初期設定ではオフです。友だちはリンク内のプロフィールカードで判別されますが、これは誰でもコピーできるため、タッチする相手を信頼できる場合のみオンにしてください。</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">あなたと共有されたプレイリスト</string>
+    <string name="incoming_playlist_songs">%1$d 曲</string>
+    <string name="incoming_playlist_open">プレイリストを開く</string>
+    <string name="incoming_playlist_save">プレイリストとして保存</string>
+    <string name="incoming_playlist_saving">保存中…</string>
+    <string name="incoming_playlist_saved">プレイリストを保存しました</string>
+    <string name="incoming_playlist_failed">それらの曲を検索できませんでした</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">最近</string>
+    <string name="recent_row_subtitle">共有した、または受け取った曲・プレイリスト・プロフィール</string>
+    <string name="recent_empty">まだ何もありません。送受信した曲、プレイリスト、プロフィールがここに表示されます(このスマートフォン内のみ)。</string>
+    <string name="recent_footer">このスマートフォンにのみ保存されます。タップするともう一度開けます。</string>
+    <string name="recent_clear">最近の履歴を消去</string>
+    <string name="recent_sent">送信済み</string>
+    <string name="recent_received">受信済み</string>
+    <string name="profile_feedback_header">共有時のフィードバック</string>
+    <string name="profile_feedback_vibration">送受信時に振動する</string>
+    <string name="profile_feedback_chime">やわらかい音を鳴らす</string>
+    <string name="friends_my_qr">自分の QR コードを表示</string>
+    <string name="friends_my_qr_subtitle">友だちがスキャンして追加できます</string>
+    <string name="friends_send_song">再生中の曲を送る</string>
+    <string name="friends_invite_jam">自分の Jam に招待</string>
+    <string name="friends_send_subtitle">タップして共有、QR、リンクを開きます</string>
+    <string name="receive_last_read">最後の読み取り: %1$s</string>
 </resources>

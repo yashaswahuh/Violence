@@ -1545,18 +1545,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">来自 %1$s</string>
+    <string name="incoming_add_jam">添加到 Jam 队列</string>
+    <string name="incoming_added_jam">已添加到 Jam 队列</string>
+    <string name="jam_auto_joining">正在加入 %1$s 的 Jam</string>
+    <string name="profile_auto_join">碰一碰加入好友的 Jam</string>
+    <string name="profile_auto_join_footer">当名单中的好友通过 NFC 碰触分享 Jam 邀请时，直接加入而不显示预览。默认关闭。好友是通过链接里的资料卡识别的，而任何人都可以复制它，所以只有在你信任碰触对象时才开启。</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">与你分享的歌单</string>
+    <string name="incoming_playlist_songs">%1$d 首歌曲</string>
+    <string name="incoming_playlist_open">打开歌单</string>
+    <string name="incoming_playlist_save">另存为歌单</string>
+    <string name="incoming_playlist_saving">正在保存…</string>
+    <string name="incoming_playlist_saved">歌单已保存</string>
+    <string name="incoming_playlist_failed">无法查找这些歌曲</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">最近</string>
+    <string name="recent_row_subtitle">你分享或收到的歌曲、歌单和资料卡</string>
+    <string name="recent_empty">暂无内容。你发送或收到的歌曲、歌单和资料卡会显示在这里，仅保存在本机。</string>
+    <string name="recent_footer">仅保存在本机。点按一项即可再次打开。</string>
+    <string name="recent_clear">清除最近记录</string>
+    <string name="recent_sent">已发送</string>
+    <string name="recent_received">已接收</string>
+    <string name="profile_feedback_header">分享反馈</string>
+    <string name="profile_feedback_vibration">发送或接收时振动</string>
+    <string name="profile_feedback_chime">播放轻柔提示音</string>
+    <string name="friends_my_qr">显示我的二维码</string>
+    <string name="friends_my_qr_subtitle">好友扫描即可添加你</string>
+    <string name="friends_send_song">发送正在播放的歌曲</string>
+    <string name="friends_invite_jam">邀请加入我的 Jam</string>
+    <string name="friends_send_subtitle">打开“碰一碰分享”、二维码和链接</string>
+    <string name="receive_last_read">上次读取：%1$s</string>
 </resources>

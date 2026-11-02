@@ -151,6 +151,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
         // the next connect, which is the only way to be sure they are current.
         // The local Violence profile, read by Jam when it builds a member identity.
         com.music.bitchord.data.profile.ProfileManager.init(this)
+        com.music.bitchord.share.RecentShares.init(this)
         // The tap-to-share tag service is only ever on while its screen is showing; after an
         // unclean exit it could have been left enabled, so make sure it is off.
         com.music.bitchord.nfc.NfcShareSession.ensureOff(this)

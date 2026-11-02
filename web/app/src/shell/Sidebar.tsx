@@ -193,7 +193,7 @@ export function Sidebar() {
             </div>
           </div>
           <div className="px-1 pt-1 text-[11px] leading-tight text-tertiary">
-            Fork of <a href="https://github.com/kushagrasinghx/BitChord" target="_blank" rel="noreferrer" className="underline hover:text-secondary">BitChord</a> by Kushagra Singh (GPL-3.0)
+            Fork of <a href="https://github.com/kushagrasinghx/BitChord" target="_blank" rel="noreferrer" className="underline hover:text-secondary">BitChord</a> created by Kushagra Singh (GPL-3.0)
           </div>
         </div>
       </nav>

@@ -224,7 +224,7 @@ export default function SettingsPage() {
         <section className={settingsUi.group}>
           <div className={`${settingsUi.row} flex-col !items-start gap-1`}>
             <p className="type-body text-primary">
-              Violence is an unofficial, privately maintained, modified fork of{' '}
+              Violence Music is a fork of{' '}
               <a
                 href="https://github.com/kushagrasinghx/BitChord"
                 target="_blank"
@@ -233,10 +233,10 @@ export default function SettingsPage() {
               >
                 BitChord
               </a>{' '}
-              by Kushagra Singh.
+              , created by Kushagra Singh. It builds on BitChord’s open-source foundation with its own changes and features.
             </p>
             <p className="type-callout text-secondary">
-              Licensed under GPL-3.0. Modifications began October 30, 2026. Not affiliated with, endorsed by, or supported by Kushagra Singh, YouTube, Google, Spotify, Last.fm, or Apple. UI inspired by Apple Music.
+              Licensed under GPL-3.0. Modified from October 30, 2026. Not endorsed by YouTube, Google, Spotify, Last.fm, or Apple. UI inspired by Apple Music.
             </p>
           </div>
         </section>

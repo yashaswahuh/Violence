@@ -1608,18 +1608,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">Od %1$s</string>
+    <string name="incoming_add_jam">Dodaj do kolejki Jama</string>
+    <string name="incoming_added_jam">Dodano do kolejki Jama</string>
+    <string name="jam_auto_joining">Dołączanie do Jama użytkownika %1$s</string>
+    <string name="profile_auto_join">Dołączaj do Jamów znajomych przez dotknięcie</string>
+    <string name="profile_auto_join_footer">Gdy znajomy z Twojej listy udostępni zaproszenie do Jama przez dotknięcie NFC, dołączysz od razu zamiast oglądać podgląd. Domyślnie wyłączone. Znajomego rozpoznaje się po karcie profilu w linku, którą każdy może skopiować, więc włącz to tylko, jeśli ufasz osobom, z którymi stykasz telefony.</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">Playlista udostępniona Tobie</string>
+    <string name="incoming_playlist_songs">Utworów: %1$d</string>
+    <string name="incoming_playlist_open">Otwórz playlistę</string>
+    <string name="incoming_playlist_save">Zapisz jako playlistę</string>
+    <string name="incoming_playlist_saving">Zapisywanie…</string>
+    <string name="incoming_playlist_saved">Zapisano playlistę</string>
+    <string name="incoming_playlist_failed">Nie udało się znaleźć tych utworów</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">Ostatnie</string>
+    <string name="recent_row_subtitle">Utwory, playlisty i profile, które udostępniono lub otrzymano</string>
+    <string name="recent_empty">Na razie nic. Utwory, playlisty i profile, które wyślesz lub otrzymasz, pojawią się tutaj, tylko na tym telefonie.</string>
+    <string name="recent_footer">Przechowywane tylko na tym telefonie. Dotknij pozycji, aby otworzyć ją ponownie.</string>
+    <string name="recent_clear">Wyczyść ostatnie</string>
+    <string name="recent_sent">Wysłano</string>
+    <string name="recent_received">Odebrano</string>
+    <string name="profile_feedback_header">Sygnał po udostępnieniu</string>
+    <string name="profile_feedback_vibration">Wibruj po wysłaniu lub odebraniu</string>
+    <string name="profile_feedback_chime">Odtwórz cichy dźwięk</string>
+    <string name="friends_my_qr">Pokaż mój kod QR</string>
+    <string name="friends_my_qr_subtitle">Znajomi skanują go, aby Cię dodać</string>
+    <string name="friends_send_song">Wyślij odtwarzany utwór</string>
+    <string name="friends_invite_jam">Zaproś do mojego Jama</string>
+    <string name="friends_send_subtitle">Otwiera Dotknij, aby udostępnić, kod QR i linki</string>
+    <string name="receive_last_read">Ostatni odczyt: %1$s</string>
 </resources>

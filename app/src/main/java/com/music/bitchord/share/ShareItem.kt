@@ -29,13 +29,10 @@ sealed interface ShareItem {
         override val webUrl: String = SongLinks.toWebUrl(ref)
     }
 
-    /**
-     * A playlist. There is no https landing page for it yet, so QR, copy and the share sheet
-     * carry the `violence://` link, which Violence's own scanner and paste box read.
-     */
+    /** A playlist: the https landing page (like a song's) for QR and links, `violence://` for a tap. */
     data class PlaylistItem(val ref: PlaylistRef) : ShareItem {
         override val uri: String = PlaylistLinks.toUri(ref)
-        override val webUrl: String? = null
+        override val webUrl: String = PlaylistLinks.toWebUrl(ref)
     }
 
     data class ProfileItem(val card: ProfileCard) : ShareItem {

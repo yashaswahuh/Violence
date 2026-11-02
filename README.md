@@ -17,11 +17,11 @@
 
 ## About this fork
 
-**Violence** is an unofficial, privately maintained, modified fork of [BitChord](https://github.com/kushagrasinghx/BitChord) by Kushagra Singh.
+**Violence Music** is a fork of [BitChord](https://github.com/kushagrasinghx/BitChord), created by Kushagra Singh. It builds on BitChord's open-source foundation with its own changes and features.
 
 - **License:** The original BitChord project is licensed under the GNU General Public License v3.0 (GPL-3.0), and this fork stays licensed under the GNU General Public License v3.0 (GPL-3.0).
 - **Modifications:** This project has been modified from the original starting on October 30, 2026.
-- **Affiliation:** This fork is not affiliated with, endorsed by, or supported by the original author (Kushagra Singh).
+- **Credit:** BitChord and its design are the work of Kushagra Singh; this fork is maintained separately and is not endorsed by YouTube, Google, Spotify, Last.fm, or Apple.
 
 ### Main Changes
 Based on fork documentation and logs (`/fork-docs`):

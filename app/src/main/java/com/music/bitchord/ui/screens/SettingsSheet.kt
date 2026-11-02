@@ -1682,13 +1682,13 @@ fun SettingsScreen(
             )
             Text(
                 text = buildAnnotatedString {
-                    append("Violence $version\n")
-                    append("Unofficial modified fork of ")
+                    append("Violence Music $version\n")
+                    append("A fork of ")
                     withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx/BitChord", linkStyles)) {
                         append("BitChord")
                     }
-                    append(" by Kushagra Singh\n")
-                    append("Licensed under GPL-3.0. Not affiliated with or endorsed by the original author.")
+                    append(", created by Kushagra Singh.\n")
+                    append("Built on BitChord's open-source foundation and licensed under GPL-3.0.")
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

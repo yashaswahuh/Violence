@@ -264,6 +264,7 @@
                 <data android:pathPrefix="/Violence/invite/" />
                 <!-- Phase 9: a shared song and a shared profile card (fork-docs/SHARE_DESIGN.md). -->
                 <data android:pathPrefix="/Violence/song/" />
+                <data android:pathPrefix="/Violence/playlist/" />
                 <data android:pathPrefix="/Violence/profile" />
             </intent-filter>
 

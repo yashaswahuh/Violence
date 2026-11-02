@@ -1485,18 +1485,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">Từ %1$s</string>
+    <string name="incoming_add_jam">Thêm vào hàng đợi Jam</string>
+    <string name="incoming_added_jam">Đã thêm vào hàng đợi Jam</string>
+    <string name="jam_auto_joining">Đang vào Jam của %1$s</string>
+    <string name="profile_auto_join">Chạm để vào Jam của bạn bè</string>
+    <string name="profile_auto_join_footer">Khi một người bạn trong danh sách chia sẻ lời mời Jam bằng cách chạm NFC, bạn sẽ vào ngay thay vì xem bản xem trước. Mặc định tắt. Bạn bè được nhận ra qua thẻ hồ sơ trong liên kết, mà ai cũng có thể sao chép, nên chỉ bật khi bạn tin tưởng những người mình chạm điện thoại.</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">Danh sách phát được chia sẻ với bạn</string>
+    <string name="incoming_playlist_songs">%1$d bài hát</string>
+    <string name="incoming_playlist_open">Mở danh sách phát</string>
+    <string name="incoming_playlist_save">Lưu thành danh sách phát</string>
+    <string name="incoming_playlist_saving">Đang lưu…</string>
+    <string name="incoming_playlist_saved">Đã lưu danh sách phát</string>
+    <string name="incoming_playlist_failed">Không thể tìm các bài hát đó</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">Gần đây</string>
+    <string name="recent_row_subtitle">Bài hát, danh sách phát và hồ sơ bạn đã chia sẻ hoặc nhận</string>
+    <string name="recent_empty">Chưa có gì. Bài hát, danh sách phát và hồ sơ bạn gửi hoặc nhận sẽ hiện ở đây, chỉ trên điện thoại này.</string>
+    <string name="recent_footer">Chỉ lưu trên điện thoại này. Chạm vào một mục để mở lại.</string>
+    <string name="recent_clear">Xóa mục gần đây</string>
+    <string name="recent_sent">Đã gửi</string>
+    <string name="recent_received">Đã nhận</string>
+    <string name="profile_feedback_header">Phản hồi khi chia sẻ</string>
+    <string name="profile_feedback_vibration">Rung khi gửi hoặc nhận</string>
+    <string name="profile_feedback_chime">Phát âm thanh nhẹ</string>
+    <string name="friends_my_qr">Hiện mã QR của tôi</string>
+    <string name="friends_my_qr_subtitle">Bạn bè quét để thêm bạn</string>
+    <string name="friends_send_song">Gửi bài đang phát</string>
+    <string name="friends_invite_jam">Mời vào Jam của tôi</string>
+    <string name="friends_send_subtitle">Mở Chạm để chia sẻ, QR và liên kết</string>
+    <string name="receive_last_read">Lần đọc gần nhất: %1$s</string>
 </resources>

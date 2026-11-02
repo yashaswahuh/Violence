@@ -37,6 +37,29 @@ object ProfileManager {
     /** Join a Jam straight away when a friend on the list shares it by NFC tap. Off unless switched on. */
     val autoJoinFriends: StateFlow<Boolean> = _autoJoinFriends.asStateFlow()
 
+    private const val KEY_SHARE_VIBRATION = "share_vibration"
+    private const val KEY_SHARE_CHIME = "share_chime"
+
+    private val _shareVibration = MutableStateFlow(true)
+
+    /** A short buzz when a tap, QR or link is sent or received. On unless switched off. */
+    val shareVibration: StateFlow<Boolean> = _shareVibration.asStateFlow()
+
+    private val _shareChime = MutableStateFlow(false)
+
+    /** A soft chime as well. Off unless switched on. */
+    val shareChime: StateFlow<Boolean> = _shareChime.asStateFlow()
+
+    fun setShareVibration(value: Boolean) {
+        _shareVibration.value = value
+        settings?.edit()?.putBoolean(KEY_SHARE_VIBRATION, value)?.apply()
+    }
+
+    fun setShareChime(value: Boolean) {
+        _shareChime.value = value
+        settings?.edit()?.putBoolean(KEY_SHARE_CHIME, value)?.apply()
+    }
+
     fun setAutoJoinFriends(value: Boolean) {
         _autoJoinFriends.value = value
         settings?.edit()?.putBoolean(KEY_AUTO_JOIN, value)?.apply()
@@ -67,6 +90,8 @@ object ProfileManager {
         photoFile = File(File(app.filesDir, PHOTO_DIR), PHOTO_FILE)
         settings = prefs
         _autoJoinFriends.value = prefs.getBoolean(KEY_AUTO_JOIN, false)
+        _shareVibration.value = prefs.getBoolean(KEY_SHARE_VIBRATION, true)
+        _shareChime.value = prefs.getBoolean(KEY_SHARE_CHIME, false)
     }
 
     val profile: StateFlow<InAppProfile?> get() = repository.profile

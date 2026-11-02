@@ -1525,18 +1525,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">%1$s tarafından</string>
+    <string name="incoming_add_jam">Jam kuyruğuna ekle</string>
+    <string name="incoming_added_jam">Jam kuyruğuna eklendi</string>
+    <string name="jam_auto_joining">%1$s kişisinin Jam\'ine katılınıyor</string>
+    <string name="profile_auto_join">Arkadaşların Jam\'lerine dokunarak katıl</string>
+    <string name="profile_auto_join_footer">Listendeki bir arkadaş NFC dokunuşuyla Jam daveti paylaştığında, önizleme göstermeden hemen katılırsın. Varsayılan olarak kapalıdır. Arkadaş, bağlantıdaki profil kartından tanınır ve bunu herkes kopyalayabilir; bu yüzden yalnızca telefonlarını dokundurduğun kişilere güveniyorsan aç.</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">Seninle paylaşılan çalma listesi</string>
+    <string name="incoming_playlist_songs">%1$d şarkı</string>
+    <string name="incoming_playlist_open">Çalma listesini aç</string>
+    <string name="incoming_playlist_save">Çalma listesi olarak kaydet</string>
+    <string name="incoming_playlist_saving">Kaydediliyor…</string>
+    <string name="incoming_playlist_saved">Çalma listesi kaydedildi</string>
+    <string name="incoming_playlist_failed">Bu şarkılar aranamadı</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">Son kullanılanlar</string>
+    <string name="recent_row_subtitle">Paylaştığın veya aldığın şarkılar, çalma listeleri ve profiller</string>
+    <string name="recent_empty">Henüz bir şey yok. Gönderdiğin veya aldığın şarkılar, çalma listeleri ve profiller burada, yalnızca bu telefonda görünür.</string>
+    <string name="recent_footer">Yalnızca bu telefonda tutulur. Yeniden açmak için birine dokun.</string>
+    <string name="recent_clear">Son kullanılanları temizle</string>
+    <string name="recent_sent">Gönderildi</string>
+    <string name="recent_received">Alındı</string>
+    <string name="profile_feedback_header">Paylaşım geri bildirimi</string>
+    <string name="profile_feedback_vibration">Gönderildiğinde veya alındığında titret</string>
+    <string name="profile_feedback_chime">Yumuşak bir ses çal</string>
+    <string name="friends_my_qr">QR kodumu göster</string>
+    <string name="friends_my_qr_subtitle">Arkadaşlar seni eklemek için tarar</string>
+    <string name="friends_send_song">Çalan şarkıyı gönder</string>
+    <string name="friends_invite_jam">Jam\'ime davet et</string>
+    <string name="friends_send_subtitle">Dokunarak paylaş, QR ve bağlantıları açar</string>
+    <string name="receive_last_read">Son okuma: %1$s</string>
 </resources>
