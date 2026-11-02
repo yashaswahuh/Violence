@@ -1588,4 +1588,34 @@
     <string name="sort_duration">Length</string>
     <string name="sort_original">Original order</string>
     <string name="sort_default_reversed">Reverse order</string>
+    <!-- Brutal UI (English placeholders until translated) -->
+    <string name="brutal_new_ui_title">New UI (experimental)</string>
+    <string name="brutal_new_ui_subtitle">A bolder look: black pages, one acid accent, heavy type. The current UI is unchanged and stays the default; turn this off to go back at any time. Dark theme only. Music keeps playing while you switch.</string>
+    <string name="brutal_glow_title">Glow</string>
+    <string name="brutal_glow_subtitle">Accent glow on glass surfaces. Off keeps the clear glass look.</string>
+    <string name="brutal_accent_title">Accent colour</string>
+    <string name="brutal_accent_subtitle">The one bright colour of the new look</string>
+    <string name="brutal_accent_presets">Presets</string>
+    <string name="brutal_accent_custom">Custom</string>
+    <string name="brutal_accent_hue">Hue</string>
+    <string name="brutal_accent_saturation">Saturation</string>
+    <string name="brutal_accent_brightness">Brightness</string>
+    <string name="brutal_accent_use_custom">Use this colour</string>
+    <string name="brutal_accent_adjusted">Lightened a little so text stays readable.</string>
+    <string name="brutal_accent_yellow">Yellow</string>
+    <string name="brutal_accent_red">Red</string>
+    <string name="brutal_accent_blue">Blue</string>
+    <string name="brutal_accent_green">Green</string>
+    <string name="brutal_accent_orange">Orange</string>
+    <string name="brutal_accent_pink">Pink</string>
+    <string name="brutal_accent_cyan">Cyan</string>
+    <string name="brutal_accent_white">White</string>
+    <string name="brutal_rail_side_title">Rail side</string>
+    <string name="brutal_rail_side_subtitle">Which edge the navigation rail sits on</string>
+    <string name="brutal_rail_left">Left</string>
+    <string name="brutal_rail_right">Right</string>
+    <string name="brutal_reduce_transparency_title">Reduce transparency</string>
+    <string name="brutal_reduce_transparency_subtitle">Draw new-UI surfaces solid, with no glass</string>
+    <string name="brutal_safe_mode_title">Back to the current UI</string>
+    <string name="brutal_safe_mode_body">The new UI did not start twice in a row, so the app went back to the current UI. You can try it again in Settings, Advanced.</string>
 </resources>
