@@ -1576,4 +1576,9 @@
     <string name="friends_invite_jam">邀请加入我的 Jam</string>
     <string name="friends_send_subtitle">打开“碰一碰分享”、二维码和链接</string>
     <string name="receive_last_read">上次读取：%1$s</string>
+    <!-- Friends are kept on each phone: after adding one, offer your own card back. English placeholders, not yet translated. -->
+    <string name="friends_back_title">Let %1$s add you too</string>
+    <string name="friends_back_body">Friends are kept on each phone, so their list stays empty until %1$s adds your card. Show your QR code or tap phones now.</string>
+    <string name="friends_back_show">Show my card</string>
+    <string name="friends_back_later">Not now</string>
 </resources>

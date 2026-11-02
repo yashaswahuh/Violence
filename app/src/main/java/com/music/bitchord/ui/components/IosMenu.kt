@@ -174,7 +174,10 @@ fun Modifier.iosMenuPanel(
     val glass = LocalLiquidGlassEnabled.current && isGlassSupported() && blurs
     val glassBackdrop = if (glass) (backdrop ?: LocalAppBackdrop.current) else null
     val surface = if (glassBackdrop != null) {
-        val glassFill = remember(fill) { fill }
+        // Thinner than the frosted fill, so the page and the lens at the edges read through it.
+        val glassFill = remember(fill, fillOverride, colors.dark) {
+            if (fillOverride != null) fill else fill.copy(alpha = if (colors.dark) 0.46f else 0.42f)
+        }
         shadowed.menuGlass(glassBackdrop, glassFill)
     } else if (hazeFrost) {
         val style = remember(colors, fill) { menuFrost(colors.fill, alpha = fill.alpha) }

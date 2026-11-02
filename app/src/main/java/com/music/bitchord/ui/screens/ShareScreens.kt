@@ -1,8 +1,7 @@
 package com.music.bitchord.ui.screens
 
 import com.music.bitchord.ui.components.GlassBottomSheet
-import com.music.bitchord.ui.components.glassPanelColor
-import com.music.bitchord.ui.components.glassPanelEdge
+import com.music.bitchord.ui.components.GlassSurface
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -763,11 +762,10 @@ fun IncomingSongDialog(
     val ready = song != null
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(
+        GlassSurface(
             shape = RoundedCornerShape(28.dp),
-            color = glassPanelColor(MaterialTheme.colorScheme.surface),
-            modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 380.dp)
-                .glassPanelEdge(RoundedCornerShape(28.dp)),
+            plainColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 380.dp),
         ) {
             Column(Modifier.padding(horizontal = 22.dp, vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -907,11 +905,10 @@ fun IncomingPlaylistDialog(
     onAddToJam: (() -> Unit)? = null,
 ) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(
+        GlassSurface(
             shape = RoundedCornerShape(28.dp),
-            color = glassPanelColor(MaterialTheme.colorScheme.surface),
-            modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 380.dp)
-                .glassPanelEdge(RoundedCornerShape(28.dp)),
+            plainColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 380.dp),
         ) {
             Column(Modifier.padding(horizontal = 22.dp, vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(

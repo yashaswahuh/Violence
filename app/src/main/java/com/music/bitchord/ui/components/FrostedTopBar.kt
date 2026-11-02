@@ -390,15 +390,6 @@ private fun ArtworkPageActions(
     ActionsRow(
         modifier = modifier
             .then(artworkPageSurface(shape = CircleShape, hazeState = hazeState))
-            // Keep the right edge fixed while a new action opens room to its
-            // left. The surface itself therefore grows instead of jumping to
-            // its new width in a single frame.
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow,
-                ),
-            )
             // One profile target with no inset is a true circle, the back
             // button's size. Once another action exists, Apple's inset opens at
             // both ends. This is layout padding inside the surface, not an
@@ -516,30 +507,36 @@ private fun Modifier.artworkActionEdgePadding(): Modifier = layout { measurable,
 }
 
 /**
- * A top-bar action that folds away under its neighbour: its width and opacity go to nothing while
- * [collapsed], sliding in from the right edge (the account photo's side), and back again when not.
- * The bar's pill shrinks and grows with it, since it measures its contents.
+ * A top-bar action that tucks in under the control to its right: its slot narrows to nothing while
+ * [collapsed] and the glyph slides across into that neighbour, shrinking and fading as it goes, and
+ * comes back out the same way. One spring drives all of it, critically damped (no overshoot), and
+ * nothing is clipped, so the glyph is seen going behind the next one rather than being cut off.
+ * The bar's pill follows because it is laid out from its contents.
  */
 @Composable
 fun CollapsingTopAction(collapsed: Boolean, content: @Composable () -> Unit) {
-    val fold by androidx.compose.animation.core.animateFloatAsState(
+    val fold by animateFloatAsState(
         targetValue = if (collapsed) 0f else 1f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = 0.85f,
-            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
-        ),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "topActionFold",
     )
     if (fold <= 0.001f && collapsed) return
     Box(
         Modifier
-            .clipToBounds()
-            .graphicsLayer { alpha = fold }
             .layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints)
-                val width = (placeable.width * fold).roundToInt()
-                // Right-aligned: the part that has not folded yet is the part nearest the photo.
-                layout(width, placeable.height) { placeable.placeRelative(width - placeable.width, 0) }
+                val slot = (placeable.width * fold).roundToInt()
+                // The slot shrinks from its far edge; the glyph travels the full width the other way.
+                layout(slot, placeable.height) {
+                    placeable.placeRelative(((1f - fold) * placeable.width).roundToInt(), 0)
+                }
+            }
+            .graphicsLayer {
+                val eased = fold * fold
+                alpha = eased
+                val s = 0.55f + 0.45f * fold
+                scaleX = s
+                scaleY = s
             },
     ) { content() }
 }
