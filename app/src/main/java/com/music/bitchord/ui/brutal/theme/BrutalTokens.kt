@@ -110,6 +110,9 @@ object BrutalDimens {
     val StickerRule: Dp = 2.dp
     val RimStroke: Dp = 2.dp
 
+    /** The visible focus ring, in the accent (spec 7.5 and the components' rule). */
+    val FocusRing: Dp = 2.dp
+
     /** The sticker rows, perpendicular heights (spec 1.2). */
     val StickerRow1: Dp = 62.dp
     val StickerRow2: Dp = 62.dp

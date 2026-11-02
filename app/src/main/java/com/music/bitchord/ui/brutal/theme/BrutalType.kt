@@ -6,6 +6,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
@@ -92,8 +93,14 @@ class BrutalTypeSet(val profile: ScriptProfile) {
     /** Tracking only where the script is Latin; zero elsewhere. */
     private fun tracking(em: Float) = if (latin) em.em else 0.em
 
-    /** Sticker rows 1 and 2. Capped to a font scale of 1.3 where it is drawn (`withDisplayFontScale`). */
-    val sticker = TextStyle(fontFamily = display, fontWeight = FontWeight.W900, fontSize = 48.sp, lineHeight = 52.sp, letterSpacing = tracking(-0.01f))
+    /** Heavy display caps are italic in Latin; other scripts never get a synthetic slant (spec 4.3). */
+    private val italic = if (latin) FontStyle.Italic else FontStyle.Normal
+
+    /** Sticker row 1. Capped to a font scale of 1.3 where it is drawn (`withDisplayFontScale`). */
+    val sticker = TextStyle(fontFamily = display, fontWeight = FontWeight.W900, fontStyle = italic, fontSize = 48.sp, lineHeight = 52.sp, letterSpacing = tracking(-0.01f))
+
+    /** Sticker row 2: the same size in a lighter weight (the mockup's PRIVACY line). */
+    val stickerLight = TextStyle(fontFamily = body, fontWeight = FontWeight.W800, fontStyle = italic, fontSize = 48.sp, lineHeight = 52.sp, letterSpacing = tracking(-0.01f))
     val stickerNumber = TextStyle(fontFamily = body, fontWeight = FontWeight.W700, fontSize = 18.sp, lineHeight = 22.sp)
     val stickerMeta = TextStyle(fontFamily = body, fontWeight = FontWeight.W500, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = tracking(0.04f))
 
