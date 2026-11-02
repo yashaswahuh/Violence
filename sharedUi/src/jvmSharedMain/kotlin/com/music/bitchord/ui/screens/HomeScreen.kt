@@ -55,7 +55,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.Folder
@@ -488,24 +491,20 @@ fun CompactTrackRow(
  */
 @Composable
 private fun HomeTitle(title: String, modifier: Modifier = Modifier) {
-    val style = MaterialTheme.typography.displayLarge
-    val logoHeight = with(LocalDensity.current) { (style.fontSize * LOGO_TO_FONT).toDp() }
     Column(modifier = modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp)) {
-        Icon(
-            painter = painterResource(Res.drawable.ic_logo),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .padding(bottom = 14.dp)
-                .height(logoHeight)
-                .aspectRatio(LOGO_ASPECT),
+        // The name as a wide-tracked wordmark in text (it was the ic_logo image).
+        Text(
+            text = "VIOLENCE",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.42.em,
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            modifier = Modifier.padding(bottom = 14.dp),
         )
         // "Listen now" is hidden for now; the wordmark above stays.
-        // Text(
-        //     text = title,
-        //     style = style,
-        //     color = MaterialTheme.colorScheme.onBackground,
-        // )
     }
 }
 

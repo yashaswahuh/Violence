@@ -1,10 +1,10 @@
-# Custom UI: owner decisions (template)
+﻿# Custom UI: owner decisions (template)
 
 Fill this in after opening the three boards in `fork-docs/ui-concepts/` (`A-lumen.html`, `B-aurora.html`, `C-tide.html`) and reading `UI_DESIGN.md`. UI-1 starts only when section 1 is filled. Nothing here has been decided by the agent.
 
 ## 1. Direction
-- Chosen: [ ] A Lumen   [ ] B Aurora   [ ] C Tide   [ ] A mix (say which parts below)
-- Mix notes (for example "A's dock, C's solid pages, B's wash on Now Playing only"):
+- Chosen: [ ] A Lumen   [ ] B Aurora   [ ] C Tide   [x] A mix (say which parts below)
+- Mix notes: A Lumen is the base (dock and orb). Pages stay solid and glass is for focus layers (from C Tide). The Aurora colour wash is used on the Now Playing scene only. (Owner chose "the recommended one" on 2026-11-02.)
 
 ## 2. Things to change in the chosen direction
 (name, colours, fonts, the orb or pill or bar, icon style, anything you disliked)
@@ -29,3 +29,4 @@ Fill this in after opening the three boards in `fork-docs/ui-concepts/` (`A-lume
 ## 7. Sign-off
 - Date:
 - Approved by:
+

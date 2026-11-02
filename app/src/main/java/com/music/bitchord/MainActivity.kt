@@ -425,6 +425,8 @@ class MainActivity : AppCompatActivity() {
         // And the Receive tile in Quick Settings.
         com.music.bitchord.share.ReceiveDeepLink.consume(intent)
         // Debug builds only: frame times to logcat (tag VioFrames), tagged with the glass setting.
+        // Custom UI touch point 2: two failed New UI starts in a row put the setting back to CURRENT.
+        com.music.bitchord.ui.v2.safemode.UiSafeMode.startupCheck(this)
         FrameStats.attach(this) { "glass=" + (if (AppSettings.liquidGlass.value) "on" else "off") }
         setContent {
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
@@ -488,11 +490,14 @@ class MainActivity : AppCompatActivity() {
                 // longer exists and a page squeezed to a sliver to pay for it.
                 // A measured constraint cannot be stale — it is the very width
                 // the split is about to be laid out in.
+                // Custom UI touch point 1: the single app-root decision. A pass-through unless the
+                // New UI variant is on (see ui/v2/V2Root.kt).
+                com.music.bitchord.ui.v2.V2Root(dark = darkTheme) {
                 BoxWithConstraints(
                     Modifier
                         .fillMaxSize()
                         .snapshotBackdropSource(appStill.backdrop)
-                        .background(windowBackground),
+                        .background(MaterialTheme.colorScheme.background),
                 ) {
                     BitChordApp(
                         darkTheme = darkTheme,
@@ -500,6 +505,7 @@ class MainActivity : AppCompatActivity() {
                         windowHeight = maxHeight,
                         appBackdrop = appBackdrop,
                     )
+                }
                 }
                 }
             }
@@ -578,6 +584,8 @@ private fun BitChordApp(
     // Recording the backdrop layer costs a draw pass, so it only runs when a
     // liquid-glass surface (the nav bar or artwork-page back button) can sample it.
     val glassActive = LocalLiquidGlassEnabled.current && isGlassSupported()
+    // Custom UI: whether the New UI variant is on (its dock replaces the bars below).
+    val newUi = com.music.bitchord.ui.v2.rememberNewUi()
     // "Reduce dynamic blur" keeps the glass bar's *shape* — the folding
     // now-playing-and-tabs component is a layout, not an effect, and dropping
     // back to the two stacked bars would be answering a question about material
@@ -3434,7 +3442,12 @@ private fun BitChordApp(
                                 },
                             )
                         } else when ((destination as? AppDestination.Tab)?.index ?: selectedTab) {
-                            TAB_HOME -> HomeScreen(
+                            // Custom UI touch point 4: the placeholder Home (UI-1), with a way into the
+                            // classic one.
+                            TAB_HOME -> if (newUi && !com.music.bitchord.ui.v2.chrome.V2HomeState.classic) com.music.bitchord.ui.v2.chrome.V2HomePlaceholder(
+                                navigator = navigator,
+                                topPadding = topBarContentPadding(),
+                            ) else HomeScreen(
                                 state = homeState,
                                 listState = homeListState,
                                 currentSong = player.song,
@@ -4246,7 +4259,32 @@ private fun BitChordApp(
                     }
                 }
 
-                if (glassActive) Column(
+                // Custom UI touch point 3: with the New UI on, the dock (and its orb, the mini player)
+                // replaces the bars below. Same tab indexes, same callbacks.
+                if (newUi) Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .widthIn(max = FLOATING_BAR_MAX_WIDTH)
+                        .fillMaxWidth()
+                        .onSizeChanged { floatingBarsHeight.intValue = it.height },
+                ) {
+                    QueueActionNoticeHost(queueNotice)
+                    com.music.bitchord.ui.v2.chrome.V2DockHost(
+                        tabLabels = tabs.map { it.label },
+                        selectedIndex = selectedTab,
+                        onTabSelected = onTabSelected,
+                        song = player.song,
+                        isPlaying = player.isPlaying,
+                        onPlayPause = togglePlayPause,
+                        controller = controller,
+                        onExpand = if (reducePlayerMotion) {
+                            { showNowPlaying = true }
+                        } else {
+                            playerSheetMotion::open
+                        },
+                        onShare = { current -> ShareItem.of(current)?.let { shareItem = it } },
+                    )
+                } else if (glassActive) Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .widthIn(max = FLOATING_BAR_MAX_WIDTH)

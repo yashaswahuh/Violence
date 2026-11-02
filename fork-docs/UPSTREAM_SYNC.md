@@ -30,3 +30,12 @@ Keep OURS, re-apply on top of upstream if overwritten:
 
 ## After every merge, re-check
 `grep -r "BitChord"` in added user-visible text; new hosts in added lines; new presence/analytics/update/donation code; `Presence.kt` and `AppUpdateChecker.kt` still blank; exactly one `android:enabled="true"` launcher alias; Jam protocol files (`backend/protocol|party|hub`, `PartyModels.kt`, `ListenTogether.kt`, `web/app/src/party/*`) changed or not; build phone, TV, web with explicit tasks.
+
+## Custom UI touch points (UI-1, 2026-11-02)
+Edits to upstream-owned files for the New UI toggle. New code lives in `app/src/main/java/com/music/bitchord/ui/v2/` (new files, ours). After a sync, check each point still exists.
+- `app/.../MainActivity.kt`: (1) `setContent`: `V2Root(dark = darkTheme) { ... }` wraps the `BoxWithConstraints`, whose background is now `MaterialTheme.colorScheme.background` (was `windowBackground`, same value); (2) `onCreate`: `UiSafeMode.startupCheck(this)` before `FrameStats.attach`; (3) bottom bar: `if (newUi) Column { V2DockHost(...) } else if (glassActive) ...` and `val newUi = rememberNewUi()` next to `glassActive`; (4) Home tab: `TAB_HOME -> if (newUi && !V2HomeState.classic) V2HomePlaceholder(...) else HomeScreen(`. `BitChordApp` is near the JVM method-size limit (a first attempt with inline lambdas failed with "Method too large"), so keep additions there to single calls.
+- `app/.../ui/screens/SettingsSheet.kt`: two rows at the top of the ADVANCED group (`NewUiSettingRow`, `ReduceTransparencySettingRow`).
+- `app/.../data/settings/AppSettings.kt`: `uiVariant`, `reduceTransparency` (declaration, load, setter, key) next to `liquidGlass`.
+- `app/src/main/res/values*/strings.xml` (18 files): `v2_*` strings appended.
+- `NOTICE`: Sora and Inter font licences appended. `app/src/main/res/font/v2_sora.ttf`, `v2_inter.ttf` added.
+- `sharedUi/.../ui/screens/HomeScreen.kt` (shared with dormant desktop): `HomeTitle` shows the text wordmark "VIOLENCE" instead of the `ic_logo` image. Logged in `FROZEN_TARGETS.md`.

@@ -1572,6 +1572,15 @@ fun SettingsScreen(
         }
 
         if (shows(SettingsCategory.ADVANCED)) SearchableSettingsGroup(search, header = stringResource(R.string.advanced_options)) {
+            // Custom UI touch point 5: the New UI switch and its Reduce transparency partner.
+            val newUiTitle = stringResource(R.string.v2_new_ui_title)
+            row(newUiTitle, "new ui", "experimental", "dock", "orb", "custom") {
+                com.music.bitchord.ui.v2.settings.NewUiSettingRow()
+            }
+            val reduceTransparencyTitle = stringResource(R.string.v2_reduce_transparency_title)
+            row(reduceTransparencyTitle, "transparency", "glass", "solid", "new ui") {
+                com.music.bitchord.ui.v2.settings.ReduceTransparencySettingRow()
+            }
             val smartAlignmentTitle = stringResource(R.string.smart_version_alignment)
             row(smartAlignmentTitle, "alignment", "sync", "waveform", "video", "audio", "skit", "intro") {
                 SettingsRow(
