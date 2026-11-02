@@ -380,4 +380,46 @@ class Type4TagTest {
             Type4TagReader.read { byteArrayOf(0x90.toByte()) },
         )
     }
+
+    // ----------------------------------------------------------- delivered --
+
+    @Test
+    fun deliveredFiresOnlyWhenTheWholeMessageHasBeenRead() {
+        var delivered = 0
+        val e = Type4TagEmulator({ message }, onDelivered = { delivered++ })
+        e.process(selectAid)
+        e.process(selectCc)
+        e.process(read(0, 15))
+        assertEquals("the capability container is not the link", 0, delivered)
+        e.process(selectNdef)
+        e.process(read(0, 2))
+        assertEquals("the length alone is not the link", 0, delivered)
+        e.process(read(2, 5))
+        assertEquals("a first piece is not the whole link", 0, delivered)
+        e.process(read(7, 255))
+        assertEquals("the last piece delivers it", 1, delivered)
+    }
+
+    @Test
+    fun deliveredFiresOnceForAOneShotRead() {
+        var delivered = 0
+        val e = Type4TagEmulator({ message }, onDelivered = { delivered++ })
+        e.process(selectAid)
+        e.process(selectNdef)
+        e.process(read(0, 2))
+        e.process(read(2, message.size))
+        assertEquals(1, delivered)
+    }
+
+    @Test
+    fun deliveredDoesNotFireForAReadPastTheEndOrWithNothingSelected() {
+        var delivered = 0
+        val e = Type4TagEmulator({ message }, onDelivered = { delivered++ })
+        e.process(selectAid)
+        e.process(read(2, 5)) // no file selected yet
+        e.process(selectNdef)
+        e.process(read(Type4Tag.ndefFile(message).size, 10)) // nothing left: just the status word
+        e.process(read(0x7F00, 10)) // beyond the end
+        assertEquals(0, delivered)
+    }
 }

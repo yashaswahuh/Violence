@@ -16,7 +16,10 @@ import android.os.Bundle
  */
 class ShareHostApduService : HostApduService() {
 
-    private val tag = Type4TagEmulator { NfcShareSession.currentMessage() }
+    private val tag = Type4TagEmulator(
+        message = { NfcShareSession.currentMessage() },
+        onDelivered = { NfcShareSession.notifyDelivered() },
+    )
 
     // Runs on the main thread (HCE docs): the work is a few array copies.
     override fun processCommandApdu(commandApdu: ByteArray?, extras: Bundle?): ByteArray =

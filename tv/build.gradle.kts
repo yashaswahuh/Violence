@@ -405,6 +405,11 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.6.2")
     implementation("androidx.camera:camera-view:1.6.2")
 
+    // ---- Animations on the Tap to share and Receive screens (Phase 9 fixes) ----
+    // Lottie (Apache-2.0) plays two small free animations from LottieFiles (res/raw). Pure
+    // Compose; the TV compiles the phone's sources and so needs it too.
+    implementation("com.airbnb.android:lottie-compose:6.6.7")
+
     // ---- Markdown rendering (release notes in the update dialog) ----
     // Pure Compose, not an AndroidView wrapper — needed so the text composes
     // correctly under the dialog's Haze blur.

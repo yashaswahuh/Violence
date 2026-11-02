@@ -163,7 +163,7 @@ fun ListenTogetherScreen(
     var pendingServerSwitchInvite by remember { mutableStateOf<Pair<String, String>?>(null) }
     var sheet by remember { mutableStateOf<PartySheet?>(null) }
     // Tap to share for the invite: only on a phone with NFC (the option is hidden elsewhere).
-    var tapSharing by remember { mutableStateOf(false) }
+    var tapUri by remember { mutableStateOf<String?>(null) }
     val tapToShareAvailable = remember { NfcShareSession.sendState(context) != NfcSendState.NO_NFC }
 
     // Hoisted so a sheet can be *animated* away rather than dropped out of the
@@ -358,12 +358,7 @@ fun ListenTogetherScreen(
         )
     }
 
-    if (tapSharing) {
-        TapToShareDialog(
-            uri = JamInviteLink.schemeUrl(state.code.orEmpty(), customServerForLinks()),
-            onDismiss = { tapSharing = false },
-        )
-    }
+    tapUri?.let { link -> TapToShareDialog(uri = link, onDismiss = { tapUri = null }) }
 
     sheet?.let { open ->
         ModalBottomSheet(
@@ -495,7 +490,9 @@ fun ListenTogetherScreen(
                     onTapToShare = if (tapToShareAvailable) {
                         {
                             sheet = null
-                            tapSharing = true
+                            // Fixed when Tap to share opens, so the link on the air does not change (and
+                            // the tag restart) if the server address settles a moment later.
+                            tapUri = JamInviteLink.schemeUrl(state.code.orEmpty(), customServerForLinks())
                         }
                     } else {
                         null

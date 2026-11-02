@@ -81,8 +81,10 @@ object ProfileManager {
         runCatching {
             val resolver = context.contentResolver
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-                ?: return@runCatching false
+            // Reading only the size makes decodeStream return null by design: that is not a failure,
+            // so what counts is that the stream opened and the size came out.
+            val opened = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds); true }
+            if (opened != true) return@runCatching false
             if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching false
             var sample = 1
             while (bounds.outWidth / (sample * 2) >= PHOTO_EDGE_PX && bounds.outHeight / (sample * 2) >= PHOTO_EDGE_PX) {

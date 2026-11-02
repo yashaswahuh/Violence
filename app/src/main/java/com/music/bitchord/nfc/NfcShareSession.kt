@@ -6,6 +6,11 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
 import android.nfc.cardemulation.CardEmulation
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /** Whether this phone can send by tapping, and if not why not. */
 enum class NfcSendState {
@@ -35,8 +40,23 @@ object NfcShareSession {
     @Volatile
     private var message: ByteArray? = null
 
+    private val main = Handler(Looper.getMainLooper())
+
+    private val _delivered = MutableStateFlow(0)
+
+    /**
+     * Counts completed reads: it goes up each time the other phone has read the whole link. The
+     * Tap to share screen watches it to show that the link was sent.
+     */
+    val delivered: StateFlow<Int> = _delivered.asStateFlow()
+
     /** The NDEF message being offered right now, or null when nothing is being shared. */
     fun currentMessage(): ByteArray? = message
+
+    /** Called by the tag service when a reader has read the whole message. */
+    internal fun notifyDelivered() {
+        _delivered.value = _delivered.value + 1
+    }
 
     fun sendState(context: Context): NfcSendState {
         val pm = context.packageManager
@@ -59,15 +79,19 @@ object NfcShareSession {
         val ndef = NdefUri.message(uri) ?: return false
         message = ndef
         setServiceEnabled(activity, true)
-        runCatching {
-            val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return@runCatching
-            CardEmulation.getInstance(adapter).setPreferredService(activity, serviceName(activity))
+        preferThisService(activity)
+        // The system takes a moment to notice a component that has just been enabled, and asking
+        // for it as the preferred service can fail until it has: ask again shortly after.
+        main.removeCallbacksAndMessages(null)
+        for (delayMs in longArrayOf(400, 1500)) {
+            main.postDelayed({ if (message != null) preferThisService(activity) }, delayMs)
         }
         return true
     }
 
     /** Stops offering anything. Idempotent; never throws. */
     fun stop(activity: Activity) {
+        main.removeCallbacksAndMessages(null)
         message = null
         runCatching {
             val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return@runCatching
@@ -80,6 +104,13 @@ object NfcShareSession {
     fun ensureOff(context: Context) {
         message = null
         setServiceEnabled(context, false)
+    }
+
+    private fun preferThisService(activity: Activity) {
+        runCatching {
+            val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return@runCatching
+            CardEmulation.getInstance(adapter).setPreferredService(activity, serviceName(activity))
+        }
     }
 
     private fun serviceName(context: Context) = ComponentName(context, ShareHostApduService::class.java)

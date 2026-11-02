@@ -76,7 +76,11 @@ object Type4Tag {
  * consistent snapshot even if the shared item changes in between. When it returns null (no share
  * is active) nothing is revealed: selecting the application answers "not found".
  */
-class Type4TagEmulator(private val message: () -> ByteArray?) {
+class Type4TagEmulator(
+    private val message: () -> ByteArray?,
+    /** Called when a reader has read the NDEF file through to its last byte (the link was delivered). */
+    private val onDelivered: () -> Unit = {},
+) {
 
     private enum class File { NONE, CC, NDEF }
 
@@ -167,6 +171,9 @@ class Type4TagEmulator(private val message: () -> ByteArray?) {
         }
         if (offset > content.size) return Type4Tag.SW_WRONG_OFFSET
         val count = minOf(requested, Type4Tag.MLE, content.size - offset)
+        // The message starts after the 2-byte length, so a read that ends exactly at the end of the
+        // file, having returned message bytes, means the whole link has now been read.
+        if (selected == File.NDEF && offset >= 2 && count > 0 && offset + count == content.size) onDelivered()
         val out = ByteArray(count + 2)
         content.copyInto(out, 0, offset, offset + count)
         out[count] = 0x90.toByte()

@@ -18,11 +18,6 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +26,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,7 +43,10 @@ import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.QrCodeScanner
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -64,12 +65,21 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import com.music.bitchord.data.model.CARD_ART_PX
+import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.model.artworkAt
+import com.music.bitchord.nfc.NfcReadFailure
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -144,6 +154,8 @@ internal fun noticeRes(notice: LinkNotice): Int = when (notice) {
     LinkNotice.TOO_LONG -> R.string.incoming_too_long
     LinkNotice.EMPTY -> R.string.incoming_empty
     LinkNotice.UNREADABLE -> R.string.receive_read_failed
+    LinkNotice.NFC_NOT_SHARING -> R.string.receive_read_not_sharing
+    LinkNotice.NFC_INTERRUPTED -> R.string.receive_read_interrupted
 }
 
 @Composable
@@ -277,9 +289,11 @@ fun ShareSheet(item: ShareItem, onDismiss: () -> Unit) {
                     icon = Icons.Rounded.Link,
                     title = stringResource(R.string.share_via_apps),
                     onClick = {
+                        // The app link itself (violence://...), which opens Violence directly. "Copy link"
+                        // and the QR code keep the https page, which any phone or chat can open.
                         val send = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, item.link)
+                            putExtra(Intent.EXTRA_TEXT, item.uri)
                         }
                         context.startActivity(Intent.createChooser(send, title))
                     },
@@ -311,6 +325,9 @@ fun ShareSheet(item: ShareItem, onDismiss: () -> Unit) {
  * The Tap to share screen: while it is showing (and the phone is unlocked) this phone looks like
  * an NFC tag holding [uri]; the moment it stops being the foreground screen, or is closed, the
  * tag goes away. Nothing else is ever offered.
+ *
+ * Two phones touching animate while it waits; when the other phone has read the whole link a
+ * check draws itself, then it goes back to waiting (so the same link can be handed to a second person).
  */
 @Composable
 fun TapToShareDialog(uri: String, onDismiss: () -> Unit) {
@@ -318,6 +335,7 @@ fun TapToShareDialog(uri: String, onDismiss: () -> Unit) {
     val activity = remember(context) { context.activity() }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var active by remember { mutableStateOf(false) }
+    val fits = remember(uri) { NfcShareSession.fits(uri) }
 
     DisposableEffect(lifecycle, uri) {
         val observer = LifecycleEventObserver { _, event ->
@@ -337,12 +355,16 @@ fun TapToShareDialog(uri: String, onDismiss: () -> Unit) {
         }
     }
 
-    val pulse by rememberInfiniteTransition(label = "tapPulse").animateFloat(
-        initialValue = 0.92f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
-        label = "tapPulseScale",
-    )
+    // Each completed read bumps the counter; showing "Sent" for a moment, then waiting again.
+    val delivered by NfcShareSession.delivered.collectAsState()
+    var acknowledged by remember { mutableIntStateOf(delivered) }
+    val sent = delivered > acknowledged
+    LaunchedEffect(sent) {
+        if (sent) {
+            delay(2_200)
+            acknowledged = delivered
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -351,22 +373,33 @@ fun TapToShareDialog(uri: String, onDismiss: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Icon(
-                    Icons.Rounded.Nfc,
-                    contentDescription = null,
-                    tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(120.dp).scale(if (active) pulse else 1f),
-                )
-                Spacer(Modifier.height(24.dp))
+                Box(Modifier.height(210.dp), contentAlignment = Alignment.Center) {
+                    if (sent) {
+                        SuccessCheckAnimation(play = true, modifier = Modifier.size(150.dp))
+                    } else {
+                        PhoneTapAnimation(
+                            modifier = Modifier.height(210.dp).alpha(if (active) 1f else 0.35f),
+                            playing = active,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
                 Text(
-                    text = stringResource(R.string.tap_to_share_title),
+                    text = stringResource(if (sent) R.string.tap_to_share_sent else R.string.tap_to_share_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = stringResource(if (active) R.string.tap_to_share_body else R.string.tap_to_share_failed),
+                    text = stringResource(
+                        when {
+                            sent -> R.string.tap_to_share_sent_body
+                            !fits -> R.string.share_nfc_too_long
+                            active -> R.string.tap_to_share_body
+                            else -> R.string.tap_to_share_failed
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -391,8 +424,17 @@ fun ReceiveScreen(contentPadding: PaddingValues, modifier: Modifier = Modifier) 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val tick = rememberResumeTick()
     val nfc = remember(tick) { NfcReceiver.state(context) }
+    val scope = rememberCoroutineScope()
     var scanning by remember { mutableStateOf(false) }
     var pasted by rememberSaveable { mutableStateOf("") }
+    // A moment of "Received" with a check after a tap was accepted.
+    var received by remember { mutableStateOf(false) }
+    LaunchedEffect(received) {
+        if (received) {
+            delay(1_800)
+            received = false
+        }
+    }
 
     // Reader mode only while this screen is in the foreground.
     DisposableEffect(lifecycle, nfc) {
@@ -402,8 +444,10 @@ fun ReceiveScreen(contentPadding: PaddingValues, modifier: Modifier = Modifier) 
                     activity?.let {
                         NfcReceiver.enable(
                             it,
-                            onLink = { text -> IncomingLinkHub.offer(text, LinkSource.NFC) },
-                            onUnreadable = { IncomingLinkHub.unreadable() },
+                            onLink = { text ->
+                                if (IncomingLinkHub.offer(text, LinkSource.NFC)) scope.launch(Dispatchers.Main) { received = true }
+                            },
+                            onFailed = { reason: NfcReadFailure -> IncomingLinkHub.tapFailed(reason) },
                         )
                     }
                 }
@@ -428,16 +472,36 @@ fun ReceiveScreen(contentPadding: PaddingValues, modifier: Modifier = Modifier) 
         )
 
         // No NFC chip: the option is simply not shown.
-        if (nfc != NfcReceiveState.NO_NFC) {
-            SettingsGroup(
-                header = stringResource(R.string.receive_nfc_header),
-                footer = stringResource(if (nfc == NfcReceiveState.READY) R.string.receive_nfc_ready else R.string.receive_nfc_off),
-            ) {
+        if (nfc == NfcReceiveState.READY) {
+            Column(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.height(170.dp), contentAlignment = Alignment.Center) {
+                    if (received) {
+                        SuccessCheckAnimation(play = true, modifier = Modifier.size(120.dp))
+                    } else {
+                        PhoneTapAnimation(Modifier.height(170.dp))
+                    }
+                }
+                Text(
+                    text = stringResource(if (received) R.string.receive_received else R.string.receive_nfc_header),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.receive_nfc_ready),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                )
+            }
+        } else if (nfc == NfcReceiveState.NFC_OFF) {
+            SettingsGroup(header = stringResource(R.string.receive_nfc_header), footer = stringResource(R.string.receive_nfc_off)) {
                 SettingsRow(
                     icon = Icons.Rounded.Nfc,
                     title = stringResource(R.string.receive_nfc_header),
-                    value = if (nfc == NfcReceiveState.NFC_OFF) stringResource(R.string.share_open_nfc_settings) else null,
-                    onClick = if (nfc == NfcReceiveState.NFC_OFF) ({ openNfcSettings(context) }) else null,
+                    value = stringResource(R.string.share_open_nfc_settings),
+                    onClick = { openNfcSettings(context) },
                 )
             }
         }
@@ -639,35 +703,127 @@ private suspend fun decodePicture(context: Context, uri: Uri): String? = withCon
 // ------------------------------------------------------------- incoming song --
 
 /**
- * "Open this song?": shown for a song that arrived by tap, QR or link. The title and artist are
- * only labels from the link, shown as plain text; nothing is looked up until the user chooses.
+ * "Open this song?": shown for a song that arrived by tap, QR or link. The link only carries an id
+ * and a couple of labels, so the song is looked up as soon as this opens and the card fills in with
+ * its cover, title, artist, album and length. Until then (or if it cannot be found) the labels from
+ * the link are shown as plain text and the actions wait.
  */
 @Composable
 fun IncomingSongDialog(
     ref: SongRef,
-    busy: Boolean,
+    song: Song?,
+    failed: Boolean,
     onPlayNow: () -> Unit,
     onAddToQueue: () -> Unit,
     onAddToPlaylist: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val label = listOfNotNull(ref.title, ref.artist).joinToString(" — ").ifBlank { stringResource(R.string.incoming_song_unknown) }
-    AlertDialog(
-        onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text(stringResource(R.string.incoming_song_title)) },
-        text = {
-            Column {
-                Text(label, style = MaterialTheme.typography.titleMedium)
-                if (busy) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(stringResource(R.string.incoming_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val title = song?.title?.takeIf { it.isNotBlank() } ?: ref.title ?: stringResource(R.string.incoming_song_unknown)
+    val artist = song?.artist?.takeIf { it.isNotBlank() } ?: ref.artist
+    val meta = listOfNotNull(song?.albumName?.takeIf { it.isNotBlank() }, song?.durationText?.takeIf { it.isNotBlank() })
+        .joinToString("  \u00B7  ")
+    val ready = song != null
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 380.dp),
+        ) {
+            Column(Modifier.padding(horizontal = 22.dp, vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stringResource(R.string.incoming_song_overline),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(14.dp))
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val art = song?.artworkAt(CARD_ART_PX)
+                    if (art != null) {
+                        AsyncImage(model = art, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    } else {
+                        Icon(
+                            Icons.Rounded.MusicNote,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(64.dp),
+                        )
+                    }
                 }
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                )
+                if (!artist.isNullOrBlank()) {
+                    Text(
+                        text = artist,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
+                }
+                if (meta.isNotBlank()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = meta,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
+                }
+                Spacer(Modifier.height(14.dp))
+                when {
+                    failed -> Text(
+                        text = stringResource(R.string.incoming_song_failed),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                    )
+                    !ready -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        LinearProgressIndicator(Modifier.width(120.dp))
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.incoming_loading),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+                Button(
+                    onClick = onPlayNow,
+                    enabled = ready,
+                    shape = RoundedCornerShape(percent = 50),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                ) { Text(stringResource(R.string.incoming_play_now), style = MaterialTheme.typography.titleMedium) }
                 Spacer(Modifier.height(8.dp))
-                TextButton(enabled = !busy, onClick = onAddToQueue) { Text(stringResource(R.string.incoming_add_queue)) }
-                TextButton(enabled = !busy, onClick = onAddToPlaylist) { Text(stringResource(R.string.incoming_add_playlist)) }
+                FilledTonalButton(
+                    onClick = onAddToQueue,
+                    enabled = ready,
+                    shape = RoundedCornerShape(percent = 50),
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                ) { Text(stringResource(R.string.incoming_add_queue)) }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onAddToPlaylist,
+                    enabled = ready,
+                    shape = RoundedCornerShape(percent = 50),
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                ) { Text(stringResource(R.string.incoming_add_playlist)) }
+                TextButton(onClick = onDismiss, modifier = Modifier.padding(top = 2.dp)) { Text(stringResource(R.string.cancel)) }
             }
-        },
-        confirmButton = { TextButton(enabled = !busy, onClick = onPlayNow) { Text(stringResource(R.string.incoming_play_now)) } },
-        dismissButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
+        }
+    }
 }

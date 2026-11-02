@@ -3045,6 +3045,8 @@ private fun BitChordApp(
                             ProfileScreen(
                                 contentPadding = listPadding,
                                 onClose = { navigator.pop() },
+                                onFriends = { navigator.push(AppRoute.Friends) },
+                                onReceive = { navigator.push(AppRoute.Receive) },
                             )
                         } else if (pageRoute == AppRoute.Friends) {
                             FriendsScreen(
@@ -3125,8 +3127,6 @@ private fun BitChordApp(
                                 onSources = { navigator.push(AppRoute.Sources) },
                                 onListenTogether = { navigator.push(AppRoute.ListenTogether) },
                                 onProfile = { navigator.push(AppRoute.Profile) },
-                                onFriends = { navigator.push(AppRoute.Friends) },
-                                onReceive = { navigator.push(AppRoute.Receive) },
                                 onWearOs = { navigator.push(AppRoute.WearOs) },
                                 onSpotifyCanvasAuth = { showSpotifyCanvasAuth = true },
                                 onAppLanguage = { showAppLanguage = true },
@@ -5402,51 +5402,49 @@ private fun BitChordApp(
 
         // ---- A song or a profile that arrived by tap, QR or link: always asks first ----
         val incoming by IncomingLinkHub.pending.collectAsStateWithLifecycle()
-        var incomingBusy by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             IncomingLinkHub.notices.collect { notice ->
                 Toast.makeText(context, context.getString(noticeRes(notice)), Toast.LENGTH_SHORT).show()
             }
         }
-        // The only network use of receiving a song, and only after the user chose an action
-        // (see SharedSongResolver).
-        val onIncomingSong: (SongRef, (Song) -> Unit) -> Unit = { ref, action ->
-            scope.launch {
-                incomingBusy = true
-                val resolved = SharedSongResolver.resolve(ref)
-                incomingBusy = false
-                if (resolved == null) {
-                    Toast.makeText(context, context.getString(R.string.incoming_song_failed), Toast.LENGTH_SHORT).show()
-                } else {
-                    action(resolved)
-                    IncomingLinkHub.handled()
-                }
-            }
-        }
         if (onboardingComplete) {
             when (val link = incoming) {
-                is IncomingLink.Song -> IncomingSongDialog(
-                    ref = link.ref,
-                    busy = incomingBusy,
-                    onPlayNow = {
-                        onIncomingSong(link.ref) { song ->
-                            playRadio(song, QueueSource(sharedLinkLabel, PlaybackSourceType.SHARED_LINK, song.videoId))
-                        }
-                    },
-                    onAddToQueue = {
-                        onIncomingSong(link.ref) { song ->
-                            addToQueue(song)
-                            Toast.makeText(context, context.getString(R.string.incoming_added_queue), Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onAddToPlaylist = {
-                        onIncomingSong(link.ref) { song ->
-                            viewModel.loadPlaylists()
-                            playlistTarget = song
-                        }
-                    },
-                    onDismiss = { IncomingLinkHub.dismiss() },
-                )
+                is IncomingLink.Song -> {
+                    // The link holds an id and a few labels; the song is looked up as the card opens so it
+                    // can show its cover, artist and length (SharedSongResolver). Nothing plays before a choice.
+                    var found by remember(link.ref) { mutableStateOf<Song?>(null) }
+                    var lookupFailed by remember(link.ref) { mutableStateOf(false) }
+                    LaunchedEffect(link.ref) {
+                        found = SharedSongResolver.resolve(link.ref)
+                        lookupFailed = found == null
+                    }
+                    IncomingSongDialog(
+                        ref = link.ref,
+                        song = found,
+                        failed = lookupFailed,
+                        onPlayNow = {
+                            found?.let { song ->
+                                playRadio(song, QueueSource(sharedLinkLabel, PlaybackSourceType.SHARED_LINK, song.videoId))
+                                IncomingLinkHub.handled()
+                            }
+                        },
+                        onAddToQueue = {
+                            found?.let { song ->
+                                addToQueue(song)
+                                Toast.makeText(context, context.getString(R.string.incoming_added_queue), Toast.LENGTH_SHORT).show()
+                                IncomingLinkHub.handled()
+                            }
+                        },
+                        onAddToPlaylist = {
+                            found?.let { song ->
+                                viewModel.loadPlaylists()
+                                playlistTarget = song
+                                IncomingLinkHub.handled()
+                            }
+                        },
+                        onDismiss = { IncomingLinkHub.dismiss() },
+                    )
+                }
                 is IncomingLink.Profile -> AddFriendDialog(
                     card = link.card,
                     onFinished = { IncomingLinkHub.handled() },

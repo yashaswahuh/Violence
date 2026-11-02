@@ -202,8 +202,6 @@ fun SettingsScreen(
     onSources: () -> Unit,
     onListenTogether: () -> Unit,
     onProfile: () -> Unit,
-    onFriends: () -> Unit,
-    onReceive: () -> Unit,
     onWearOs: () -> Unit,
     onSpotifyCanvasAuth: () -> Unit,
     onAppLanguage: () -> Unit,
@@ -456,9 +454,15 @@ fun SettingsScreen(
                 // The Violence profile: a name and picture of your own, independent of the
                 // YouTube Music and Spotify sign-ins that sit just below.
                 val myProfile by ProfileManager.profile.collectAsStateWithLifecycle()
-                val friendCount by ProfileManager.friends.collectAsStateWithLifecycle()
                 val profileTitle = stringResource(R.string.profile_title)
-                row(profileTitle, "violence", "name", "avatar", "picture", "jam") {
+                // Friends, Receive (tap phones / scan a QR code / paste a link) and sharing all live one tap
+                // inside this row, on the Profile page, so the main list stays short; they are still
+                // found by searching for them here.
+                row(
+                    profileTitle,
+                    "violence", "name", "avatar", "picture", "jam",
+                    "friends", "contacts", "people", "receive", "nfc", "tap", "qr", "scan", "share", "link",
+                ) {
                     val me = myProfile
                     SettingsRow(
                         icon = SfIcons.Person,
@@ -474,25 +478,6 @@ fun SettingsScreen(
                         } else {
                             null
                         },
-                    )
-                }
-                val friendsTitle = stringResource(R.string.friends_title)
-                row(friendsTitle, "contacts", "people", "profile link") {
-                    SettingsRow(
-                        icon = SfIcons.Groups,
-                        title = friendsTitle,
-                        subtitle = stringResource(R.string.friends_row_subtitle),
-                        badge = friendCount.size.takeIf { it > 0 }?.toString(),
-                        onClick = onFriends,
-                    )
-                }
-                val receiveTitle = stringResource(R.string.receive_title)
-                row(receiveTitle, "nfc", "qr", "scan", "tap", "share", "link") {
-                    SettingsRow(
-                        icon = SfIcons.Add,
-                        title = receiveTitle,
-                        subtitle = stringResource(R.string.receive_row_subtitle),
-                        onClick = onReceive,
                     )
                 }
                 val accountTitle = stringResource(R.string.account_integrations)
