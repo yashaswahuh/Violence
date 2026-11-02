@@ -246,6 +246,7 @@ internal fun DesktopLibrarySortMenu() {
                         Text(
                             when (option) {
                                 LibrarySort.DEFAULT -> DesktopStrings["sort_default", "Default order"]
+                                LibrarySort.DEFAULT_REVERSED -> DesktopStrings["sort_default_reversed", "Reverse order"]
                                 LibrarySort.TITLE_ASC -> DesktopStrings["sort_title_ascending", "Alphabetical (A to Z)"]
                                 LibrarySort.TITLE_DESC -> DesktopStrings["sort_title_descending", "Alphabetical (Z to A)"]
                             },

@@ -468,6 +468,7 @@ private fun HomeShelf.pinnedFirst(pinned: List<String>): HomeShelf {
  */
 private fun HomeShelf.sortedForLibrary(sort: LibrarySort): HomeShelf = when (sort) {
     LibrarySort.DEFAULT -> this
+    LibrarySort.DEFAULT_REVERSED -> copy(items = items.asReversed())
     LibrarySort.TITLE_ASC -> copy(items = items.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }))
     LibrarySort.TITLE_DESC -> copy(
         items = items.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.title }),

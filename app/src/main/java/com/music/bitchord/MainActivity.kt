@@ -331,7 +331,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.shape.CornerBasedShape
 import com.music.bitchord.ui.components.lightweightLiquidGlass
 import com.music.bitchord.ui.components.AppStill
-import com.music.bitchord.ui.v2.chrome.plusTop
 import com.music.bitchord.ui.components.LocalAppStill
 import com.music.bitchord.ui.components.snapshotGlassDisc
 import com.music.bitchord.ui.components.CollapsingTopAction
@@ -426,8 +425,6 @@ class MainActivity : AppCompatActivity() {
         // And the Receive tile in Quick Settings.
         com.music.bitchord.share.ReceiveDeepLink.consume(intent)
         // Debug builds only: frame times to logcat (tag VioFrames), tagged with the glass setting.
-        // Custom UI touch point 2: two failed New UI starts in a row put the setting back to CURRENT.
-        com.music.bitchord.ui.v2.safemode.UiSafeMode.startupCheck(this)
         FrameStats.attach(this) { "glass=" + (if (AppSettings.liquidGlass.value) "on" else "off") }
         setContent {
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
@@ -491,14 +488,11 @@ class MainActivity : AppCompatActivity() {
                 // longer exists and a page squeezed to a sliver to pay for it.
                 // A measured constraint cannot be stale — it is the very width
                 // the split is about to be laid out in.
-                // Custom UI touch point 1: the single app-root decision. A pass-through unless the
-                // New UI variant is on (see ui/v2/V2Root.kt).
-                com.music.bitchord.ui.v2.V2Root(dark = darkTheme) {
                 BoxWithConstraints(
                     Modifier
                         .fillMaxSize()
                         .snapshotBackdropSource(appStill.backdrop)
-                        .background(MaterialTheme.colorScheme.background),
+                        .background(windowBackground),
                 ) {
                     BitChordApp(
                         darkTheme = darkTheme,
@@ -506,7 +500,6 @@ class MainActivity : AppCompatActivity() {
                         windowHeight = maxHeight,
                         appBackdrop = appBackdrop,
                     )
-                }
                 }
                 }
             }
@@ -585,8 +578,6 @@ private fun BitChordApp(
     // Recording the backdrop layer costs a draw pass, so it only runs when a
     // liquid-glass surface (the nav bar or artwork-page back button) can sample it.
     val glassActive = LocalLiquidGlassEnabled.current && isGlassSupported()
-    // Custom UI: whether the New UI variant is on (its dock replaces the bars below).
-    val newUi = com.music.bitchord.ui.v2.rememberNewUi()
     // "Reduce dynamic blur" keeps the glass bar's *shape* — the folding
     // now-playing-and-tabs component is a layout, not an effect, and dropping
     // back to the two stacked bars would be answering a question about material
@@ -3443,9 +3434,7 @@ private fun BitChordApp(
                                 },
                             )
                         } else when ((destination as? AppDestination.Tab)?.index ?: selectedTab) {
-                            // Custom UI touch point 4: Home and Library are hosted inside the new shell with a
-                            // shortcut strip above them (see ui/v2/chrome/V2Frames.kt).
-                            TAB_HOME -> com.music.bitchord.ui.v2.chrome.V2ShortcutFrame(com.music.bitchord.ui.v2.chrome.V2Shortcuts.HOME, navigator, topBarContentPadding()) { extraTop -> HomeScreen(
+                            TAB_HOME -> HomeScreen(
                                 state = homeState,
                                 listState = homeListState,
                                 currentSong = player.song,
@@ -3477,7 +3466,7 @@ private fun BitChordApp(
                                 refreshing = MainViewModel.Feed.HOME in refreshing,
                                 onRefresh = { viewModel.refresh(MainViewModel.Feed.HOME) },
                                 pullState = homePull,
-                                contentPadding = listPadding.plusTop(extraTop),
+                                contentPadding = listPadding,
                                 onLoadMore = viewModel::loadMoreHome,
                                 loadingMore = homeLoadingMore,
                                 recentlyPlayedLoading = homeRecentlyPlayedLoading,
@@ -3501,7 +3490,7 @@ private fun BitChordApp(
                                         )
                                     }
                                 },
-                            ) }
+                            )
                             TAB_EXPLORE -> selectedMoodGenre?.let { category ->
                                 MoodGenrePlaylistsScreen(
                                     title = category.title,
@@ -3728,7 +3717,7 @@ private fun BitChordApp(
                                     )
                                 },
                             )
-                            else -> com.music.bitchord.ui.v2.chrome.V2ShortcutFrame(com.music.bitchord.ui.v2.chrome.V2Shortcuts.LIBRARY, navigator, topBarContentPadding()) { extraTop -> LibraryScreen(
+                            else -> LibraryScreen(
                                 signedIn = signedIn,
                                 state = libraryState,
                                 listState = libraryListState,
@@ -3758,10 +3747,10 @@ private fun BitChordApp(
                                 refreshing = MainViewModel.Feed.LIBRARY in refreshing,
                                 onRefresh = { viewModel.refresh(MainViewModel.Feed.LIBRARY) },
                                 pullState = libraryPull,
-                                contentPadding = listPadding.plusTop(extraTop),
+                                contentPadding = listPadding,
                                 links = libraryLinks(),
                                 deviceItems = libraryDeviceItems(downloadedReleases) + localPlaylistItems,
-                            ) }
+                            )
                         }
                     }
                     // A pushed page keeps its saved state — a scroll position,
@@ -4045,7 +4034,7 @@ private fun BitChordApp(
                             // folder offers (see `LocalSearchField`), adapted to
                             // the one thing a playlist or album card carries: a
                             // title.
-                            if (route is AppRoute.LibraryShowAll) {
+                            if (route is AppRoute.LibraryShowAll || (route == null && detail == null && selectedTab == TAB_LIBRARY)) {
                                 Box {
                                     IconButton(onClick = { librarySortMenuOpen = true }) {
                                         Icon(
@@ -4206,9 +4195,7 @@ private fun BitChordApp(
                             if (!isReleaseDetail) TopBarAccountButton(
                                 account = account,
                                 onClick = {
-                                    // New UI: the avatar opens the Hub (Settings and accounts are in it).
-                                    if (newUi) com.music.bitchord.ui.v2.chrome.V2HubState.open = true
-                                    else if (signedIn) {
+                                    if (signedIn) {
                                         viewModel.loadChannels()
                                         showAccountSelector = true
                                     } else navigator.push(AppRoute.Settings)
@@ -4259,35 +4246,7 @@ private fun BitChordApp(
                     }
                 }
 
-                // Custom UI touch point 3: with the New UI on, the dock (and its orb, the mini player)
-                // replaces the bars below. Same tab indexes, same callbacks.
-                if (newUi) Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .widthIn(max = FLOATING_BAR_MAX_WIDTH)
-                        .fillMaxWidth()
-                        .onSizeChanged { floatingBarsHeight.intValue = it.height },
-                ) {
-                    QueueActionNoticeHost(queueNotice)
-                    com.music.bitchord.ui.v2.chrome.V2DockHost(
-                        tabLabels = tabs.map { it.label },
-                        selectedIndex = selectedTab,
-                        onTabSelected = onTabSelected,
-                        song = player.song,
-                        isPlaying = player.isPlaying,
-                        onPlayPause = togglePlayPause,
-                        controller = controller,
-                        position = player.position,
-                        durationMs = player.durationMs,
-                        navigator = navigator,
-                        onExpand = if (reducePlayerMotion) {
-                            { showNowPlaying = true }
-                        } else {
-                            playerSheetMotion::open
-                        },
-                        onShare = { current -> ShareItem.of(current)?.let { shareItem = it } },
-                    )
-                } else if (glassActive) Column(
+                if (glassActive) Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .widthIn(max = FLOATING_BAR_MAX_WIDTH)
@@ -6239,6 +6198,7 @@ private fun tween(durationMillis: Int) =
 @Composable
 private fun LibrarySort.localizedLabel(): String = when (this) {
     LibrarySort.DEFAULT -> stringResource(R.string.sort_default)
+    LibrarySort.DEFAULT_REVERSED -> stringResource(R.string.sort_default_reversed)
     LibrarySort.TITLE_ASC -> stringResource(R.string.sort_title_ascending)
     LibrarySort.TITLE_DESC -> stringResource(R.string.sort_title_descending)
 }

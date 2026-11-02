@@ -8,6 +8,9 @@ package com.music.bitchord.data.settings
 enum class LibrarySort {
     /** Whatever order the shelf itself arrived in — YouTube Music's own. */
     DEFAULT,
+
+    /** The shelf's own order, last card first. */
+    DEFAULT_REVERSED,
     TITLE_ASC,
     TITLE_DESC,
 }
