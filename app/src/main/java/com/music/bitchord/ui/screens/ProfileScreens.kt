@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.components.IosSwitch
 import com.music.bitchord.ui.components.GlassAlertDialog
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -241,10 +242,12 @@ fun ProfileScreen(
 
         // Save sits before the optional bits so the main path is the short one.
         SettingsGroup(footer = stringResource(R.string.profile_auto_join_footer)) {
-            SettingsSubRow(
+            SettingsRow(
                 title = stringResource(R.string.profile_auto_join),
-                checked = autoJoin,
-                onCheckedChange = ProfileManager::setAutoJoinFriends,
+                onClick = { ProfileManager.setAutoJoinFriends(!autoJoin) },
+                trailing = {
+                    IosSwitch(checked = autoJoin, onCheckedChange = ProfileManager::setAutoJoinFriends)
+                },
             )
         }
 
