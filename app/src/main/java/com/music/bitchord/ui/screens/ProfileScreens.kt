@@ -672,6 +672,28 @@ fun ProfileSuggestionDialog(
 @Composable
 fun AddFriendDialog(card: ProfileCard, onFinished: () -> Unit, onCancel: () -> Unit) {
     val context = LocalContext.current
+    // Friends live on each phone, so adding someone does not add you to their list. After a new
+    // friend, offer the other half straight away: your own card, to be scanned or tapped.
+    var offerBack by rememberSaveable { mutableStateOf(false) }
+    var showingCard by rememberSaveable { mutableStateOf(false) }
+    val me by ProfileManager.profile.collectAsStateWithLifecycle()
+    val myCard = me?.toCard()
+    if (offerBack && myCard != null) {
+        if (showingCard) {
+            ShareSheet(item = ShareItem.ProfileItem(myCard), onDismiss = onFinished, startWithQr = true)
+        } else {
+            GlassAlertDialog(
+                onDismissRequest = onFinished,
+                title = { Text(stringResource(R.string.friends_back_title, card.displayName)) },
+                text = { Text(stringResource(R.string.friends_back_body, card.displayName)) },
+                confirmButton = {
+                    TextButton(onClick = { showingCard = true }) { Text(stringResource(R.string.friends_back_show)) }
+                },
+                dismissButton = { TextButton(onClick = onFinished) { Text(stringResource(R.string.friends_back_later)) } },
+            )
+        }
+        return
+    }
     GlassAlertDialog(
         onDismissRequest = onCancel,
         title = { Text(stringResource(R.string.friends_add_title, card.displayName)) },
@@ -684,14 +706,15 @@ fun AddFriendDialog(card: ProfileCard, onFinished: () -> Unit, onCancel: () -> U
         },
         confirmButton = {
             TextButton(onClick = {
-                val message = when (ProfileManager.addFriend(card)) {
+                val result = ProfileManager.addFriend(card)
+                val message = when (result) {
                     is Friends.AddResult.Added -> context.getString(R.string.friends_added, card.displayName)
                     is Friends.AddResult.Updated -> context.getString(R.string.friends_updated, card.displayName)
                     Friends.AddResult.IsYou -> context.getString(R.string.friends_is_you)
                     Friends.AddResult.ListFull -> context.getString(R.string.friends_full)
                 }
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                onFinished()
+                if (result is Friends.AddResult.Added && myCard != null) offerBack = true else onFinished()
             }) { Text(stringResource(R.string.friends_add_confirm)) }
         },
         dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },

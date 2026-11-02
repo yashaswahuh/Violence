@@ -330,6 +330,9 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.shape.CornerBasedShape
 import com.music.bitchord.ui.components.lightweightLiquidGlass
+import com.music.bitchord.ui.components.AppStill
+import com.music.bitchord.ui.components.LocalAppStill
+import com.music.bitchord.ui.components.snapshotGlassDisc
 import com.music.bitchord.ui.components.CollapsingTopAction
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.geometry.Size
@@ -464,11 +467,15 @@ class MainActivity : AppCompatActivity() {
                         modifier.lightweightLiquidGlass(shape as CornerBasedShape, fill)
                     }
                 }
+                // The page as a still, for the dialogs and sheets that are drawn in windows of
+                // their own and so cannot sample the page live (see AppStill).
+                val appStill = rememberSnapshotBackdrop().let { remember(it) { AppStill(it) } }
                 CompositionLocalProvider(
                     LocalOverscrollFactory provides iosOverscrollFactory,
                     LocalLiquidGlassEnabled provides liquidGlassEnabled,
                     com.music.bitchord.ui.player.LocalGlassDisc provides glassDisc,
                     LocalAppBackdrop provides appBackdrop,
+                    LocalAppStill provides appStill,
                 ) {
                 // The window's width, measured rather than asked for.
                 //
@@ -481,7 +488,12 @@ class MainActivity : AppCompatActivity() {
                 // longer exists and a page squeezed to a sliver to pay for it.
                 // A measured constraint cannot be stale — it is the very width
                 // the split is about to be laid out in.
-                BoxWithConstraints(Modifier.fillMaxSize()) {
+                BoxWithConstraints(
+                    Modifier
+                        .fillMaxSize()
+                        .snapshotBackdropSource(appStill.backdrop)
+                        .background(windowBackground),
+                ) {
                     BitChordApp(
                         darkTheme = darkTheme,
                         windowWidth = maxWidth,
@@ -739,6 +751,9 @@ private fun BitChordApp(
      * panel. Recorded only while that is the case — see the player's sheet.
      */
     val livePlayerBackdrop = rememberLayerBackdrop()
+    /** Stills the player's glass buttons, and the dialogs opened over the player, sample. */
+    val discBackdrop = rememberSnapshotBackdrop()
+    val playerDialogStill = rememberSnapshotBackdrop().let { remember(it) { AppStill(it) } }
     var playerLiveCanvas by remember { mutableStateOf(false) }
     /**
      * The same for a ⋮ or ⋯ menu over a page: a still of everything under it —
@@ -4855,14 +4870,41 @@ private fun BitChordApp(
                             playerBackdrop.release()
                         }
                     }
+                    // The player's small round buttons and any dialog or sheet opened over it are
+                    // glass over stills of the player (a still, not the live player: they sit inside
+                    // it, and sampling the layer they are drawn into would loop). Stills are taken
+                    // when a song starts and again once its artwork has settled; under "reduce
+                    // dynamic blur", or over a live Canvas, they stay plain.
+                    val playerStills = !reduceDynamicBlur && !playerLiveCanvas
+                    LaunchedEffect(playerStills, playerSong?.videoId) {
+                        if (!playerStills) return@LaunchedEffect
+                        discBackdrop.capture()
+                        delay(PLAYER_STILL_SETTLE_MS)
+                        discBackdrop.capture()
+                    }
+                    DisposableEffect(Unit) { onDispose { discBackdrop.release() } }
                     Box(
                         when {
                             reduceDynamicBlur -> Modifier
                             playerLiveCanvas -> Modifier.layerBackdrop(livePlayerBackdrop)
-                            else -> Modifier.snapshotBackdropSource(playerBackdrop)
+                            else -> Modifier
+                                .snapshotBackdropSource(playerBackdrop)
+                                .snapshotBackdropSource(discBackdrop)
+                                .snapshotBackdropSource(playerDialogStill.backdrop)
                         },
                     ) {
-                        CompositionLocalProvider(LocalPlayerDock provides activeDock) {
+                        val rootDisc = com.music.bitchord.ui.player.LocalGlassDisc.current
+                        val discGlass: @Composable (Modifier, Shape, Color) -> Modifier = remember(discBackdrop) {
+                            { modifier, shape, fill ->
+                                modifier.snapshotGlassDisc(discBackdrop, shape as CornerBasedShape, fill)
+                            }
+                        }
+                        CompositionLocalProvider(
+                            LocalPlayerDock provides activeDock,
+                            com.music.bitchord.ui.player.LocalGlassDisc provides
+                                (if (playerStills && isGlassSupported()) discGlass else rootDisc),
+                            LocalAppStill provides playerDialogStill.takeIf { playerStills },
+                        ) {
                             nowPlaying(playerSong)
                         }
                     }
@@ -6431,6 +6473,9 @@ private fun Isolated(content: @Composable () -> Unit) = content()
 
 /** Longer than the ⋯ menu's exit, so its panel keeps its frost on the way out. */
 private const val SNAPSHOT_RELEASE_DELAY_MS = 400L
+
+/** After a new song starts, how long its artwork takes to settle before the player's stills are retaken. */
+private const val PLAYER_STILL_SETTLE_MS = 900L
 
 /**
  * The player sheet's shape: square, as [RectangleShape] was, but reaching a

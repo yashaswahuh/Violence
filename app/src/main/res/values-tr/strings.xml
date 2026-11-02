@@ -1556,4 +1556,9 @@
     <string name="friends_invite_jam">Jam\'ime davet et</string>
     <string name="friends_send_subtitle">Dokunarak paylaş, QR ve bağlantıları açar</string>
     <string name="receive_last_read">Son okuma: %1$s</string>
+    <!-- Friends are kept on each phone: after adding one, offer your own card back. English placeholders, not yet translated. -->
+    <string name="friends_back_title">Let %1$s add you too</string>
+    <string name="friends_back_body">Friends are kept on each phone, so their list stays empty until %1$s adds your card. Show your QR code or tap phones now.</string>
+    <string name="friends_back_show">Show my card</string>
+    <string name="friends_back_later">Not now</string>
 </resources>
