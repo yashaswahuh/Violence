@@ -54,7 +54,7 @@ jobs:
             17
 
       - name: Set up the Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       # The packages this project compiles against (versions as used on the owner's machine).
       - name: Install SDK packages
