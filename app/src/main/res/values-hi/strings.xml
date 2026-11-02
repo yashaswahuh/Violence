@@ -1568,18 +1568,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">%1$s की ओर से</string>
+    <string name="incoming_add_jam">Jam कतार में जोड़ें</string>
+    <string name="incoming_added_jam">Jam कतार में जोड़ दिया गया</string>
+    <string name="jam_auto_joining">%1$s के Jam में जुड़ रहे हैं</string>
+    <string name="profile_auto_join">टैप से दोस्तों के Jam में जुड़ें</string>
+    <string name="profile_auto_join_footer">जब आपकी सूची का कोई दोस्त NFC टैप से Jam का न्योता साझा करता है, तो पूर्वावलोकन दिखाए बिना आप तुरंत जुड़ जाते हैं। डिफ़ॉल्ट रूप से बंद। दोस्त की पहचान लिंक में मौजूद प्रोफ़ाइल कार्ड से होती है, जिसे कोई भी कॉपी कर सकता है, इसलिए इसे तभी चालू करें जब आप जिनसे फ़ोन टकराते हैं उन पर भरोसा करते हों।</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">आपके साथ साझा की गई प्लेलिस्ट</string>
+    <string name="incoming_playlist_songs">%1$d गाने</string>
+    <string name="incoming_playlist_open">प्लेलिस्ट खोलें</string>
+    <string name="incoming_playlist_save">प्लेलिस्ट के रूप में सहेजें</string>
+    <string name="incoming_playlist_saving">सहेजा जा रहा है…</string>
+    <string name="incoming_playlist_saved">प्लेलिस्ट सहेज ली गई</string>
+    <string name="incoming_playlist_failed">वे गाने नहीं खोजे जा सके</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">हाल का</string>
+    <string name="recent_row_subtitle">आपके साझा किए या प्राप्त गाने, प्लेलिस्ट और प्रोफ़ाइल</string>
+    <string name="recent_empty">अभी कुछ नहीं। आप जो गाने, प्लेलिस्ट और प्रोफ़ाइल भेजेंगे या पाएँगे वे यहाँ दिखेंगे, केवल इसी फ़ोन पर।</string>
+    <string name="recent_footer">केवल इसी फ़ोन पर रखा जाता है। दोबारा खोलने के लिए किसी पर टैप करें।</string>
+    <string name="recent_clear">हाल का साफ़ करें</string>
+    <string name="recent_sent">भेजा गया</string>
+    <string name="recent_received">प्राप्त हुआ</string>
+    <string name="profile_feedback_header">साझा करने पर प्रतिक्रिया</string>
+    <string name="profile_feedback_vibration">भेजने या पाने पर कंपन करें</string>
+    <string name="profile_feedback_chime">हल्की ध्वनि बजाएँ</string>
+    <string name="friends_my_qr">मेरा QR कोड दिखाएँ</string>
+    <string name="friends_my_qr_subtitle">दोस्त इसे स्कैन करके आपको जोड़ते हैं</string>
+    <string name="friends_send_song">चल रहा गाना भेजें</string>
+    <string name="friends_invite_jam">मेरे Jam में बुलाएँ</string>
+    <string name="friends_send_subtitle">टैप करके साझा करें, QR और लिंक खुलते हैं</string>
+    <string name="receive_last_read">आख़िरी बार पढ़ा: %1$s</string>
 </resources>

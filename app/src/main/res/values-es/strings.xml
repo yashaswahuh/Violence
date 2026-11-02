@@ -1540,18 +1540,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">De %1$s</string>
+    <string name="incoming_add_jam">Añadir a la cola del Jam</string>
+    <string name="incoming_added_jam">Añadida a la cola del Jam</string>
+    <string name="jam_auto_joining">Entrando al Jam de %1$s</string>
+    <string name="profile_auto_join">Unirse por toque a los Jams de amigos</string>
+    <string name="profile_auto_join_footer">Cuando un amigo de tu lista comparte una invitación a un Jam con un toque NFC, te unes al instante en lugar de ver la vista previa. Desactivado por defecto. A un amigo se le reconoce por la tarjeta de perfil del enlace, que cualquiera podría copiar; actívalo solo si confías en la gente con la que compartes.</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">Lista de reproducción compartida contigo</string>
+    <string name="incoming_playlist_songs">%1$d canciones</string>
+    <string name="incoming_playlist_open">Abrir lista</string>
+    <string name="incoming_playlist_save">Guardar como lista</string>
+    <string name="incoming_playlist_saving">Guardando…</string>
+    <string name="incoming_playlist_saved">Lista guardada</string>
+    <string name="incoming_playlist_failed">No se pudieron buscar esas canciones</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">Recientes</string>
+    <string name="recent_row_subtitle">Canciones, listas y perfiles que compartiste o recibiste</string>
+    <string name="recent_empty">Todavía nada. Las canciones, listas y perfiles que envíes o recibas aparecerán aquí, solo en este teléfono.</string>
+    <string name="recent_footer">Se guarda solo en este teléfono. Toca uno para abrirlo de nuevo.</string>
+    <string name="recent_clear">Borrar recientes</string>
+    <string name="recent_sent">Enviado</string>
+    <string name="recent_received">Recibido</string>
+    <string name="profile_feedback_header">Respuesta al compartir</string>
+    <string name="profile_feedback_vibration">Vibrar al enviar o recibir</string>
+    <string name="profile_feedback_chime">Reproducir un sonido suave</string>
+    <string name="friends_my_qr">Mostrar mi código QR</string>
+    <string name="friends_my_qr_subtitle">Tus amigos lo escanean para añadirte</string>
+    <string name="friends_send_song">Enviar la canción actual</string>
+    <string name="friends_invite_jam">Invitar a mi Jam</string>
+    <string name="friends_send_subtitle">Abre Toca para compartir, QR y enlaces</string>
+    <string name="receive_last_read">Última lectura: %1$s</string>
 </resources>

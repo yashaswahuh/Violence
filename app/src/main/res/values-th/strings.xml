@@ -1551,18 +1551,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">จาก %1$s</string>
+    <string name="incoming_add_jam">เพิ่มในคิว Jam</string>
+    <string name="incoming_added_jam">เพิ่มในคิว Jam แล้ว</string>
+    <string name="jam_auto_joining">กำลังเข้าร่วม Jam ของ %1$s</string>
+    <string name="profile_auto_join">แตะเพื่อเข้าร่วม Jam ของเพื่อน</string>
+    <string name="profile_auto_join_footer">เมื่อเพื่อนในรายชื่อของคุณแชร์คำเชิญ Jam ด้วยการแตะ NFC คุณจะเข้าร่วมทันทีโดยไม่แสดงตัวอย่าง ปิดไว้เป็นค่าเริ่มต้น เพื่อนจะถูกระบุจากการ์ดโปรไฟล์ในลิงก์ ซึ่งใครก็คัดลอกได้ ดังนั้นเปิดใช้เฉพาะเมื่อคุณไว้ใจคนที่แตะโทรศัพท์ด้วย</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">เพลย์ลิสต์ที่แชร์ให้คุณ</string>
+    <string name="incoming_playlist_songs">%1$d เพลง</string>
+    <string name="incoming_playlist_open">เปิดเพลย์ลิสต์</string>
+    <string name="incoming_playlist_save">บันทึกเป็นเพลย์ลิสต์</string>
+    <string name="incoming_playlist_saving">กำลังบันทึก…</string>
+    <string name="incoming_playlist_saved">บันทึกเพลย์ลิสต์แล้ว</string>
+    <string name="incoming_playlist_failed">ค้นหาเพลงเหล่านั้นไม่ได้</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">ล่าสุด</string>
+    <string name="recent_row_subtitle">เพลง เพลย์ลิสต์ และโปรไฟล์ที่คุณแชร์หรือได้รับ</string>
+    <string name="recent_empty">ยังไม่มีอะไร เพลง เพลย์ลิสต์ และโปรไฟล์ที่คุณส่งหรือได้รับจะแสดงที่นี่ เฉพาะในโทรศัพท์เครื่องนี้</string>
+    <string name="recent_footer">เก็บไว้ในโทรศัพท์เครื่องนี้เท่านั้น แตะรายการเพื่อเปิดอีกครั้ง</string>
+    <string name="recent_clear">ล้างรายการล่าสุด</string>
+    <string name="recent_sent">ส่งแล้ว</string>
+    <string name="recent_received">ได้รับแล้ว</string>
+    <string name="profile_feedback_header">การตอบสนองเมื่อแชร์</string>
+    <string name="profile_feedback_vibration">สั่นเมื่อส่งหรือได้รับ</string>
+    <string name="profile_feedback_chime">เล่นเสียงเบา ๆ</string>
+    <string name="friends_my_qr">แสดงคิวอาร์โค้ดของฉัน</string>
+    <string name="friends_my_qr_subtitle">เพื่อนสแกนเพื่อเพิ่มคุณ</string>
+    <string name="friends_send_song">ส่งเพลงที่กำลังเล่น</string>
+    <string name="friends_invite_jam">เชิญเข้า Jam ของฉัน</string>
+    <string name="friends_send_subtitle">เปิดแตะเพื่อแชร์ คิวอาร์โค้ด และลิงก์</string>
+    <string name="receive_last_read">อ่านล่าสุด: %1$s</string>
 </resources>

@@ -59,6 +59,7 @@ import com.music.bitchord.data.profile.ProfileManager
 import com.music.bitchord.data.profile.ProfileRepository
 import com.music.bitchord.data.profile.ProfileRules
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.IosShare
 import com.music.bitchord.share.ShareItem
 import com.music.bitchord.ui.components.PillTextField
@@ -79,9 +80,12 @@ fun ProfileScreen(
     onClose: () -> Unit,
     onFriends: () -> Unit,
     onReceive: () -> Unit,
+    onRecent: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val shareVibration by ProfileManager.shareVibration.collectAsStateWithLifecycle()
+    val shareChime by ProfileManager.shareChime.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val saved by ProfileManager.profile.collectAsStateWithLifecycle()
     val friendCount by ProfileManager.friends.collectAsStateWithLifecycle()
@@ -135,10 +139,17 @@ fun ProfileScreen(
             )
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
             SettingsRow(
-                icon = SfIcons.Add,
+                icon = Icons.Rounded.Nfc,
                 title = stringResource(R.string.receive_title),
                 subtitle = stringResource(R.string.receive_row_subtitle),
                 onClick = onReceive,
+            )
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+            SettingsRow(
+                icon = SfIcons.History,
+                title = stringResource(R.string.recent_title),
+                subtitle = stringResource(R.string.recent_row_subtitle),
+                onClick = onRecent,
             )
         }
 
@@ -248,6 +259,20 @@ fun ProfileScreen(
                 trailing = {
                     IosSwitch(checked = autoJoin, onCheckedChange = ProfileManager::setAutoJoinFriends)
                 },
+            )
+        }
+
+        SettingsGroup(header = stringResource(R.string.profile_feedback_header)) {
+            SettingsRow(
+                title = stringResource(R.string.profile_feedback_vibration),
+                onClick = { ProfileManager.setShareVibration(!shareVibration) },
+                trailing = { IosSwitch(checked = shareVibration, onCheckedChange = ProfileManager::setShareVibration) },
+            )
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+            SettingsRow(
+                title = stringResource(R.string.profile_feedback_chime),
+                onClick = { ProfileManager.setShareChime(!shareChime) },
+                trailing = { IosSwitch(checked = shareChime, onCheckedChange = ProfileManager::setShareChime) },
             )
         }
 
@@ -365,8 +390,14 @@ private const val MAX_TYPED = 60
 fun FriendsScreen(
     contentPadding: PaddingValues,
     onReceive: () -> Unit,
+    /** Opens the share sheet for the song that is playing, if one is. */
+    onSendSong: (() -> Unit)? = null,
+    /** Opens the share sheet for the Jam this phone is in, if it is in one. */
+    onInviteJam: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    var showMyQr by remember { mutableStateOf(false) }
+    val myCard = remember(ProfileManager.current()) { ProfileManager.current()?.toCard() }
     val context = LocalContext.current
     val friends by ProfileManager.friends.collectAsStateWithLifecycle()
     val sorted = remember(friends) { Friends.sorted(friends) }
@@ -393,11 +424,42 @@ fun FriendsScreen(
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
             // Tap phones, scan a QR code, paste a link: all of them end in the same confirmation.
             SettingsRow(
-                icon = SfIcons.Groups,
+                icon = Icons.Rounded.Nfc,
                 title = stringResource(R.string.receive_title),
                 subtitle = stringResource(R.string.receive_row_subtitle),
                 onClick = onReceive,
             )
+            if (myCard != null) {
+                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+                SettingsRow(
+                    icon = SfIcons.Share,
+                    title = stringResource(R.string.friends_my_qr),
+                    subtitle = stringResource(R.string.friends_my_qr_subtitle),
+                    onClick = { showMyQr = true },
+                )
+            }
+            if (onSendSong != null) {
+                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+                SettingsRow(
+                    icon = SfIcons.Share,
+                    title = stringResource(R.string.friends_send_song),
+                    subtitle = stringResource(R.string.friends_send_subtitle),
+                    onClick = onSendSong,
+                )
+            }
+            if (onInviteJam != null) {
+                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+                SettingsRow(
+                    icon = SfIcons.Groups,
+                    title = stringResource(R.string.friends_invite_jam),
+                    subtitle = stringResource(R.string.friends_send_subtitle),
+                    onClick = onInviteJam,
+                )
+            }
+        }
+
+        if (showMyQr && myCard != null) {
+            ShareSheet(item = ShareItem.ProfileItem(myCard), onDismiss = { showMyQr = false }, startWithQr = true)
         }
 
         if (sorted.isEmpty()) {

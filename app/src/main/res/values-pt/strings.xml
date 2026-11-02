@@ -1573,18 +1573,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">De %1$s</string>
+    <string name="incoming_add_jam">Adicionar à fila do Jam</string>
+    <string name="incoming_added_jam">Adicionada à fila do Jam</string>
+    <string name="jam_auto_joining">Entrando no Jam de %1$s</string>
+    <string name="profile_auto_join">Entrar nos Jams de amigos por toque</string>
+    <string name="profile_auto_join_footer">Quando um amigo da sua lista compartilha um convite de Jam por toque NFC, você entra na hora em vez de ver a prévia. Desativado por padrão. Um amigo é reconhecido pelo cartão de perfil dentro do link, que qualquer pessoa poderia copiar; ative apenas se confiar nas pessoas com quem você toca os celulares.</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">Playlist compartilhada com você</string>
+    <string name="incoming_playlist_songs">%1$d músicas</string>
+    <string name="incoming_playlist_open">Abrir playlist</string>
+    <string name="incoming_playlist_save">Salvar como playlist</string>
+    <string name="incoming_playlist_saving">Salvando…</string>
+    <string name="incoming_playlist_saved">Playlist salva</string>
+    <string name="incoming_playlist_failed">Não foi possível buscar essas músicas</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">Recentes</string>
+    <string name="recent_row_subtitle">Músicas, playlists e perfis que você compartilhou ou recebeu</string>
+    <string name="recent_empty">Nada ainda. Músicas, playlists e perfis que você enviar ou receber aparecerão aqui, só neste celular.</string>
+    <string name="recent_footer">Guardado só neste celular. Toque em um item para abri-lo de novo.</string>
+    <string name="recent_clear">Limpar recentes</string>
+    <string name="recent_sent">Enviado</string>
+    <string name="recent_received">Recebido</string>
+    <string name="profile_feedback_header">Retorno ao compartilhar</string>
+    <string name="profile_feedback_vibration">Vibrar ao enviar ou receber</string>
+    <string name="profile_feedback_chime">Tocar um som suave</string>
+    <string name="friends_my_qr">Mostrar meu QR code</string>
+    <string name="friends_my_qr_subtitle">Amigos escaneiam para adicionar você</string>
+    <string name="friends_send_song">Enviar a música atual</string>
+    <string name="friends_invite_jam">Convidar para o meu Jam</string>
+    <string name="friends_send_subtitle">Abre Toque para compartilhar, QR e links</string>
+    <string name="receive_last_read">Última leitura: %1$s</string>
 </resources>

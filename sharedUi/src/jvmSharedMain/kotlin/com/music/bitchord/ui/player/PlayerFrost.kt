@@ -56,6 +56,13 @@ interface PlayerFrost {
 val LocalPlayerFrost = staticCompositionLocalOf<PlayerFrost?> { null }
 
 /**
+ * The material of the player's small round buttons (the like star, the menu): given the shape and
+ * the plain fill they wear, returns the modifier that paints them. The Android app supplies Liquid
+ * Glass here (and the plain fill when that is off); null, as on desktop, keeps the plain fill.
+ */
+val LocalGlassDisc = staticCompositionLocalOf<(@Composable (Modifier, Shape, Color) -> Modifier)?> { null }
+
+/**
  * The player's outermost frame: the player itself, the source of [frost]'s
  * still, and [overlays] — its drawers and popups — drawn beside it rather than
  * inside it, so the still is of the player alone. Taken when [overlayOpen]

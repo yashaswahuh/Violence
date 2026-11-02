@@ -515,6 +515,35 @@ private fun Modifier.artworkActionEdgePadding(): Modifier = layout { measurable,
     }
 }
 
+/**
+ * A top-bar action that folds away under its neighbour: its width and opacity go to nothing while
+ * [collapsed], sliding in from the right edge (the account photo's side), and back again when not.
+ * The bar's pill shrinks and grows with it, since it measures its contents.
+ */
+@Composable
+fun CollapsingTopAction(collapsed: Boolean, content: @Composable () -> Unit) {
+    val fold by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (collapsed) 0f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = 0.85f,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
+        ),
+        label = "topActionFold",
+    )
+    if (fold <= 0.001f && collapsed) return
+    Box(
+        Modifier
+            .clipToBounds()
+            .graphicsLayer { alpha = fold }
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                val width = (placeable.width * fold).roundToInt()
+                // Right-aligned: the part that has not folded yet is the part nearest the photo.
+                layout(width, placeable.height) { placeable.placeRelative(width - placeable.width, 0) }
+            },
+    ) { content() }
+}
+
 /** The navbar's exact material choice, reusable by every floating top control. */
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable

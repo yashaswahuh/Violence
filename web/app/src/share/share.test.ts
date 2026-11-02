@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parsePlaylistLink } from './playlistLinks';
 import { cardToUri, cardToWebUrl, type ProfileCard } from '@/profile/card';
 import { extractIncoming, incomingKey, normalizePartyCode, parseIncoming, parsePartyLink } from './incoming';
 import {
@@ -225,5 +226,23 @@ describe('song links: sender card', () => {
   it('accepts the optional sent-by fields', () => {
     const link = 'violence://song/yt/dQw4w9WgXcQ?v=1&t=Hi&f=123e4567-e89b-42d3-a456-426614174000&fn=Alex&fa=cat&fc=ff8800';
     expect(parseSongLink(link).ok).toBe(true);
+  });
+});
+
+describe('playlist links', () => {
+  const yt = 'violence://playlist/yt/PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf?v=1&t=Road%20trip';
+  it('reads both shapes', () => {
+    const a = parsePlaylistLink(yt);
+    expect(a.ok && a.ref.kind === 'yt' && a.ref.title === 'Road trip').toBe(true);
+    const b = parsePlaylistLink('violence://playlist/songs?v=1&t=Mix&s=dQw4w9WgXcQ,dQw4w9WgXcR');
+    expect(b.ok && b.ref.videoIds.length === 2).toBe(true);
+  });
+  it('accepts a sender card and rejects bad links', () => {
+    expect(parsePlaylistLink(`${yt}&f=123e4567-e89b-42d3-a456-426614174000&fn=Alex&fa=headphones&fc=ff8800`).ok).toBe(true);
+    expect(parsePlaylistLink('violence://playlist/songs?v=1&t=Mix&s=nope').ok).toBe(false);
+    expect(parsePlaylistLink('violence://playlist/yt/short?v=1&t=Mix').ok).toBe(false);
+    expect(parsePlaylistLink(`${yt}&x=1`).ok).toBe(false);
+    const wrong = parsePlaylistLink(yt.replace('v=1', 'v=2'));
+    expect(!wrong.ok && wrong.wrongVersion).toBe(true);
   });
 });

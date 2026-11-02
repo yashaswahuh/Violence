@@ -1600,18 +1600,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">От %1$s</string>
+    <string name="incoming_add_jam">Добавить в очередь Jam</string>
+    <string name="incoming_added_jam">Добавлено в очередь Jam</string>
+    <string name="jam_auto_joining">Подключение к Jam от %1$s</string>
+    <string name="profile_auto_join">Входить в Jam друзей касанием</string>
+    <string name="profile_auto_join_footer">Когда друг из вашего списка делится приглашением в Jam касанием NFC, вы сразу присоединяетесь без предпросмотра. По умолчанию выключено. Друга узнают по карточке профиля в ссылке, которую может скопировать любой, поэтому включайте это, только если доверяете тем, с кем касаетесь телефонами.</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">Плейлист, которым с вами поделились</string>
+    <string name="incoming_playlist_songs">Треков: %1$d</string>
+    <string name="incoming_playlist_open">Открыть плейлист</string>
+    <string name="incoming_playlist_save">Сохранить как плейлист</string>
+    <string name="incoming_playlist_saving">Сохранение…</string>
+    <string name="incoming_playlist_saved">Плейлист сохранён</string>
+    <string name="incoming_playlist_failed">Не удалось найти эти треки</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">Недавние</string>
+    <string name="recent_row_subtitle">Треки, плейлисты и профили, которыми вы делились или которые получали</string>
+    <string name="recent_empty">Пока ничего. Треки, плейлисты и профили, которые вы отправите или получите, появятся здесь, только на этом телефоне.</string>
+    <string name="recent_footer">Хранится только на этом телефоне. Нажмите на запись, чтобы открыть её снова.</string>
+    <string name="recent_clear">Очистить недавние</string>
+    <string name="recent_sent">Отправлено</string>
+    <string name="recent_received">Получено</string>
+    <string name="profile_feedback_header">Отклик при передаче</string>
+    <string name="profile_feedback_vibration">Вибрировать при отправке или получении</string>
+    <string name="profile_feedback_chime">Проигрывать мягкий звук</string>
+    <string name="friends_my_qr">Показать мой QR-код</string>
+    <string name="friends_my_qr_subtitle">Друзья сканируют его, чтобы добавить вас</string>
+    <string name="friends_send_song">Отправить текущий трек</string>
+    <string name="friends_invite_jam">Пригласить в мой Jam</string>
+    <string name="friends_send_subtitle">Открывает «Коснуться, чтобы поделиться», QR и ссылки</string>
+    <string name="receive_last_read">Последнее чтение: %1$s</string>
 </resources>

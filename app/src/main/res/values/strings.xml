@@ -1447,4 +1447,21 @@
     <string name="incoming_playlist_saving">Saving…</string>
     <string name="incoming_playlist_saved">Playlist saved</string>
     <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English only for now; other languages get this text as a placeholder. -->
+    <string name="recent_title">Recent</string>
+    <string name="recent_row_subtitle">Songs, playlists and profiles you shared or received</string>
+    <string name="recent_empty">Nothing yet. Songs, playlists and profiles you send or receive will show up here, on this phone only.</string>
+    <string name="recent_footer">Kept on this phone only. Tap one to open it again.</string>
+    <string name="recent_clear">Clear recent</string>
+    <string name="recent_sent">Sent</string>
+    <string name="recent_received">Received</string>
+    <string name="profile_feedback_header">Sharing feedback</string>
+    <string name="profile_feedback_vibration">Vibrate when sent or received</string>
+    <string name="profile_feedback_chime">Play a soft chime</string>
+    <string name="friends_my_qr">Show my QR code</string>
+    <string name="friends_my_qr_subtitle">Friends scan it to add you</string>
+    <string name="friends_send_song">Send the playing song</string>
+    <string name="friends_invite_jam">Invite to my Jam</string>
+    <string name="friends_send_subtitle">Opens Tap to share, QR and links</string>
+    <string name="receive_last_read">Last read: %1$s</string>
 </resources>

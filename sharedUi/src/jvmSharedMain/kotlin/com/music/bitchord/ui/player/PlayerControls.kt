@@ -743,8 +743,12 @@ internal fun CircleGlyph(
     Box(
         modifier = modifier
             .size(34.dp)
-            .clip(CircleShape)
-            .background(LocalPlayerTint.current.copy(alpha = discAlpha))
+            .then(
+                LocalGlassDisc.current?.invoke(Modifier, CircleShape, LocalPlayerTint.current.copy(alpha = discAlpha))
+                    ?: Modifier
+                        .clip(CircleShape)
+                        .background(LocalPlayerTint.current.copy(alpha = discAlpha)),
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

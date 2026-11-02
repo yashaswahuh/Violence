@@ -49,6 +49,20 @@ object IncomingLinkHub {
     /** A song or a profile waiting for the user's decision. */
     val pending: StateFlow<IncomingLink?> = _pending.asStateFlow()
 
+    private val _lastRead = MutableStateFlow("")
+
+    /**
+     * What the last tap, scan or paste came to, in a line for the Receive page's "last read" note:
+     * where it came from and what the reader made of it, never the link itself. It is how a failed
+     * tap can be reported precisely.
+     */
+    val lastRead: StateFlow<String> = _lastRead.asStateFlow()
+
+    private fun note(source: String, what: String) {
+        val time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date(clock()))
+        _lastRead.value = "$time \u00B7 $source \u00B7 $what"
+    }
+
     private val _notices = MutableSharedFlow<LinkNotice>(extraBufferCapacity = 4)
     val notices: SharedFlow<LinkNotice> = _notices.asSharedFlow()
 
@@ -60,6 +74,7 @@ object IncomingLinkHub {
      * fail on every presence check, so the same kind of message is shown at most once every few seconds.
      */
     fun tapFailed(reason: com.music.bitchord.nfc.NfcReadFailure) {
+        note("NFC", "not read (${reason.name})")
         val now = clock()
         if (now - lastTapProblemAt < 3_000) return
         lastTapProblemAt = now
@@ -83,6 +98,7 @@ object IncomingLinkHub {
     }
 
     internal fun accept(link: IncomingLink, source: LinkSource): Boolean {
+        note(source.name, if (link is IncomingLink.Invalid) "refused (${link.reason.name})" else "read ${link::class.simpleName}")
         if (link is IncomingLink.Invalid) {
             // A link tapped in another app that is not ours (a YouTube link, say) is not an error.
             if (!(source == LinkSource.INTENT && link.reason == InvalidReason.NOT_A_VIOLENCE_LINK)) {
@@ -93,6 +109,7 @@ object IncomingLinkHub {
         val key = link.key ?: return false
         val admitted = synchronized(gate) { gate.admit(key, clock()) }
         if (!admitted) return false
+        RecentShares.received(link)
         when (link) {
             is IncomingLink.Party -> {
                 val invite = link.invite
@@ -129,6 +146,14 @@ object IncomingLinkHub {
         intent.putExtra(EXTRA_CONSUMED, true)
         val source = if (action == NfcAdapter.ACTION_NDEF_DISCOVERED) LinkSource.NFC else LinkSource.INTENT
         return offer(text, source)
+    }
+
+    /** Opens a remembered link again (from the Recent page). Asks first, like any incoming link. */
+    fun reopen(uri: String) {
+        val link = IncomingLinks.parse(uri)
+        if (link is IncomingLink.Song || link is IncomingLink.Playlist || link is IncomingLink.Profile) {
+            _pending.value = link
+        }
     }
 
     /** The user decided: forget the pending item (it stays remembered so a re-read is ignored). */

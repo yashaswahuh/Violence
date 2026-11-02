@@ -61,3 +61,7 @@ Append one line per change: `date | file | what changed | why it could affect a 
 
 - `shared/.../data/share/PlaylistLinks.kt` (new), `IncomingLinks.kt` (new `IncomingLink.Playlist`): additive. Wear OS and desktop do not read share links, so neither is affected.
 - `ui/components/backdrop/*` (Shadow and Highlight nodes now cache their recording) and `LiquidGlass.kt` live in `:app` only; `:tv` compiles them from `app/src/main/java` and its debug build passes.
+
+## 2026-11-02: Part 3 (shared code touched)
+
+- `sharedUi/.../ui/player/PlayerFrost.kt` (new `LocalGlassDisc`, default null) and `PlayerControls.kt` (`CircleGlyph` uses it when set): the Android app supplies Liquid Glass for the player's round buttons; desktop leaves it null and is unchanged. Desktop was not built or tested.

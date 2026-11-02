@@ -1545,18 +1545,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">來自 %1$s</string>
+    <string name="incoming_add_jam">加入 Jam 佇列</string>
+    <string name="incoming_added_jam">已加入 Jam 佇列</string>
+    <string name="jam_auto_joining">正在加入 %1$s 的 Jam</string>
+    <string name="profile_auto_join">碰一碰加入好友的 Jam</string>
+    <string name="profile_auto_join_footer">當名單中的好友透過 NFC 碰觸分享 Jam 邀請時，直接加入而不顯示預覽。預設關閉。好友是透過連結裡的個人檔案卡辨識，而任何人都可以複製它，因此只有在你信任碰觸對象時才開啟。</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">與你分享的播放清單</string>
+    <string name="incoming_playlist_songs">%1$d 首歌曲</string>
+    <string name="incoming_playlist_open">開啟播放清單</string>
+    <string name="incoming_playlist_save">另存為播放清單</string>
+    <string name="incoming_playlist_saving">正在儲存…</string>
+    <string name="incoming_playlist_saved">播放清單已儲存</string>
+    <string name="incoming_playlist_failed">找不到這些歌曲</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">最近</string>
+    <string name="recent_row_subtitle">你分享或收到的歌曲、播放清單和個人檔案</string>
+    <string name="recent_empty">尚無內容。你傳送或收到的歌曲、播放清單和個人檔案會顯示在這裡，僅儲存在這支手機。</string>
+    <string name="recent_footer">僅儲存在這支手機。點一下項目即可再次開啟。</string>
+    <string name="recent_clear">清除最近記錄</string>
+    <string name="recent_sent">已傳送</string>
+    <string name="recent_received">已接收</string>
+    <string name="profile_feedback_header">分享回饋</string>
+    <string name="profile_feedback_vibration">傳送或接收時震動</string>
+    <string name="profile_feedback_chime">播放輕柔提示音</string>
+    <string name="friends_my_qr">顯示我的 QR 碼</string>
+    <string name="friends_my_qr_subtitle">好友掃描即可加你</string>
+    <string name="friends_send_song">傳送正在播放的歌曲</string>
+    <string name="friends_invite_jam">邀請加入我的 Jam</string>
+    <string name="friends_send_subtitle">開啟「碰一碰分享」、QR 碼和連結</string>
+    <string name="receive_last_read">上次讀取：%1$s</string>
 </resources>

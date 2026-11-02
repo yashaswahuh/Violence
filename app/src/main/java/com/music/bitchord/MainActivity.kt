@@ -181,6 +181,7 @@ import com.music.bitchord.ui.screens.ProfileSuggestionDialog
 import com.music.bitchord.ui.screens.AddFriendDialog
 import com.music.bitchord.ui.screens.IncomingSongDialog
 import com.music.bitchord.ui.screens.IncomingPlaylistDialog
+import com.music.bitchord.ui.screens.RecentScreen
 import com.music.bitchord.ui.screens.ReceiveScreen
 import com.music.bitchord.ui.screens.ShareSheet
 import com.music.bitchord.ui.screens.noticeRes
@@ -327,6 +328,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.shape.CornerBasedShape
+import com.music.bitchord.ui.components.lightweightLiquidGlass
+import com.music.bitchord.ui.components.CollapsingTopAction
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.drawWithContent
@@ -415,6 +419,10 @@ class MainActivity : AppCompatActivity() {
         IncomingLinkHub.consume(intent)
         // Likewise for a link tapped or shared from another app — see [MusicLink].
         MusicLink.consume(intent)
+        // And the Receive tile in Quick Settings.
+        com.music.bitchord.share.ReceiveDeepLink.consume(intent)
+        // Debug builds only: frame times to logcat (tag VioFrames), tagged with the glass setting.
+        FrameStats.attach(this) { "glass=" + (if (AppSettings.liquidGlass.value) "on" else "off") }
         setContent {
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
             val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
@@ -449,9 +457,17 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 val appBackdrop = rememberLayerBackdrop(onDraw = paintBackdrop)
+                // The player's round buttons: glass (over the player's smooth backdrop, so the
+                // light tint and rim, not a second backdrop capture) or their plain fill.
+                val glassDisc: @Composable (Modifier, Shape, Color) -> Modifier = remember {
+                    { modifier, shape, fill ->
+                        modifier.lightweightLiquidGlass(shape as CornerBasedShape, fill)
+                    }
+                }
                 CompositionLocalProvider(
                     LocalOverscrollFactory provides iosOverscrollFactory,
                     LocalLiquidGlassEnabled provides liquidGlassEnabled,
+                    com.music.bitchord.ui.player.LocalGlassDisc provides glassDisc,
                     LocalAppBackdrop provides appBackdrop,
                 ) {
                 // The window's width, measured rather than asked for.
@@ -522,6 +538,7 @@ class MainActivity : AppCompatActivity() {
         PlayerDeepLink.consume(intent)
         IncomingLinkHub.consume(intent)
         MusicLink.consume(intent)
+        com.music.bitchord.share.ReceiveDeepLink.consume(intent)
     }
 }
 
@@ -815,6 +832,14 @@ private fun BitChordApp(
     // [AppNavigator]. Whatever was opened last is what is on screen, and back
     // (the gesture or the bar's button alike) undoes exactly that.
     val navigator = viewModel.navigator
+    // The Quick Settings "Receive" tile: open the Receive page once, then forget the request.
+    val receiveRequested by com.music.bitchord.share.ReceiveDeepLink.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(receiveRequested) {
+        if (receiveRequested) {
+            navigator.push(AppRoute.Receive)
+            com.music.bitchord.share.ReceiveDeepLink.handled()
+        }
+    }
     val detailStack by viewModel.detailStack.collectAsStateWithLifecycle()
     val topEntry = navigator.visibleEntry(detailStack.size)
     // An artist's open shelf is drawn by the artist page itself, so it is not a
@@ -3050,17 +3075,30 @@ private fun BitChordApp(
                             )
                         } else if (pageRoute == AppRoute.Receive) {
                             ReceiveScreen(contentPadding = listPadding)
+                        } else if (pageRoute == AppRoute.Recent) {
+                            RecentScreen(contentPadding = listPadding)
                         } else if (pageRoute == AppRoute.Profile) {
                             ProfileScreen(
                                 contentPadding = listPadding,
                                 onClose = { navigator.pop() },
                                 onFriends = { navigator.push(AppRoute.Friends) },
                                 onReceive = { navigator.push(AppRoute.Receive) },
+                                onRecent = { navigator.push(AppRoute.Recent) },
                             )
                         } else if (pageRoute == AppRoute.Friends) {
                             FriendsScreen(
                                 contentPadding = listPadding,
                                 onReceive = { navigator.push(AppRoute.Receive) },
+                                onSendSong = player.song?.let { current ->
+                                    { ShareItem.of(current)?.let { shareItem = it } }
+                                },
+                                onInviteJam = partyState.code?.let { jamCode ->
+                                    {
+                                        val host = ListenTogether.activePartyServerBase()
+                                        val custom = if (host == null || host == ListenTogether.defaultServer) null else host
+                                        shareItem = ShareItem.JamItem(jamCode, custom)
+                                    }
+                                },
                             )
                         } else if (pageRoute == AppRoute.Sources) {
                             SourcesScreen(
@@ -3799,6 +3837,7 @@ private fun BitChordApp(
                         AppRoute.Profile -> stringResource(R.string.profile_title)
                         AppRoute.Friends -> stringResource(R.string.friends_title)
                         AppRoute.Receive -> stringResource(R.string.receive_title)
+                        AppRoute.Recent -> stringResource(R.string.recent_title)
                         AppRoute.WearOs -> stringResource(R.string.wear_os_page_title)
                         AppRoute.Equalizer -> stringResource(R.string.equalizer)
                         AppRoute.Settings -> stringResource(R.string.settings)
@@ -4117,17 +4156,23 @@ private fun BitChordApp(
                             // shared to has to be on that page, so it is one tap
                             // from anywhere. Not on a release page (crowded), nor on
                             // the page it opens.
+                            // Like the mini player in the tab bar, these fold in under the account photo
+                            // as the page scrolls down and slide back out when it scrolls up.
                             if (!isReleaseDetail && route != AppRoute.Receive) {
-                                IconButton(onClick = { navigator.push(AppRoute.Receive) }) {
-                                    Icon(
-                                        Icons.Rounded.Nfc,
-                                        contentDescription = stringResource(R.string.receive_title),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                    )
+                                CollapsingTopAction(collapsed = navBarScroll.isInline) {
+                                    IconButton(onClick = { navigator.push(AppRoute.Receive) }) {
+                                        Icon(
+                                            Icons.Rounded.Nfc,
+                                            contentDescription = stringResource(R.string.receive_title),
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
                                 }
                             }
                             if (route != AppRoute.Downloads) {
-                                TopBarDownloadButton(onClick = { navigator.push(AppRoute.Downloads) })
+                                CollapsingTopAction(collapsed = navBarScroll.isInline) {
+                                    TopBarDownloadButton(onClick = { navigator.push(AppRoute.Downloads) })
+                                }
                             }
                             // Not on a release page, whose pill already carries
                             // three of its own controls — Apple Music leaves the
@@ -4168,6 +4213,8 @@ private fun BitChordApp(
                 // A tab is a fresh start: everything pushed over the old one —
                 // routes and release pages alike — goes with it.
                 val onTabSelected: (Int) -> Unit = { index ->
+                    // Home tapped while already on Home's own page: back to the top, and refreshed.
+                    val homeAgain = index == TAB_HOME && selectedTab == TAB_HOME && route == null && detail == null
                     navigator.clear()
                     viewModel.closeMoodGenre()
                     selectedTab = index
@@ -4177,6 +4224,10 @@ private fun BitChordApp(
                     if (index == TAB_SEARCH) {
                         viewModel.onQueryChange("")
                         searchFocusRequested = true
+                    }
+                    if (homeAgain) {
+                        scope.launch { homeListState.animateScrollToItem(0) }
+                        viewModel.refresh(MainViewModel.Feed.HOME)
                     }
                 }
 
@@ -5500,9 +5551,37 @@ private fun BitChordApp(
                 is IncomingLink.Playlist -> {
                     var saving by remember(link.ref) { mutableStateOf(false) }
                     val savedScope = rememberCoroutineScope()
+                    // The first song's cover stands in for the playlist's.
+                    var cover by remember(link.ref) { mutableStateOf<Song?>(null) }
+                    LaunchedEffect(link.ref) {
+                        link.ref.videoIds.firstOrNull()?.let { first ->
+                            cover = SharedSongResolver.resolve(SongRef(SongSource.YOUTUBE, first))
+                        }
+                    }
                     IncomingPlaylistDialog(
                         ref = link.ref,
                         busy = saving,
+                        cover = cover,
+                        onAddToJam = if (ListenTogether.state.value.inParty && link.ref.videoIds.isNotEmpty()) {
+                            {
+                                saving = true
+                                savedScope.launch {
+                                    val songs = link.ref.videoIds.mapNotNull {
+                                        SharedSongResolver.resolve(SongRef(SongSource.YOUTUBE, it))
+                                    }
+                                    saving = false
+                                    if (songs.isEmpty()) {
+                                        Toast.makeText(context, context.getString(R.string.incoming_playlist_failed), Toast.LENGTH_SHORT).show()
+                                    } else if (!refusedByHost()) {
+                                        ListenTogether.queueAdd(songs.map { it.toPartyTrack(0L) })
+                                        Toast.makeText(context, context.getString(R.string.incoming_added_jam), Toast.LENGTH_SHORT).show()
+                                        IncomingLinkHub.handled()
+                                    }
+                                }
+                            }
+                        } else {
+                            null
+                        },
                         onOpen = {
                             link.ref.id?.let { id ->
                                 viewModel.openDetail("VL$id", link.ref.title, type = BrowseType.PLAYLIST)

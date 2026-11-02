@@ -1568,18 +1568,35 @@
     <string name="incoming_song_overline">Shared with you</string>
     <!-- Sharing ideas (Phase 9, part 2). English placeholders, not yet translated. -->
     <string name="share_copy_app_link">Copy app link</string>
-    <string name="incoming_song_from">From %1$s</string>
-    <string name="incoming_add_jam">Add to Jam queue</string>
-    <string name="incoming_added_jam">Added to the Jam queue</string>
-    <string name="jam_auto_joining">Joining the Jam from %1$s</string>
-    <string name="profile_auto_join">Join friends Jams by tap</string>
-    <string name="profile_auto_join_footer">When a friend on your list shares a Jam invite by NFC tap, join it straight away instead of showing the preview. Off by default. A friend is recognised by the profile card inside the link, which anyone could copy, so only switch this on if you trust the people you tap with.</string>
+    <string name="incoming_song_from">Von %1$s</string>
+    <string name="incoming_add_jam">Zur Jam-Warteschlange hinzufügen</string>
+    <string name="incoming_added_jam">Zur Jam-Warteschlange hinzugefügt</string>
+    <string name="jam_auto_joining">Tritt dem Jam von %1$s bei</string>
+    <string name="profile_auto_join">Jams von Freunden per Tippen beitreten</string>
+    <string name="profile_auto_join_footer">Wenn ein Freund aus deiner Liste eine Jam-Einladung per NFC-Berührung teilt, trittst du sofort bei, statt die Vorschau zu sehen. Standardmäßig aus. Ein Freund wird an der Profilkarte im Link erkannt, die jeder kopieren könnte; aktiviere dies nur, wenn du den Personen vertraust, mit denen du Handys aneinanderhältst.</string>
     <!-- Sharing: playlists (Phase 9, part 3). English placeholders, not yet translated. -->
-    <string name="incoming_playlist_overline">Playlist shared with you</string>
-    <string name="incoming_playlist_songs">%1$d songs</string>
-    <string name="incoming_playlist_open">Open playlist</string>
-    <string name="incoming_playlist_save">Save as playlist</string>
-    <string name="incoming_playlist_saving">Saving…</string>
-    <string name="incoming_playlist_saved">Playlist saved</string>
-    <string name="incoming_playlist_failed">Could not look those songs up</string>
+    <string name="incoming_playlist_overline">Mit dir geteilte Playlist</string>
+    <string name="incoming_playlist_songs">%1$d Titel</string>
+    <string name="incoming_playlist_open">Playlist öffnen</string>
+    <string name="incoming_playlist_save">Als Playlist speichern</string>
+    <string name="incoming_playlist_saving">Wird gespeichert…</string>
+    <string name="incoming_playlist_saved">Playlist gespeichert</string>
+    <string name="incoming_playlist_failed">Diese Titel konnten nicht gefunden werden</string>
+    <!-- Sharing: recents, feedback, QR and friends (Phase 9, part 4). English placeholders, not yet translated. -->
+    <string name="recent_title">Zuletzt</string>
+    <string name="recent_row_subtitle">Titel, Playlists und Profile, die du geteilt oder erhalten hast</string>
+    <string name="recent_empty">Noch nichts. Titel, Playlists und Profile, die du sendest oder empfängst, erscheinen hier, nur auf diesem Handy.</string>
+    <string name="recent_footer">Wird nur auf diesem Handy gespeichert. Tippe auf einen Eintrag, um ihn erneut zu öffnen.</string>
+    <string name="recent_clear">Zuletzt-Liste löschen</string>
+    <string name="recent_sent">Gesendet</string>
+    <string name="recent_received">Empfangen</string>
+    <string name="profile_feedback_header">Rückmeldung beim Teilen</string>
+    <string name="profile_feedback_vibration">Beim Senden oder Empfangen vibrieren</string>
+    <string name="profile_feedback_chime">Sanften Ton abspielen</string>
+    <string name="friends_my_qr">Meinen QR-Code anzeigen</string>
+    <string name="friends_my_qr_subtitle">Freunde scannen ihn, um dich hinzuzufügen</string>
+    <string name="friends_send_song">Aktuellen Titel senden</string>
+    <string name="friends_invite_jam">In meinen Jam einladen</string>
+    <string name="friends_send_subtitle">Öffnet Tippen zum Teilen, QR und Links</string>
+    <string name="receive_last_read">Zuletzt gelesen: %1$s</string>
 </resources>

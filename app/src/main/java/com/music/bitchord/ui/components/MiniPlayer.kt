@@ -11,6 +11,8 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -216,7 +218,44 @@ internal fun Modifier.miniPlayerGestures(
     /** Listening in a party whose host holds the controls. Swipes say so instead of skipping. */
     locked: Boolean = false,
     onBlocked: () -> Unit = {},
+    /**
+     * Held still on the bar for the system's long-press time. Detected here, on the way down
+     * (the Initial pass), rather than by the bar's own clickable: nothing between the finger
+     * and this can take the press away from it. [longPressed] is set so the bar's click, which
+     * would otherwise fire on release, can tell it was a long press.
+     */
+    onLongPress: (() -> Unit)? = null,
+    longPressed: BooleanArray = BooleanArray(1),
 ): Modifier {
+    val currentLongPress by rememberUpdatedState(onLongPress)
+    val pressHaptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val withLongPress = if (onLongPress == null) {
+        this
+    } else {
+        pointerInput(Unit) {
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                longPressed[0] = false
+                val ended = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                    while (true) {
+                        val change = awaitPointerEvent(PointerEventPass.Initial).changes
+                            .firstOrNull { it.id == down.id } ?: return@withTimeoutOrNull true
+                        if (!change.pressed) return@withTimeoutOrNull true
+                        if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop * 2f) {
+                            return@withTimeoutOrNull true
+                        }
+                    }
+                    @Suppress("UNREACHABLE_CODE")
+                    false
+                }
+                if (ended == null) {
+                    longPressed[0] = true
+                    pressHaptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    currentLongPress?.invoke()
+                }
+            }
+        }
+    }
     // Playback state updates can recompose the bar while a finger is down.
     // Keep the gesture coroutine alive through those updates while still
     // dispatching to the latest controller callbacks when the drag finishes.
@@ -230,7 +269,7 @@ internal fun Modifier.miniPlayerGestures(
     // recomposing it.
     val lift = remember { mutableFloatStateOf(0f) }
     val settle = remember { arrayOfNulls<Job>(1) }
-    return pointerInput(Unit) {
+    return withLongPress.pointerInput(Unit) {
         val trackThreshold = TRACK_SWIPE_THRESHOLD.toPx()
         val liftEase = PULL_LIFT_EASE.toPx()
         val maxVelocity = viewConfiguration.maximumFlingVelocity
@@ -370,7 +409,7 @@ fun MiniPlayer(
 ) {
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
-    val longPressFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val longPressed = remember { BooleanArray(1) }
     // percent rather than a dp figure, so the corner stays exactly half the
     // height if the row's contents ever change it — which is what keeps a pill
     // a pill instead of a rounded rectangle. Same idiom as [FloatingBottomBar]
@@ -392,6 +431,8 @@ fun MiniPlayer(
                 },
                 locked = controlsLocked,
                 onBlocked = onBlockedControl,
+                onLongPress = onLongPress,
+                longPressed = longPressed,
             )
             .clip(shape)
             .then(
@@ -408,15 +449,7 @@ fun MiniPlayer(
             // Deliberately silent: the whole bar is the target, so it catches
             // stray taps meant for the page behind it, and the sheet rising is
             // its own confirmation. The glyphs on it still buzz.
-            .combinedClickable(
-                onClick = onExpand,
-                onLongClick = onLongPress?.let { press ->
-                    {
-                        longPressFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                        press()
-                    }
-                },
-            ),
+            .clickable(onClick = { if (longPressed[0]) longPressed[0] = false else onExpand() }),
     ) {
         Row(
             modifier = Modifier

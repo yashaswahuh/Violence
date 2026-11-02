@@ -68,7 +68,9 @@ fun GlassAlertDialog(
     AlertDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = confirmButton,
-        modifier = modifier.glassPanelEdge(shape),
+        // Tint only: M3 hands this modifier to a box that includes the dialog's outer padding, so a rim
+        // drawn on it would outline more than the dialog.
+        modifier = modifier,
         dismissButton = dismissButton,
         icon = icon,
         title = title,
@@ -97,7 +99,9 @@ fun GlassBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        modifier = modifier.glassPanelEdge(shape),
+        // No rim here: the sheet's modifier lands on a box that spans the whole window, so an edge
+        // drawn on it outlined the screen above the sheet. The tint is what carries the glass.
+        modifier = modifier,
         sheetState = sheetState,
         shape = shape,
         containerColor = glassPanelColor(containerColor),

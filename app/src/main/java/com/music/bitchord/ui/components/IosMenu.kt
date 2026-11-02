@@ -7,6 +7,7 @@ import com.music.bitchord.ui.components.backdrop.Backdrop
 import com.music.bitchord.ui.components.backdrop.drawBackdrop
 import com.music.bitchord.ui.components.backdrop.effects.blur
 import com.music.bitchord.ui.components.backdrop.effects.colorControls
+import com.music.bitchord.ui.components.backdrop.effects.lens
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -168,7 +169,14 @@ fun Modifier.iosMenuPanel(
         colors.fill
     }
     val shadowed = if (castsShadow) iosMenuShadow() else this
-    val surface = if (hazeFrost) {
+    // Liquid Glass on: the panel is the same glass the bars are (blur, lens, light-catching rim),
+    // sampling the player's still where there is one, else the page.
+    val glass = LocalLiquidGlassEnabled.current && isGlassSupported() && blurs
+    val glassBackdrop = if (glass) (backdrop ?: LocalAppBackdrop.current) else null
+    val surface = if (glassBackdrop != null) {
+        val glassFill = remember(fill) { fill }
+        shadowed.menuGlass(glassBackdrop, glassFill)
+    } else if (hazeFrost) {
         val style = remember(colors, fill) { menuFrost(colors.fill, alpha = fill.alpha) }
         shadowed.clip(IosMenuShape).optimizedHazeEffect(state = hazeState, style = style)
     } else if (backdropFrost) {
@@ -211,6 +219,41 @@ fun Modifier.menuBackdropFrost(backdrop: Backdrop, shape: Shape, fill: Color): M
     backdropScale = MENU_BACKDROP_SCALE,
 )
 
+/** [IosMenuShape]'s rounded-rect twin: the lens effect cannot take the continuous-corner shape. */
+private val IosMenuGlassShape = RoundedCornerShape(30.dp)
+
+/** The menu panel as Liquid Glass: the frost of [menuBackdropFrost] plus the lens and the rim. */
+@Composable
+private fun Modifier.menuGlass(backdrop: Backdrop, fill: Color): Modifier {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val lensPx = with(density) { MENU_LENS.toPx() } * MENU_BACKDROP_SCALE
+    val blurPx = with(density) { MENU_BLUR.toPx() } * MENU_BACKDROP_SCALE
+    val glass = remember(backdrop, fill, lensPx, blurPx) {
+        Modifier.drawBackdrop(
+            backdrop = backdrop,
+            shape = { IosMenuGlassShape },
+            effects = {
+                colorControls(saturation = 1.8f)
+                blur(blurPx)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    lens(
+                        refractionHeight = lensPx,
+                        refractionAmount = lensPx,
+                        depthEffect = true,
+                        chromaticAberration = true,
+                    )
+                }
+            },
+            highlight = { com.music.bitchord.ui.components.backdrop.highlight.Highlight.Default },
+            shadow = null,
+            onDrawSurface = { drawRect(fill) },
+            backdropScale = MENU_BACKDROP_SCALE,
+        )
+    }
+    return then(glass)
+}
+
+private val MENU_LENS = 20.dp
 private val MENU_BLUR = 24.dp
 private const val MENU_BACKDROP_SCALE = 0.25f
 
