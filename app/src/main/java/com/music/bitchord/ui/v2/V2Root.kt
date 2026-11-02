@@ -54,11 +54,9 @@ fun V2Root(dark: Boolean, content: @Composable () -> Unit) {
     }
 }
 
-/** Whether the New UI is on; also puts the placeholder Home back whenever the variant changes. */
+/** Whether the New UI is on. */
 @Composable
 fun rememberNewUi(): Boolean {
     val variant by AppSettings.uiVariant.collectAsStateWithLifecycle()
-    val on = variant == UiVariant.NEW
-    LaunchedEffect(on) { com.music.bitchord.ui.v2.chrome.V2HomeState.classic = false }
-    return on
+    return variant == UiVariant.NEW
 }

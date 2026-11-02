@@ -1474,4 +1474,20 @@
     <string name="v2_home_everything_else">Everything else</string>
     <string name="v2_open_classic_home">Open the classic Home</string>
     <string name="v2_back_to_preview_home">Back to the preview</string>
+    <!-- Custom UI, UI-2. English placeholders, not yet translated. -->
+    <string name="v2_hub_title">Everything</string>
+    <string name="v2_hub_all">All</string>
+    <string name="v2_hub_people">People</string>
+    <string name="v2_hub_share">Share</string>
+    <string name="v2_hub_music">Music</string>
+    <string name="v2_hub_you">You</string>
+    <string name="v2_controls_locked">The host controls playback in this Jam.</string>
+    <string name="v2_open_full_player">Queue, lyrics and more</string>
+    <string name="v2_share_song">Share</string>
+    <string name="v2_seek_label">Song position</string>
+    <string name="v2_seek_state">%1$s of %2$s</string>
+    <string name="v2_seek_back_10">Back 10 seconds</string>
+    <string name="v2_seek_forward_10">Forward 10 seconds</string>
+    <string name="v2_jam_listening">Jam: %1$d listening. Opens the Jam page.</string>
+    <string name="v2_jam_host">host</string>
 </resources>
