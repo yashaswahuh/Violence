@@ -1,5 +1,7 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.violencestyle.violenceGroupFill
+import com.music.bitchord.ui.violencestyle.violenceGlassRim
 import com.music.bitchord.ui.components.GlassAlertDialog
 import com.music.bitchord.ui.components.liquidGlassRim
 import com.music.bitchord.ui.icons.SfIcons
@@ -2365,9 +2367,10 @@ internal fun SettingsGroup(
             .fillMaxWidth()
             .padding(horizontal = GROUP_INSET)
             .clip(GroupShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(violenceGroupFill() ?: MaterialTheme.colorScheme.surfaceVariant)
             // Liquid Glass: the light-catching edge the floating bars have. No-op while it is off.
-            .liquidGlassRim(GroupShape),
+            .liquidGlassRim(GroupShape)
+            .violenceGlassRim(GroupShape),
     ) {
         content()
     }

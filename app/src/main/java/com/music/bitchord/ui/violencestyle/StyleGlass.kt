@@ -83,6 +83,9 @@ object ViolenceGlassColors {
     /** Peak alpha of the glow above an album or playlist page: 0.30 at Medium, 0.19 to 0.40 across the intensities. */
     fun detailGlowAlpha(intensity: StyleIntensity): Float = 0.30f * glowStrength(intensity)
 
+    /** Alpha of a Settings group card: translucent over the glow, near-solid when transparency is reduced. */
+    fun groupFillAlpha(reduceTransparency: Boolean): Float = if (reduceTransparency) 0.94f else 0.62f
+
     /** Opaque alpha used instead of the translucent tint when transparency is reduced. */
     const val SOLID_TINT_ALPHA = 0.92f
 
@@ -244,3 +247,17 @@ fun Modifier.violenceDetailGlowFor(style: StyleState, tokens: AccentTokens): Mod
 @Composable
 fun Modifier.violenceDetailGlow(): Modifier =
     violenceDetailGlowFor(LocalViolenceStyle.current, LocalViolenceAccent.current)
+
+/**
+ * Fill of a Settings group card under the style: the dark accent-tinted panel colour, translucent so the
+ * glow shows through (near-solid under reduced transparency); null (the original `surfaceVariant`) when off.
+ * The card sits inside the recorded page, so it cannot sample it live: this is the translucent look, not the lens.
+ */
+@Composable
+fun violenceGroupFill(): Color? {
+    val style = LocalViolenceStyle.current
+    if (!style.enabled) return null
+    val accent = LocalViolenceAccent.current.accent
+    val alpha = ViolenceGlassColors.groupFillAlpha(style.reduceTransparency)
+    return remember(accent, alpha) { Color(AccentMath.withAlpha(ViolenceGlassColors.panelTint(accent), alpha)) }
+}

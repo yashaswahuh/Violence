@@ -1,5 +1,8 @@
 package com.music.bitchord.ui.violencestyle
 
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -67,6 +70,8 @@ class ViolenceSharedStyle(
     val cardTitleCaps: TextStyle,
     /** Card label and subtitle (the body face). */
     val label: TextStyle,
+    /** True when the live background may move (motion not Off, FULL mode, no reduce motion). */
+    val motion: Boolean = false,
 )
 
 /** Null while the style is off. */
@@ -315,4 +320,59 @@ fun violencePillColor(base: Color, accent: Color): Color {
 private fun relativeLum(c: Color): Float {
     fun ch(v: Float) = if (v <= 0.03928f) v / 12.92f else Math.pow(((v + 0.055f) / 1.055f).toDouble(), 2.4).toFloat()
     return 0.2126f * ch(c.red) + 0.7152f * ch(c.green) + 0.0722f * ch(c.blue)
+}
+
+/** Peak alpha of the glow behind the full player: 0.16 to 0.36, scaled by the chosen intensity. */
+fun violencePlayerGlowAlpha(strength: Float): Float = (0.26f * strength / 0.62f).coerceIn(0.16f, 0.36f)
+
+/**
+ * The accent glow behind the full player (stage S5 follow-up): two soft radial blobs over the artwork
+ * backdrop, kept to the top and right edges so the controls and text are not under it. [drift] is read in
+ * the draw phase (0..1, one slow loop); a constant gives a still glow. One cached unit brush, moved and
+ * scaled by the canvas, nothing allocated per frame. Returns the receiver unchanged when [style] is null.
+ */
+fun Modifier.violencePlayerGlowFor(style: ViolenceSharedStyle?, drift: () -> Float): Modifier {
+    if (style == null) return this
+    val peak = violencePlayerGlowAlpha(style.strength)
+    return drawWithCache {
+        val unit = Brush.radialGradient(
+            0f to style.accent.copy(alpha = 1f),
+            0.35f to style.accent.copy(alpha = 0.55f),
+            0.7f to style.accent.copy(alpha = 0.18f),
+            1f to style.accent.copy(alpha = 0f),
+            center = Offset.Zero,
+            radius = 1f,
+        )
+        onDrawWithContent {
+            drawContent()
+            val t = drift() * 2f * Math.PI.toFloat()
+            val move = if (style.motion) size.width * 0.12f else 0f
+            fun blob(cx: Float, cy: Float, radius: Float, alpha: Float) {
+                translate(cx, cy) {
+                    scale(radius, radius, pivot = Offset.Zero) {
+                        drawRect(unit, topLeft = Offset(-1f, -1f), size = androidx.compose.ui.geometry.Size(2f, 2f), alpha = alpha)
+                    }
+                }
+            }
+            blob(size.width * 0.12f + kotlin.math.sin(t) * move, size.height * 0.04f + kotlin.math.cos(t) * move * 0.6f, size.width * 0.95f, peak)
+            blob(size.width * 1.0f + kotlin.math.cos(t * 0.8f) * move * 0.6f, size.height * 0.32f + kotlin.math.sin(t * 0.8f) * move, size.width * 0.6f, peak * 0.55f)
+        }
+    }
+}
+
+/** [violencePlayerGlowFor] with one slow 28 s loop (only while the style allows motion). */
+@Composable
+fun Modifier.violencePlayerGlow(): Modifier {
+    val style = LocalViolenceShared.current ?: return this
+    if (!style.motion) return violencePlayerGlowFor(style) { 0f }
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "playerGlow")
+    val phase: androidx.compose.runtime.State<Float> = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable<Float>(
+            animation = androidx.compose.animation.core.tween<Float>(28_000, easing = androidx.compose.animation.core.LinearEasing),
+        ),
+        label = "playerGlowPhase",
+    )
+    return violencePlayerGlowFor(style) { phase.value }
 }

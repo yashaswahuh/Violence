@@ -1,5 +1,7 @@
 package com.music.bitchord.ui.player
 
+import com.music.bitchord.ui.violencestyle.violencePlayerGlow
+import com.music.bitchord.ui.violencestyle.LocalViolenceShared
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.constrainHeight
@@ -1697,7 +1699,8 @@ fun NowPlayingScreen(
         movableContentOf<Modifier> { backdropModifier ->
             FullArtworkBlurBackdrop(
                 image = currentFullArtworkBlurImage.value,
-                modifier = backdropModifier,
+                // Violence Style: the accent glow behind the player (unchanged when the style is off).
+                modifier = backdropModifier.violencePlayerGlow(),
             )
         }
     }
@@ -3571,9 +3574,11 @@ fun NowPlayingScreen(
                                     Column {
                                         MarqueeText(
                                             text = song.title,
-                                            style = MaterialTheme.typography.titleLarge.copy(
-                                                fontSize = 20.sp,
-                                            ),
+                                            // Violence Style: the title in the heading serif (not upper-cased: song titles stay readable).
+                                            style = LocalViolenceShared.current?.displayCaps?.copy(fontSize = 22.sp, lineHeight = 26.sp)
+                                                ?: MaterialTheme.typography.titleLarge.copy(
+                                                    fontSize = 20.sp,
+                                                ),
                                             color = Color.White,
                                             enabled = scrolling,
                                             // Before the title, in the artist line's
