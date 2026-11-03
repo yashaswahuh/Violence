@@ -381,7 +381,11 @@ import com.music.bitchord.ui.replay.ReplayStories
 import com.music.bitchord.ui.replay.ReplayStoryPage
 import com.music.bitchord.ui.replay.rememberReplayState
 import com.music.bitchord.ui.theme.BitChordTheme
+import com.music.bitchord.ui.violencestyle.LocalViolenceBackground
+import com.music.bitchord.ui.violencestyle.LocalViolenceStyle
+import com.music.bitchord.ui.violencestyle.ViolenceBackground
 import com.music.bitchord.ui.violencestyle.ViolenceStyleBoot
+import com.music.bitchord.ui.violencestyle.violenceBackground
 import com.music.bitchord.ui.violencestyle.ViolenceStyleSettings
 import com.music.bitchord.ui.violencestyle.ViolenceStyleSong
 import com.music.bitchord.ui.violencestyle.ViolenceStyledTheme
@@ -460,9 +464,12 @@ class MainActivity : AppCompatActivity() {
                 // the floor the pages have always been drawn against, so it is
                 // laid down here too and the recording is opaque like the screen.
                 val windowBackground = MaterialTheme.colorScheme.background
-                val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground) {
+                // Violence Style: the live background, when the style shows one, goes on the floor so the glass samples it.
+                val violenceBackdrop = LocalViolenceBackground.current
+                val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground, violenceBackdrop) {
                     {
                         drawRect(windowBackground)
+                        violenceBackdrop?.drawInto(this)
                         drawContent()
                     }
                 }
@@ -501,6 +508,7 @@ class MainActivity : AppCompatActivity() {
                         .snapshotBackdropSource(appStill.backdrop)
                         .background(windowBackground),
                 ) {
+                    ViolenceBackground()
                     BitChordApp(
                         darkTheme = darkTheme,
                         windowWidth = maxWidth,
@@ -1129,7 +1137,7 @@ private fun BitChordApp(
     val controller = rememberMediaController()
     val player = rememberPlayerState(controller)
     // Violence Style: tell the accent engine which artwork is playing (a plain value write).
-    androidx.compose.runtime.SideEffect { ViolenceStyleSong.report(player.song?.thumbnailUrl) }
+    androidx.compose.runtime.SideEffect { ViolenceStyleSong.report(player.song?.thumbnailUrl, showNowPlaying) }
     // A music video's picture follows this controller's clock — see [MusicVideoEngine].
     DisposableEffect(controller) {
         MusicVideoEngine.attach(controller)
@@ -2830,7 +2838,7 @@ private fun BitChordApp(
     Box(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .violenceBackground(LocalViolenceStyle.current, MaterialTheme.colorScheme.background)
             // Nothing of the page under a portrait player that is fully up:
             // that player is its own window, opaque from edge to edge, and
             // this one drawing on behind it — the page, the glass bar and the
