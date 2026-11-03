@@ -164,6 +164,20 @@ private fun ViolenceStyleHost(content: @Composable () -> Unit) {
 
         val tokens = rememberAccentTokens(state)
         val headings = remember(headingFont) { ViolenceHeadingStyles.build(headingFont.family()) }
+        val shared = remember(tokens, headings, state.intensity) {
+            ViolenceSharedStyle(
+                accent = Color(tokens.accent),
+                accentSoft = Color(tokens.accentSoft),
+                textAccent = Color(tokens.textAccent),
+                neutral = tokens.neutral,
+                strength = state.intensity.peakAlpha,
+                displayCaps = headings.displayCaps,
+                displayItalic = headings.displayItalic,
+                sectionCaps = headings.sectionCaps,
+                cardTitleCaps = headings.cardTitleCaps,
+                label = headings.label,
+            )
+        }
         val backgroundLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
         val backgroundHolder = remember(backgroundLayer) { ViolenceBackgroundHolder(backgroundLayer) }
 
@@ -179,6 +193,7 @@ private fun ViolenceStyleHost(content: @Composable () -> Unit) {
             LocalViolenceHeadings provides headings,
             LocalViolenceBackground provides backgroundHolder,
             LocalViolenceSeeThrough provides state.showsBackground(),
+            LocalViolenceShared provides shared,
             content = content,
         )
     }
