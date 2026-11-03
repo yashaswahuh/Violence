@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import com.music.bitchord.ui.components.longPressMenuClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -82,6 +83,11 @@ import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.ui.components.HERO_CARD_RATIO
 import com.music.bitchord.ui.components.MessageState
 import com.music.bitchord.ui.components.PAGE_GUTTER
+import com.music.bitchord.ui.violencestyle.LocalViolenceShared
+import com.music.bitchord.ui.violencestyle.ViolenceCardScrim
+import com.music.bitchord.ui.violencestyle.ViolenceHeroCornerDp
+import com.music.bitchord.ui.violencestyle.ViolenceSectionHeader
+import com.music.bitchord.ui.violencestyle.violenceCardRim
 import com.music.bitchord.ui.components.RowMoreButton
 import com.music.bitchord.ui.components.PullToRefresh
 import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
@@ -376,6 +382,11 @@ private fun RecentShelf(
 
 @Composable
 private fun RecentSectionHeader(title: String, subtitle: String) {
+    val violence = LocalViolenceShared.current
+    if (violence != null) {
+        ViolenceSectionHeader(title, subtitle, null, "", false, violence)
+        return
+    }
     Column(
         modifier = Modifier
             .padding(horizontal = PAGE_GUTTER, vertical = 10.dp)
@@ -437,6 +448,8 @@ fun CompactTrackRow(
     /** A music video: its thumbnail at 16:9 rather than squared off. */
     isVideo: Boolean = false,
 ) {
+    val violence = LocalViolenceShared.current
+    val artShape = RoundedCornerShape(if (violence != null) 9.dp else 7.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -452,8 +465,8 @@ fun CompactTrackRow(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .matchParentSize()
-                    .clip(RoundedCornerShape(7.dp))
-                    .thumbnailBorder(RoundedCornerShape(7.dp))
+                    .clip(artShape)
+                    .thumbnailBorder(artShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
             )
             if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
@@ -470,13 +483,16 @@ fun CompactTrackRow(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (violence != null) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
         if (onLongPress != null) {
-            RowMoreButton(onClick = onLongPress)
+            RowMoreButton(
+                onClick = onLongPress,
+                modifier = if (violence != null) Modifier.defaultMinSize(48.dp, 48.dp) else Modifier,
+            )
         }
     }
 }
@@ -522,9 +538,14 @@ private const val LOGO_ASPECT = 730f / 484f
  * Home and Explore never pass it, so their heading is unchanged.
  */
 @Composable
-internal fun SectionHeader(title: String, subtitle: String = "", onShowAll: (() -> Unit)? = null) {
+internal fun SectionHeader(title: String, subtitle: String = "", onShowAll: (() -> Unit)? = null, hero: Boolean = false) {
     val displayTitle = localizeShelfTitle(title)
     val displaySubtitle = localizeShelfSubtitle(subtitle)
+    val violence = LocalViolenceShared.current
+    if (violence != null) {
+        ViolenceSectionHeader(displayTitle, displaySubtitle, onShowAll, stringResource(Res.string.show_all), hero, violence)
+        return
+    }
     Row(
         modifier = Modifier
             .padding(horizontal = PAGE_GUTTER, vertical = 10.dp)
@@ -779,12 +800,15 @@ private fun HeroCard(
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
 ) {
+    val violence = LocalViolenceShared.current
+    val cardShape = RoundedCornerShape(if (violence != null) ViolenceHeroCornerDp else 18.dp)
     Box(
         modifier = modifier
             .aspectRatio(HERO_CARD_RATIO)
-            .clip(RoundedCornerShape(18.dp))
-            .thumbnailBorder(RoundedCornerShape(18.dp))
+            .clip(cardShape)
+            .thumbnailBorder(cardShape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .violenceCardRim(violence, false, cardShape)
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .contextClick(onLongPress),
     ) {
@@ -807,8 +831,8 @@ private fun HeroCard(
                 .padding(start = 16.dp, end = 16.dp, top = 34.dp, bottom = 14.dp),
         ) {
             Text(
-                text = item.title,
-                style = MaterialTheme.typography.titleLarge,
+                text = if (violence != null) item.title.uppercase() else item.title,
+                style = violence?.cardTitleCaps ?: MaterialTheme.typography.titleLarge,
                 color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

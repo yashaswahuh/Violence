@@ -105,6 +105,11 @@ import com.music.bitchord.data.model.TopPickMood
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.sharedui.resources.*
 import com.music.bitchord.ui.components.PAGE_GUTTER
+import com.music.bitchord.ui.violencestyle.LocalViolenceShared
+import com.music.bitchord.ui.violencestyle.ViolenceCardScrim
+import com.music.bitchord.ui.violencestyle.ViolenceHeroCornerDp
+import com.music.bitchord.ui.violencestyle.ViolenceSectionHeader
+import com.music.bitchord.ui.violencestyle.violenceCardRim
 import com.music.bitchord.ui.components.rememberBlurredBackdrop
 import com.music.bitchord.ui.components.ShelfRow
 import com.music.bitchord.ui.components.SectionHeaderSkeleton
@@ -163,7 +168,7 @@ internal fun TopPicksShelf(
             .collect { (scrolling, next) -> if (!scrolling) owner = next }
     }
     Column(Modifier.padding(bottom = 26.dp)) {
-        SectionHeader(stringResource(Res.string.top_picks_for_you))
+        SectionHeader(stringResource(Res.string.top_picks_for_you), hero = true)
         BoxWithConstraints {
             val cardWidth = topPickWidth(maxWidth)
             PausedWhileScrolling(rowState) {
@@ -181,6 +186,7 @@ internal fun TopPicksShelf(
                         ) {
                             TopPickCard(
                                 pick = pick,
+                                first = index == 0,
                                 listenerName = listenerName,
                                 onClick = onClick,
                                 onLongPress = onLongPress?.takeIf { pick.kind == TopPickKind.LATEST_RELEASE },
@@ -209,7 +215,7 @@ fun LazyListScope.topPicksSkeleton() {
                     items(2) {
                         ShimmerBox(
                             modifier = Modifier.width(cardWidth).aspectRatio(TOP_PICK_RATIO),
-                            shape = TopPickShape,
+                            shape = if (LocalViolenceShared.current != null) RoundedCornerShape(ViolenceHeroCornerDp) else TopPickShape,
                         )
                     }
                 }
@@ -276,15 +282,20 @@ private fun TopPickCard(
     onClick: (TopPick, String) -> Unit,
     onLongPress: ((TopPick) -> Unit)?,
     modifier: Modifier,
+    /** The first card of the row: the one that carries the accent rim light under Violence Style. */
+    first: Boolean = false,
 ) {
     val text = cardText(pick, listenerName)
+    val violence = LocalViolenceShared.current
+    val shape = if (violence != null) RoundedCornerShape(ViolenceHeroCornerDp) else TopPickShape
     val longPress = onLongPress?.let { { it(pick) } }
     Box(
         modifier = modifier
             .aspectRatio(TOP_PICK_RATIO)
-            .clip(TopPickShape)
-            .thumbnailBorder(TopPickShape)
+            .clip(shape)
+            .thumbnailBorder(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .violenceCardRim(violence, first, shape)
             .longPressMenuClickable(onClick = { onClick(pick, text.title) }, onLongClick = longPress)
             .contextClick(longPress),
     ) {
@@ -364,12 +375,47 @@ private fun TopPickCard(
                     .aspectRatio(730f / 484f),
             )
         }
+        if (violence != null) Box(Modifier.matchParentSize().background(ViolenceCardScrim))
         CardCaption(text, eyebrowColor, Modifier.align(Alignment.BottomStart))
     }
 }
 
 @Composable
 private fun CardCaption(text: CardText, eyebrowColor: Color, modifier: Modifier) {
+    val violence = LocalViolenceShared.current
+    if (violence != null) {
+        // Violence Style: label in the body face, title in the display serif in caps, subtitle below.
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        ) {
+            Text(
+                text = text.eyebrow,
+                style = violence.label,
+                color = Color.White.copy(alpha = 0.9f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = text.title.uppercase(),
+                style = violence.cardTitleCaps,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (text.subtitle.isNotBlank()) {
+                Text(
+                    text = text.subtitle,
+                    style = violence.label,
+                    color = Color.White.copy(alpha = 0.86f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        return
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()

@@ -41,3 +41,10 @@ Later stages add more touch points here (see `fork-docs/style/STYLE_MAPPING.md`)
 ### S2 additions (2026-11-03)
 - `app/src/main/java/com/music/bitchord/MainActivity.kt`: 5 more import lines; in `setContent`, `violenceBackdrop = LocalViolenceBackground.current` and `violenceBackdrop?.drawInto(this)` inside `paintBackdrop`; `ViolenceBackground()` before `BitChordApp(...)` in the root box; in `BitChordApp` the page root `Box` uses `.violenceBackground(LocalViolenceStyle.current, MaterialTheme.colorScheme.background)` instead of `.background(MaterialTheme.colorScheme.background)`; the SideEffect passes `showNowPlaying`.
 - `sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/screens/SearchScreen.kt` (shared with desktop): the `TopResultCard` background is wrapped in `if (LocalViolenceSeeThrough.current)`, plus one import. New shared file `sharedUi/.../ui/violencestyle/StyleHooks.kt`.
+
+### S3 additions (2026-11-03)
+All edits are early branches on `LocalViolenceShared.current` (null when the style is off) or swapped expressions; re-apply after a sync if overwritten.
+- `sharedUi/.../ui/screens/HomeScreen.kt` (shared with desktop): 6 imports; `SectionHeader` gains a trailing `hero: Boolean = false` parameter and a styled early return; `RecentSectionHeader` early return; `CompactTrackRow` (`artShape`, subtitle colour, `RowMoreButton` min size); `HeroCard` (shape, rim, title style); `import ...layout.defaultMinSize`.
+- `sharedUi/.../ui/screens/TopPicksShelf.kt` (shared): 5 imports; `SectionHeader(..., hero = true)`; `TopPickCard` gains `first: Boolean = false` (call site passes `index == 0`), shape, `.violenceCardRim`, the scrim box; `CardCaption` styled early return; the skeleton's shape.
+- `app/.../ui/components/FrostedTopBar.kt`: 2 imports; in `artworkPageSurface`, `liquidGlass(shape, surfaceTint = violenceGlassTint())` and `.violenceGlassEdge(shape, GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR)` instead of the plain `.border(...)`.
+- New: `sharedUi/.../ui/violencestyle/StyledComponents.kt`, `app/.../ui/violencestyle/StyleChrome.kt`; `StyleHost.kt` provides `LocalViolenceShared`.
