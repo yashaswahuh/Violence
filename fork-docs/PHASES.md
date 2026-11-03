@@ -1,4 +1,4 @@
-# Project Roadmap & Implementation Phases
+﻿# Project Roadmap & Implementation Phases
 
 **Audit Date:** 2026-10-29  
 **Execution Model:** Phased implementation. Each phase is scoped to be executed independently in a fresh AI chat session.  
@@ -281,7 +281,6 @@ A new "brutal" look (black pages, one acid accent, heavy type, glass with an opt
 |---|---|---|
 | Spec | `BRUTAL_UI_SPEC.md`, `brutal-ui/type-board.html` | **DONE (2026-11-02)**, documentation only |
 | B-1 | Plumbing: settings (`uiVariant`, `brutalGlow`, `brutalAccent`, `brutalRailSide`, `reduceTransparency`), Settings rows and accent sheet, `BrutalRoot` switch, safe mode, glass-level decision and budget, tokens, contrast engine, OFL fonts, strings (English placeholders), tests. Visual result deliberately minimal (the existing app in the new colours and type) | **BUILT (2026-11-02)**. Build and test results, screenshots and the deviation list are in `BRUTAL_UI_PLAN.md` sections 5 to 7. Not verified on a real phone; translations pending |
-| G-1 | **Glass kit** (`ui/brutal/glass/`): `Modifier.brutalGlass(shape, kind, glow)` with kinds Floating, Panel, Tile, Chip; levels FULL, SIMPLIFIED, SOLID; GLOW and NO-GLOW; bevel, specular arcs, rim, gloss, glint, accent bleed, under-glow; budget and list guard; preview gallery and perf harness. Built on `liquidGlass()` and the app's panel glass. No screens | **BUILT (2026-11-02)** without an emulator or adb: unit, Robolectric and offscreen pixel tests (`BRUTAL_UI_PLAN.md` section 9). **Frame times NOT measured; FULL's live backdrop never rendered** |
 | B-2 | Navigation chrome (rail, mini player bar, dock, header, Hub) | not started |
 | B-3 | Components and the Glow layers | not started |
 | B-4 | Pages, performance, accessibility pass, translations | not started |
