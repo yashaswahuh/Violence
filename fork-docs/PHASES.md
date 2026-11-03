@@ -283,7 +283,7 @@ A **skin** on the existing phone UI, switched by one toggle (default OFF): displ
 | Stage | What | Status |
 |---|---|---|
 | S0 | Audit, specification, mapping, plan, font specimen, decision and approval templates (documents only) | **DONE (2026-11-03)**, documentation only, no app code changed. Waiting for the owner: open `FONT_SPECIMEN.html`, fill in `STYLE_DECISIONS.md`, tick S0 in `STYLE_APPROVALS.md` |
-| S1 | Foundation: toggle and settings, state holder, accent engine, fonts, safe mode, style preview card | PLANNED |
+| S1 | Foundation: toggle and settings, state holder, accent engine, fonts, safe mode, style preview card | **DONE in the repository (2026-11-03)**, commits `1d60b259`, `96ab72dc`, `84c689e8` plus the docs commit. Phone and TV debug builds and web build pass; phone unit tests 1334 (0 failures, 1 skipped), 48 of them new; shared 234 (0 failures). **UNVERIFIED on a device:** everything visual (`fork-docs/style/STAGE_S1_REVIEW.md` is the checklist), fonts at 200 percent, safe mode on a real failed start. Waiting for the owner: tick S1 and its OFF-parity line in `STYLE_APPROVALS.md` |
 | S2 | Live background (Corner glow, Aurora, Haze, Arcs, Off), motion, LITE mode | PLANNED |
 | S3 | Typography, section headings, hero cards, list rows, top bar | PLANNED |
 | S4 | Glass buttons, bottom navigation, mini player, accent-tinted active states | PLANNED |
