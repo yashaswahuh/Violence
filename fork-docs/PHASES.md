@@ -273,6 +273,23 @@ A second, switchable phone UI (Liquid Glass kept; its own identity, accessible, 
 | UI-3 | Now Playing, Jam, sharing surfaces | cancelled |
 | UI-4 | Pages, polish, performance | cancelled |
 
-**Phase 10 (Final audit and handover) waits until the custom UI work is finished.** Phase 11 is independent.
+**Phase 10 (Final audit and handover) waits until Violence Style (below) is finished.** Phase 11 is independent.
 
 
+## Extra: Violence Style (S0 to S6)
+
+A **skin** on the existing phone UI, switched by one toggle (default OFF): display-serif headings with a hairline and dot, a live glowing background, glass bars and buttons, and accent colouring from the song, the device or a chosen colour. It keeps every layout, screen and feature; toggle OFF = the app exactly as today. Phone only. Supersedes the reverted Custom UI attempt above. Documents: `fork-docs/style/` (`STYLE_AUDIT`, `STYLE_SPEC`, `STYLE_MAPPING`, `STYLE_PLAN`, `FONT_SPECIMEN.html`, `STYLE_DECISIONS` (owner fills in), `STYLE_APPROVALS` (owner ticks)). Reference mockups live in `fork-docs/style-reference/` and are gitignored (copyrighted covers, never commit).
+
+| Stage | What | Status |
+|---|---|---|
+| S0 | Audit, specification, mapping, plan, font specimen, decision and approval templates (documents only) | **DONE (2026-11-03)**, documentation only, no app code changed. Waiting for the owner: open `FONT_SPECIMEN.html`, fill in `STYLE_DECISIONS.md`, tick S0 in `STYLE_APPROVALS.md` |
+| S1 | Foundation: toggle and settings, state holder, accent engine, fonts, safe mode, style preview card | PLANNED |
+| S2 | Live background (Corner glow, Aurora, Haze, Arcs, Off), motion, LITE mode | PLANNED |
+| S3 | Typography, section headings, hero cards, list rows, top bar | PLANNED |
+| S4 | Glass buttons, bottom navigation, mini player, accent-tinted active states | PLANNED |
+| S5 | Rollout to every remaining screen, dialogs and sheets | PLANNED |
+| S6 | Polish, accessibility, performance, QA | PLANNED |
+
+Each stage starts with a `pre-skin-<stage>` backup tag and waits for the previous stage (and its "OFF-parity verified on device" line) to be ticked in `STYLE_APPROVALS.md`.
+
+**Phase 10 (Final audit and handover) waits until Violence Style is finished.** Phase 11 is independent.
