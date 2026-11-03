@@ -9,7 +9,7 @@ Change `[ ]` to `[x]` yourself. An agent never ticks a box. A stage refuses to s
 | S2 Live background | [x] S2 approved | [x] S2 OFF-parity verified on device |
 | S3 Typography, headings, cards, rows, top bar | [X] S3 approved | [X] S3 OFF-parity verified on device |
 | S4 Glass buttons, nav, mini player | [X] S4 approved | [X] S4 OFF-parity verified on device |
-| S5 Rollout to all screens, dialogs, sheets | [ ] S5 approved | [ ] S5 OFF-parity verified on device |
+| S5 Rollout to all screens, dialogs, sheets | [X] S5 approved | [X] S5 OFF-parity verified on device |
 | S6 Polish, accessibility, performance, QA | [ ] S6 approved | [ ] S6 OFF-parity verified on device |
 
 ## Notes
