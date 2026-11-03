@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.player
 
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.graphicsLayer
@@ -513,6 +514,7 @@ internal fun TransportRow(
                 touchSize = playTouch,
                 onClick = onPlayPause,
                 haptic = if (isPlaying) Haptic.Pause else Haptic.Resume,
+                accentRing = true,
             )
         }
         TransportGlyph(
@@ -789,8 +791,11 @@ private fun TransportGlyph(
     haptic: Haptic = Haptic.Tap,
     /** Vertical squash of the glyph alone; its width and touch box are untouched. */
     heightScale: Float = 1f,
+    /** Violence Style: draw the accent ring around this glyph (the play control). */
+    accentRing: Boolean = false,
 ) {
     val haptics = rememberHaptics()
+    val violence = com.music.bitchord.ui.violencestyle.LocalViolenceShared.current
     // Faded rather than hidden: the row keeps its shape at the ends of a queue.
     val alpha by animateFloatAsState(
         targetValue = if (enabled) 1f else 0.3f,
@@ -799,6 +804,17 @@ private fun TransportGlyph(
     Box(
         modifier = Modifier
             .size(touchSize)
+            .then(
+                if (accentRing && violence != null) {
+                    Modifier.drawBehind {
+                        val radius = minOf(this.size.width, this.size.height) / 2f - 2.dp.toPx()
+                        drawCircle(violence.accent.copy(alpha = 0.18f), radius = radius, style = androidx.compose.ui.graphics.drawscope.Stroke(6.dp.toPx()))
+                        drawCircle(violence.accent.copy(alpha = 0.9f), radius = radius, style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx()))
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

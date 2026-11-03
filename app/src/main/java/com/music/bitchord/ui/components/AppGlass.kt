@@ -1,5 +1,9 @@
 package com.music.bitchord.ui.components
 
+import com.music.bitchord.ui.violencestyle.violenceGlassRim
+import com.music.bitchord.ui.violencestyle.violenceButtonColor
+import com.music.bitchord.ui.violencestyle.violencePanelSolid
+import com.music.bitchord.ui.violencestyle.violencePanelTint
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -99,7 +103,7 @@ private fun rememberPanelGlass(shape: CornerBasedShape): Modifier? {
     val dark = MaterialTheme.colorScheme.surface.luminance() <= 0.5f
     val ready = still.backdrop.hasStill
     val tintAlpha by animateFloatAsState(
-        targetValue = if (ready) panelTintAlpha(dark) else PANEL_UNREADY_ALPHA,
+        targetValue = if (ready) (if (violencePanelSolid()) PANEL_UNREADY_ALPHA else panelTintAlpha(dark)) else PANEL_UNREADY_ALPHA,
         animationSpec = tween(220),
         label = "panelGlassTint",
     )
@@ -109,7 +113,7 @@ private fun rememberPanelGlass(shape: CornerBasedShape): Modifier? {
     val lensAmountPx = with(density) { PANEL_LENS_AMOUNT_DP.dp.toPx() } * PANEL_SCALE
     // The tint's alpha is read where it is drawn (a state read inside the draw lambda), so the
     // fade from the near-solid opening frame to the glass re-draws without rebuilding the chain.
-    val tint = panelTint(dark)
+    val tint = violencePanelTint() ?: panelTint(dark)
     val alphaState = rememberAlphaHolder()
     alphaState.value = tintAlpha
     return remember(still, shape, blurPx, lensHeightPx, lensAmountPx, tint) {
@@ -164,9 +168,9 @@ fun GlassSurface(
 ) {
     val glass = rememberPanelGlass(shape)
     if (glass == null) {
-        Surface(shape = shape, color = plainColor, modifier = modifier, content = content)
+        Surface(shape = shape, color = plainColor, modifier = modifier.violenceGlassRim(shape), content = content)
     } else {
-        Box(modifier.then(glass)) {
+        Box(modifier.then(glass).violenceGlassRim(shape)) {
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
                 content()
             }

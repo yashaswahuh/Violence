@@ -1,5 +1,9 @@
 package com.music.bitchord.ui.components
 
+import com.music.bitchord.ui.violencestyle.violenceGlassRim
+import com.music.bitchord.ui.violencestyle.violenceButtonColor
+import com.music.bitchord.ui.violencestyle.violencePanelSolid
+import com.music.bitchord.ui.violencestyle.violencePanelTint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,7 +127,7 @@ fun GlassAlertDialog(
                     }
                 }
                 Box(Modifier.align(Alignment.End)) {
-                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
+                    CompositionLocalProvider(LocalContentColor provides (violenceButtonColor() ?: MaterialTheme.colorScheme.primary)) {
                         ProvideTextStyle(MaterialTheme.typography.labelLarge) {
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),

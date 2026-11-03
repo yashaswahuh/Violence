@@ -69,6 +69,20 @@ object ViolenceGlassColors {
     /** Strength of the glow line and bloom relative to the Medium intensity. */
     fun glowStrength(intensity: StyleIntensity): Float = (intensity.peakAlpha / 0.62f).coerceIn(0.6f, 1.4f)
 
+    /** Dark panel tint (dialogs, sheets, menus): `#121214` with 8 percent of the accent. */
+    const val PANEL_BASE: Int = 0xFF121214.toInt()
+    const val PANEL_ACCENT_MIX = 0.08f
+
+    fun panelTint(accent: Int): Int = AccentMath.argb(
+        255,
+        (AccentMath.red(PANEL_BASE) + (AccentMath.red(accent) - AccentMath.red(PANEL_BASE)) * PANEL_ACCENT_MIX).toInt(),
+        (AccentMath.green(PANEL_BASE) + (AccentMath.green(accent) - AccentMath.green(PANEL_BASE)) * PANEL_ACCENT_MIX).toInt(),
+        (AccentMath.blue(PANEL_BASE) + (AccentMath.blue(accent) - AccentMath.blue(PANEL_BASE)) * PANEL_ACCENT_MIX).toInt(),
+    )
+
+    /** Peak alpha of the glow above an album or playlist page: 0.30 at Medium, 0.19 to 0.40 across the intensities. */
+    fun detailGlowAlpha(intensity: StyleIntensity): Float = 0.30f * glowStrength(intensity)
+
     /** Opaque alpha used instead of the translucent tint when transparency is reduced. */
     const val SOLID_TINT_ALPHA = 0.92f
 
@@ -182,3 +196,51 @@ fun Modifier.violenceTabSemantics(selected: Boolean): Modifier {
         this.selected = selected
     }
 }
+
+/** The dark, accent-tinted tint of a dialog, sheet or menu panel; null (the original tint) when the style is off. */
+@Composable
+fun violencePanelTint(): Color? {
+    if (!LocalViolenceStyle.current.enabled) return null
+    val accent = LocalViolenceAccent.current.accent
+    return remember(accent) { Color(ViolenceGlassColors.panelTint(accent)) }
+}
+
+/** True while the style is on and transparency is reduced: panels use their near-solid alpha. */
+@Composable
+fun violencePanelSolid(): Boolean {
+    val s = LocalViolenceStyle.current
+    return s.enabled && s.reduceTransparency
+}
+
+/** The colour of text buttons in dialogs and sheets under the style (the lightened accent); null when off. */
+@Composable
+fun violenceButtonColor(): Color? {
+    if (!LocalViolenceStyle.current.enabled) return null
+    val accent = LocalViolenceAccent.current
+    return remember(accent.textAccent) { Color(accent.textAccent) }
+}
+
+/**
+ * The glow above an album, playlist or artist page (owner decision: "glow above the artwork", with its own
+ * switch). A static accent wash from the top edge over the page's own artwork colour: no clock, one cached
+ * brush. Returns the receiver unchanged when the style or the switch is off.
+ */
+fun Modifier.violenceDetailGlowFor(style: StyleState, tokens: AccentTokens): Modifier {
+    if (!style.enabled || !style.detailGlow) return this
+    val alpha = ViolenceGlassColors.detailGlowAlpha(style.intensity)
+    val glow = Color(tokens.glowColor)
+    return drawWithCache {
+        val brush = Brush.radialGradient(
+            0f to glow.copy(alpha = alpha),
+            0.5f to glow.copy(alpha = alpha * 0.45f),
+            1f to glow.copy(alpha = 0f),
+            center = Offset(size.width / 2f, 0f),
+            radius = size.width * 1.1f,
+        )
+        onDrawBehind { drawRect(brush) }
+    }
+}
+
+@Composable
+fun Modifier.violenceDetailGlow(): Modifier =
+    violenceDetailGlowFor(LocalViolenceStyle.current, LocalViolenceAccent.current)
