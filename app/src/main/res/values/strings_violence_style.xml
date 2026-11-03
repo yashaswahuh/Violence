@@ -24,6 +24,9 @@
     <string name="vs_src_custom">Custom</string>
     <string name="vs_custom_color">Custom colour</string>
     <string name="vs_pick_color">Or pick any colour: hue, saturation, lightness</string>
+    <string name="vs_hue">Hue</string>
+    <string name="vs_saturation">Saturation</string>
+    <string name="vs_lightness">Lightness</string>
     <string name="vs_color_refused">That colour is too dark or too gray to use. Pick a brighter one.</string>
     <string name="vs_preset_blue">Blue</string>
     <string name="vs_preset_red">Red</string>

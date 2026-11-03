@@ -18,6 +18,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -108,10 +110,15 @@ fun ViolenceStyledTheme(
 ) {
     val enabled by ViolenceStyleSettings.enabled.collectAsStateWithLifecycle()
     BitChordTheme(darkTheme = darkTheme, font = font) {
+        // The app's whole UI sits in this slot. Turning the style on or off moves it between the plain
+        // path and the host; without a movable slot Compose would treat that as a new subtree and drop every
+        // remember (open pages, scroll positions, dialogs), so the owner would lose their place on a toggle.
+        val current by rememberUpdatedState(content)
+        val slot = remember { movableContentOf { current() } }
         if (enabled) {
-            ViolenceStyleHost(content)
+            ViolenceStyleHost { slot() }
         } else {
-            content()
+            slot()
         }
     }
 }
@@ -153,7 +160,9 @@ private fun ViolenceStyleHost(content: @Composable () -> Unit) {
                 accentSource = source,
                 customColor = custom,
                 headingFont = headingFont,
-                reduceTransparency = StyleCapabilityRules.reduceTransparency(forcedTransparency, reduceDynamicBlur),
+                // System high-contrast text also asks for solid surfaces (S6 accessibility fix).
+                reduceTransparency = StyleCapabilityRules.reduceTransparency(forcedTransparency, reduceDynamicBlur) ||
+                    StyleSignals.isHighContrast(context),
                 detailGlow = detailGlow,
                 capability = StyleCapabilityRules.capability(lite),
                 liteReason = lite,

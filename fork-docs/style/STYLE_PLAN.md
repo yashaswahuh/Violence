@@ -238,3 +238,33 @@ Left opaque on purpose: Search song rows (their fill hides the swipe-to-queue re
 **Performance.** Nothing new animates. The detail glow is one cached radial brush per page size; the ring is two circle strokes; the panel tint is a parameter of the existing panel glass pass.
 
 **UNCLEAR, verify on a device.** How the accent tint looks on each dialog and sheet; whether any dialog bypasses `GlassSurface` and stays plain; the ring's size against the play glyph; the glow over an artist page.
+
+## S6 final: guarantees, touch points, licences (2026-11-03)
+
+### How the OFF path is guaranteed
+1. **Defaults:** `LocalViolenceStyle` defaults to `StyleState.DISABLED`; `LocalViolenceShared` and `LocalViolenceBackground` default to null; `LocalViolenceSeeThrough` to false; every setting key defaults to off or its documented default; the master toggle is `false` on a fresh install and survives updates unchanged.
+2. **Theme host:** `ViolenceStyledTheme` is `BitChordTheme { slot() }` while off (the app content sits in a `movableContentOf` slot so a toggle keeps its UI state); `ViolenceBackground()` returns before composing anything when there is no holder; `forceDark(false)` returns null so the app's own theme choice is used.
+3. **Guards at every call site:** each edited upstream line is an early branch on a local that is off, or a swapped expression whose else path is the original code (`violenceBackground(DISABLED, c) == background(c)`, `violenceGlassEdge` off is `border(width, color, shape)`, `violenceGlassTint()` null is the glass default, `violenceCardRim(null, ...)` and `violenceCapsuleGlowFor(DISABLED, ...)` return the receiver, `violenceTypography(base, false)` returns `base`).
+4. **Tests:** `StyleOffParityTest`, `ViolenceS3OffParityTest`, `ViolenceS4OffParityTest`, `StyleBackgroundRulesTest`, the settings default and unknown-value tests, the safe-mode tests. Whole phone suite at S6: see `PHASES.md`.
+5. **Not covered by automation:** the project has no Compose or Robolectric UI tests, so "the screens look identical off" rests on these guards and on the owner's OFF screenshots for S1 to S5.
+
+### Every upstream file the skin edits (re-check after each upstream sync)
+Phone (`:app`): `MainActivity.kt`, `ui/screens/SettingsSheet.kt`, `ui/screens/DetailScreen.kt`, `ui/components/FrostedTopBar.kt`, `GlassNavBar.kt`, `FloatingBottomBar.kt`, `floatingtabbar/FloatingTabBar.kt` (vendored), `MiniPlayer.kt`, `IosSwitch.kt`, `AppGlass.kt`, `GlassPanels.kt`; resources `values/strings_violence_style.xml` (new), `font/vs_*.ttf` (new). Shared (`:sharedUi`, also used by the dormant desktop app, logged in `FROZEN_TARGETS.md`): `ui/screens/HomeScreen.kt`, `TopPicksShelf.kt`, `SearchScreen.kt`, `ui/components/Common.kt` (swipe row fill), `PillSegmentedControl.kt`, `ui/player/ThinSlider.kt`, `ui/player/PlayerControls.kt`; new `ui/violencestyle/StyleHooks.kt`, `StyledComponents.kt`. Repository: `NOTICE`, `.gitignore`, `README.md`, `fork-docs/**`.
+
+### Licences and assets (confirmed)
+| Item | Licence | Where recorded |
+|---|---|---|
+| Inter, Bodoni Moda, Cormorant Garamond, Anton | SIL OFL 1.1 | `NOTICE`, `fork-docs/style/licenses/OFL-*.txt` |
+| New libraries | none added by the skin | |
+| Mockup artwork, covers, Apple assets | none in the repository: `git ls-files` shows no file under `fork-docs/style-reference/` or `fork-docs/style/device-screenshots/` (both gitignored); the only image in `fork-docs/` is the owner's own web-page screenshot (`image.png`, from before the skin) | |
+| Fork attribution, About screens | untouched by the skin (no edit to the colophon block, `NOTICE` attribution or About code) | |
+| Pre-existing, not part of the skin | SF Pro Display and the SF Symbols port remain for the style-off look and are flagged in `UI_AUDIT.md` section 5 as a blocker for a public release | |
+
+### S6 changes
+Toggling keeps the app's UI state (movable slot); system high-contrast text makes the glass solid; colour preset swatches have 48 dp targets, selected semantics and the picker sliders have names; `fork-docs/style/device-screenshots/` is gitignored; documents added: `FIDELITY_REVIEW`, `STYLE_A11Y_AUDIT`, `STYLE_PERF`, `STYLE_FINAL_QA`, `STYLE_OVERVIEW`; a README section.
+
+### Safety review (code, plus the existing unit tests)
+- Playback, queue and Jam live in the service, the view model and `ListenTogether`, none of which the skin reads or writes; the skin touches Compose theme and drawing only. Toggling does not recreate the activity.
+- Safe mode: logic unit-tested (two failed starts disable the style once with a notice; a successful first frame clears the counter; re-enabling resets it). The counter uses `commit()`.
+- Settings migrations: only new `violence_style.*` keys; an unknown or missing enum value falls back to the default (tested); a colour stored as a wrong type cannot occur (own key).
+- Every combination of the settings is exercised by the unit tests of the pure code (geometry and the contrast guard for all styles, intensities, motions and presets); the drawing code has no branch that can divide by zero or index out of range (blob arrays are sized for the maximum). **Not run:** an on-device sweep of every combination (on the final QA list).

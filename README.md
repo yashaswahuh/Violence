@@ -110,3 +110,14 @@ Violence is an independent, private third-party audio player and client. It is *
 This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for details.
 
 </div>
+
+
+## Violence Style (experimental)
+
+An optional skin for the Android phone app: a display-serif heading style, a live glowing background, glass bars and buttons, and accent colours taken from the playing song, your device or a colour you pick. It is **off by default**, and with it off the app is exactly the app without it.
+
+- **Turn it on:** Settings, then "Advanced & experimental options", then "Violence Style (experimental)". While it is on the app uses its dark theme.
+- **Settings:** background (Aurora, Corner, Haze, Off), motion (Off, Subtle, Normal), glow intensity (Low, Medium, High), accent source (Song, Device, Custom with nine presets and a picker), heading font (Bodoni Moda, Cormorant, Anton), reduce transparency, and a glow on album and playlist pages. A "Mode" line shows when the app runs in Lite mode (older Android, low memory, battery saver, reduced blur).
+- **If something goes wrong:** switch it off in the same place. If the app fails to start twice in a row with the skin on, it turns itself off and tells you.
+- **Report a problem:** say which device and Android version you use and which settings were on.
+- Fonts used by the skin (Inter, Bodoni Moda, Cormorant Garamond, Anton) are under the SIL Open Font License 1.1; see `NOTICE`. More: `fork-docs/style/STYLE_OVERVIEW.md`.
