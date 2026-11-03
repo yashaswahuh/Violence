@@ -49,3 +49,8 @@ Written 2026-11-03. Source of the screen list: `UI_AUDIT.md` section 2 (re-check
 
 ## Brief items not done in S5, honestly
 No Compose or Robolectric smoke tests ("open every screen with the style on and off") exist, because the project has no such test infrastructure; the owner's screen-by-screen checklist (`STAGE_S5_REVIEW.md`) is the substitute. The pure rules that were added (panel tint contrast, detail-glow contrast and OFF parity) are unit-tested.
+
+## Update (2026-11-03, after the owner approved the S5 leftovers)
+- **Now Playing:** the song title uses the heading serif (22 sp, not upper-cased) and an accent glow sits behind the artwork backdrop (two soft blobs on the top and right edges, one slow 28 s loop, still when motion is off, LITE or reduce motion). The glow is drawn on the player's blurred-artwork backdrop; if the player uses the legacy mesh backdrop instead (setting `legacy_mesh_gradient`) the glow is not drawn there (UNCLEAR on a device).
+- **Settings:** group cards are translucent dark accent-tinted panels with the thin rim (near-solid under Reduce transparency). They cannot sample the page live (they sit inside the recorded page), so this is the translucent look, not the lens.
+- Still unstyled: `AlertScaffold` account alerts, Haze menus, other shelf cards, snackbars, Replay, onboarding, login web views.

@@ -79,3 +79,7 @@ Each is a swapped expression or an appended modifier; re-apply after a sync if o
 4. Style ON: Home headings, first hero card rim, nav capsule with glow line, Search rows without black bars, a dialog, the Settings block.
 5. Toggle ON and OFF while music plays: playback continues.
 6. Check `FROZEN_TARGETS.md` for new shared edits, and that the dormant modules and `settings.gradle.kts` includes survived.
+
+### Follow-up additions (2026-11-03)
+- `sharedUi/.../ui/player/NowPlayingScreen.kt` (shared with desktop): two imports; `FullArtworkBlurBackdrop(modifier = backdropModifier.violencePlayerGlow())` and the title's `style` reads `LocalViolenceShared.current?.displayCaps?.copy(...)` with the original style as the fallback.
+- `app/.../ui/screens/SettingsSheet.kt`: `SettingsGroup` card `.background(violenceGroupFill() ?: <surfaceVariant>)` and `.violenceGlassRim(GroupShape)`.

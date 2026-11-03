@@ -65,6 +65,8 @@ Append one line per change: `date | file | what changed | why it could affect a 
 
 2026-11-03 | `sharedUi/.../ui/player/PlayerControls.kt` (`TransportGlyph` gains `accentRing: Boolean = false`, draws only when `LocalViolenceShared` is provided) | Violence Style S5 (phone only) | Additive and default-off: the desktop never provides the local and the new parameter has a default, so its player is unchanged. Not built for desktop.
 
+2026-11-03 | `sharedUi/.../ui/player/NowPlayingScreen.kt` (title style fallback, backdrop modifier), `StyledComponents.kt` (`violencePlayerGlow`) | Violence Style follow-up (phone only) | Additive and default-off: both read `LocalViolenceShared`, which the desktop never provides. Not built for desktop.
+
 ## 2026-11-02: Part 2 bug fixes (shared code touched)
 
 - `shared/.../data/share/PlaylistLinks.kt` (new), `IncomingLinks.kt` (new `IncomingLink.Playlist`): additive. Wear OS and desktop do not read share links, so neither is affected.
