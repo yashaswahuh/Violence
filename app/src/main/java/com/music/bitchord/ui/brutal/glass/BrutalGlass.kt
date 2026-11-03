@@ -392,21 +392,3 @@ private fun Modifier.glassHalo(style: GlassStyle, shape: CornerBasedShape, stren
         val cache = buildHaloCache(size, this, layoutDirection, shape, style)
         onDrawBehind { drawGlassHalo(cache, style, strength.value) }
     }
-
-/**
- * Only the under-glow (GLOW), for a surface that is not glass: the solid accent plate of a selected
- * rail tab or a button. Nothing without Glow or at SOLID. Same bands and curve as the glass kit's own.
- */
-@Composable
-fun Modifier.brutalHalo(
-    shape: CornerBasedShape,
-    glow: Boolean = LocalBrutalPalette.current.glow,
-    kind: GlassKind = GlassKind.Floating,
-    level: GlassLevel = LocalGlassLevel.current,
-): Modifier {
-    if (!glow || level == GlassLevel.SOLID) return this
-    val palette = LocalBrutalPalette.current
-    val style = remember(kind, palette.accent) { glassStyle(kind, true, palette.accent) }
-    val strength = androidx.compose.runtime.rememberUpdatedState(1f)
-    return this.then(remember(style, shape, strength) { Modifier.glassHalo(style, shape, strength) })
-}

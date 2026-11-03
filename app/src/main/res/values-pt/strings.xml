@@ -1645,22 +1645,4 @@
     <string name="brutal_reduce_transparency_subtitle">Draw new-UI surfaces solid, with no glass</string>
     <string name="brutal_safe_mode_title">Back to the current UI</string>
     <string name="brutal_safe_mode_body">The new UI did not start twice in a row, so the app went back to the current UI. You can try it again in Settings, Advanced.</string>
-    <!-- Brutal UI (English placeholders until translated) -->
-    <string name="brutal_tag_experimental">Experimental</string>
-    <string name="brutal_wordmark_description">Violence, %1$s</string>
-    <string name="brutal_sticker_version_label">Version</string>
-    <string name="brutal_play_item">Play %1$s</string>
-    <string name="brutal_open_item">Open %1$s</string>
-    <string name="brutal_more_options">More options</string>
-    <string name="brutal_more_options_for">More options for %1$s</string>
-    <string name="brutal_loading">Loading</string>
-    <string name="brutal_retry">Try again</string>
-    <string name="brutal_error_tag">Error</string>
-    <string name="brutal_empty_title_default">Nothing here yet</string>
-    <string name="brutal_error_title_default">Something went wrong</string>
-    <string name="brutal_duration_spoken_ms">%1$d minutes %2$d seconds</string>
-    <string name="brutal_duration_spoken_hms">%1$d hours %2$d minutes %3$d seconds</string>
-    <string name="brutal_collapse_navigation">Collapse navigation</string>
-    <string name="brutal_search_button">Search</string>
-    <string name="brutal_track_row_description">%1$s, %2$s, %3$s</string>
 </resources>
