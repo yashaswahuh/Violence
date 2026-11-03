@@ -6,7 +6,7 @@ Change `[ ]` to `[x]` yourself. An agent never ticks a box. A stage refuses to s
 |---|---|---|
 | S0 Audit, spec, plan, font specimen | [X] S0 approved | not applicable (documents only) |
 | S1 Foundation | [X] S1 approved | [X] S1 OFF-parity verified on device |
-| S2 Live background | [ ] S2 approved | [ ] S2 OFF-parity verified on device |
+| S2 Live background | [x] S2 approved | [x] S2 OFF-parity verified on device |
 | S3 Typography, headings, cards, rows, top bar | [ ] S3 approved | [ ] S3 OFF-parity verified on device |
 | S4 Glass buttons, nav, mini player | [ ] S4 approved | [ ] S4 OFF-parity verified on device |
 | S5 Rollout to all screens, dialogs, sheets | [ ] S5 approved | [ ] S5 OFF-parity verified on device |
