@@ -90,10 +90,18 @@ class AccentEngineTest {
         assertEquals(song, r.argb); assertEquals(AccentOrigin.HELD_SONG, r.origin)
     }
 
-    @Test fun grayArtworkHoldsThePreviousOrFallsBackToDeviceThenCustom() {
-        assertEquals(AccentOrigin.HELD_SONG, AccentEngine.resolve(StyleAccentSource.FROM_SONG, gray, device, custom, song).origin)
-        assertEquals(AccentOrigin.DEVICE, AccentEngine.resolve(StyleAccentSource.FROM_SONG, gray, device, custom).origin)
-        val last = AccentEngine.resolve(StyleAccentSource.FROM_SONG, gray, null, custom)
+    @Test fun grayWhiteAndBlackArtworkBecomeTheNeutralAccentNotTheOldColour() {
+        for (c in listOf(gray, 0xFFFFFFFF.toInt(), 0xFF000000.toInt(), 0xFF050508.toInt(), 0xFFF8F8FF.toInt())) {
+            val r = AccentEngine.resolve(StyleAccentSource.FROM_SONG, c, device, custom, previousSongAccent = song)
+            assertEquals(AccentOrigin.SONG_NEUTRAL, r.origin)
+            assertEquals(AccentPreset.WHITE.argb, r.argb)
+            assertTrue(AccentTokens.from(r.argb).neutral)
+        }
+    }
+
+    @Test fun noArtworkStillFallsBackToDeviceThenCustom() {
+        assertEquals(AccentOrigin.DEVICE, AccentEngine.resolve(StyleAccentSource.FROM_SONG, null, device, custom).origin)
+        val last = AccentEngine.resolve(StyleAccentSource.FROM_SONG, null, null, custom)
         assertEquals(AccentOrigin.CUSTOM, last.origin); assertEquals(custom, last.argb)
     }
 

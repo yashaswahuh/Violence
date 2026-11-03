@@ -71,7 +71,17 @@ object BackgroundGeometry {
         StyleMotion.NORMAL -> 0.15f
     }
 
-    /** Normal runs the base periods x0.6 (about 16 to 24 s per loop); Subtle x1.0 (27 to 40 s). Raised after the S2 device review: the first values were too slow to see. */
+    /** High glow saturates the centre, so a bigger drift keeps the movement readable (Low and Medium x1, High x1.6). */
+    fun driftBoost(intensity: StyleIntensity): Float = if (intensity == StyleIntensity.HIGH) 1.6f else 1f
+
+    /** Brightness breath depth: the alpha dips by up to this fraction and returns to the guarded maximum. */
+    private fun pulseDepth(motion: StyleMotion): Float = when (motion) {
+        StyleMotion.OFF -> 0f
+        StyleMotion.SUBTLE -> 0.12f
+        StyleMotion.NORMAL -> 0.22f
+    }
+
+    /** Subtle stretches the periods x0.6 (about 16 to 24 s per loop); Subtle x1.0 (27 to 40 s). Raised after the S2 device review: the first values were too slow to see. */
     fun periodScale(motion: StyleMotion): Float = if (motion == StyleMotion.SUBTLE) 1f else 0.6f
 
     /** Intensity also scales blob radii: Low x0.8, Medium x1.0, High x1.15. */
@@ -106,7 +116,8 @@ object BackgroundGeometry {
         dy: Float = 0f,
     ): Int {
         val list = specs(style)
-        val amp = amplitude(motion) * width
+        val amp = amplitude(motion) * width * driftBoost(intensity)
+        val depth = pulseDepth(motion)
         val pScale = periodScale(motion)
         val rScale = radiusScale(intensity)
         val breath = breath(motion)
@@ -125,7 +136,9 @@ object BackgroundGeometry {
             out[o] = s.x * width + ax + dx
             out[o + 1] = s.y * height + ay + dy
             out[o + 2] = s.radius * width * rScale * br
-            out[o + 3] = s.peak * intensity.peakAlpha * (scales?.get(i) ?: 1f)
+            // 1 at the brightest, 1 - depth at the dimmest: never above the alpha the contrast guard allowed.
+            val pulse = if (depth == 0f) 1f else 1f - depth * (0.5f - 0.5f * sin(TWO_PI * (tSeconds / (s.periodY * pScale * 0.8)) + s.phaseX).toFloat())
+            out[o + 3] = s.peak * intensity.peakAlpha * (scales?.get(i) ?: 1f) * pulse
         }
         return list.size
     }
@@ -232,7 +245,7 @@ object GlowGuard {
         val whiteLum = AccentMath.relativeLuminance(AccentMath.WHITE)
         val upperMax = maxBackgroundLuminance(whiteLum, LARGE_TEXT_CONTRAST)
         val lowerMax = maxBackgroundLuminance(AccentMath.relativeLuminance(secondaryText), BODY_TEXT_CONTRAST)
-        val amp = BackgroundGeometry.amplitude(motion) * REF_W
+        val amp = BackgroundGeometry.amplitude(motion) * BackgroundGeometry.driftBoost(intensity) * REF_W
         val shifts = floatArrayOf(0f, 0f, amp, 0f, -amp, 0f, 0f, amp, 0f, -amp)
         val buf = FloatArray(BackgroundGeometry.MAX_BLOBS * BackgroundGeometry.STRIDE)
 

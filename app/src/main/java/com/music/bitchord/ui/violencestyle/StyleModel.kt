@@ -28,7 +28,7 @@ enum class StyleIntensity {
 
 enum class StyleAccentSource { FROM_SONG, FROM_DEVICE, CUSTOM }
 
-enum class StyleHeadingFont { BODONI_MODA, CORMORANT_GARAMOND }
+enum class StyleHeadingFont { BODONI_MODA, CORMORANT_GARAMOND, ANTON }
 
 /** FULL: everything. LITE: static background, simpler glass (STYLE_SPEC.md section 10). */
 enum class StyleCapability { FULL, LITE }

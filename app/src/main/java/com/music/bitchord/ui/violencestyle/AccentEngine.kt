@@ -55,7 +55,7 @@ enum class AccentPreset(val argb: Int) {
 }
 
 /** Where a resolved accent came from, for the preview card and for tests. */
-enum class AccentOrigin { SONG, HELD_SONG, DEVICE, FIXED_DEFAULT, CUSTOM }
+enum class AccentOrigin { SONG, SONG_NEUTRAL, HELD_SONG, DEVICE, FIXED_DEFAULT, CUSTOM }
 
 class ResolvedAccent(val argb: Int, val origin: AccentOrigin)
 
@@ -78,7 +78,10 @@ object AccentEngine {
         previousSongAccent: Int? = null,
     ): ResolvedAccent = when (source) {
         StyleAccentSource.FROM_SONG -> when {
-            songColor != null && !AccentMath.isDull(songColor) -> ResolvedAccent(songColor, AccentOrigin.SONG)
+            // Black, white and gray artwork have no colour to follow: the accent becomes the neutral White
+            // look (gray capsule, white glow) instead of keeping the previous song's colour.
+            songColor != null && AccentMath.isDull(songColor) -> ResolvedAccent(AccentPreset.WHITE.argb, AccentOrigin.SONG_NEUTRAL)
+            songColor != null -> ResolvedAccent(songColor, AccentOrigin.SONG)
             previousSongAccent != null -> ResolvedAccent(previousSongAccent, AccentOrigin.HELD_SONG)
             deviceAccent != null -> ResolvedAccent(deviceAccent, AccentOrigin.DEVICE)
             else -> customOrDefault(custom)

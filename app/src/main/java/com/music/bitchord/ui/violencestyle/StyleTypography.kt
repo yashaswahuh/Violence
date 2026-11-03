@@ -62,9 +62,18 @@ val ViolenceCormorantGaramond: FontFamily by lazy {
     headingFamily(R.font.vs_cormorant_garamond, R.font.vs_cormorant_garamond_italic, opsz = false)
 }
 
+/**
+ * Anton: a heavy, condensed grotesque (SIL OFL 1.1). One weight and no italic file: every requested weight
+ * draws the same cut, and an italic request is the platform's synthesised slant.
+ */
+val ViolenceAnton: FontFamily by lazy {
+    FontFamily(Font(resId = R.font.vs_anton, weight = FontWeight.W400, style = FontStyle.Normal))
+}
+
 fun StyleHeadingFont.family(): FontFamily = when (this) {
     StyleHeadingFont.BODONI_MODA -> ViolenceBodoniModa
     StyleHeadingFont.CORMORANT_GARAMOND -> ViolenceCormorantGaramond
+    StyleHeadingFont.ANTON -> ViolenceAnton
 }
 
 /**
