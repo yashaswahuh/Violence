@@ -83,3 +83,7 @@ Each is a swapped expression or an appended modifier; re-apply after a sync if o
 ### Follow-up additions (2026-11-03)
 - `sharedUi/.../ui/player/NowPlayingScreen.kt` (shared with desktop): two imports; `FullArtworkBlurBackdrop(modifier = backdropModifier.violencePlayerGlow())` and the title's `style` reads `LocalViolenceShared.current?.displayCaps?.copy(...)` with the original style as the fallback.
 - `app/.../ui/screens/SettingsSheet.kt`: `SettingsGroup` card `.background(violenceGroupFill() ?: <surfaceVariant>)` and `.violenceGlassRim(GroupShape)`.
+
+### Follow-up: account menu and Replay cards (2026-11-03)
+- `app/.../ui/components/AccountProfileSelector.kt`: style on: lighter wash plus accent tint, rim, opens on the left (82 percent width), lighter scrim; style off: the original code path.
+- `sharedUi/.../ui/replay/ReplayCard.kt` (`ReplayCreditCard`): style on: mesh colours from the app accent (`violenceReplayColors`) instead of the cover; off: the cover palette as before.

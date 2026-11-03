@@ -376,3 +376,14 @@ fun Modifier.violencePlayerGlow(): Modifier {
     )
     return violencePlayerGlowFor(style) { phase.value }
 }
+
+/**
+ * The four mesh colours of a Replay card under the style: the app accent, a deeper shade, a softer shade and
+ * a lighter one, so a card reads as lit by the accent whatever its cover. Pure, unit-tested.
+ */
+fun violenceReplayColors(style: ViolenceSharedStyle): List<Color> = listOf(
+    style.accent,
+    androidx.compose.ui.graphics.lerp(style.accent, Color.Black, 0.40f),
+    style.accentSoft,
+    androidx.compose.ui.graphics.lerp(style.accent, Color.White, 0.18f),
+)

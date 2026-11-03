@@ -54,3 +54,7 @@ No Compose or Robolectric smoke tests ("open every screen with the style on and 
 - **Now Playing:** the song title uses the heading serif (22 sp, not upper-cased) and an accent glow sits behind the artwork backdrop (two soft blobs on the top and right edges, one slow 28 s loop, still when motion is off, LITE or reduce motion). The glow is drawn on the player's blurred-artwork backdrop; if the player uses the legacy mesh backdrop instead (setting `legacy_mesh_gradient`) the glow is not drawn there (UNCLEAR on a device).
 - **Settings:** group cards are translucent dark accent-tinted panels with the thin rim (near-solid under Reduce transparency). They cannot sample the page live (they sit inside the recorded page), so this is the translucent look, not the lens.
 - Still unstyled: `AlertScaffold` account alerts, Haze menus, other shelf cards, snackbars, Replay, onboarding, login web views.
+
+## Update (2026-11-03, account menu and Replay)
+- **Account menu ("Switch account"):** glass with a lighter wash and a faint accent tint, accent rim, anchored left (82 percent width); near-solid under Reduce transparency or Reduce dynamic blur. Other Haze menus and alerts are still unstyled.
+- **Replay cards:** lit by the app accent, so all cards agree (before, each took its own cover's colours). The share poster (`ReplayPoster`) is not changed. UNVERIFIED on a device.

@@ -45,6 +45,10 @@ import com.music.bitchord.auth.GoogleAccountSession
 import com.music.bitchord.auth.YouTubeProfile
 import com.music.bitchord.data.settings.AppSettings
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.music.bitchord.ui.violencestyle.LocalViolenceStyle
+import com.music.bitchord.ui.violencestyle.violenceGlassRim
+import com.music.bitchord.ui.violencestyle.violencePanelSolid
+import com.music.bitchord.ui.violencestyle.violencePanelTint
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -74,22 +78,30 @@ fun AccountProfileSelector(
     // The thin material lets too much of the page through behind the text. Dark
     // mode gets a black wash over it; light mode a white one, which keeps the
     // dark text readable over a busy cover instead of muddying it.
+    // Violence Style: a lighter wash, so the page shows through as glass, plus a faint accent tint. Off: unchanged.
+    val styled = LocalViolenceStyle.current.enabled
+    val panelTint = violencePanelTint()
+    val panelSolid = violencePanelSolid()
     val material = HazeMaterials.thin(surface)
-    val style = remember(material, dark) {
+    val style = remember(material, dark, styled, panelTint) {
         HazeStyle(
             backgroundColor = material.backgroundColor,
-            tints = material.tints + HazeTint(
-                if (dark) Color.Black.copy(alpha = 0.38f) else Color.White.copy(alpha = 0.40f),
-            ),
+            tints = material.tints + if (styled && panelTint != null) {
+                listOf(HazeTint(Color.Black.copy(alpha = 0.20f)), HazeTint(panelTint.copy(alpha = 0.22f)))
+            } else {
+                listOf(HazeTint(if (dark) Color.Black.copy(alpha = 0.38f) else Color.White.copy(alpha = 0.40f)))
+            },
             blurRadius = material.blurRadius,
             noiseFactor = material.noiseFactor,
             fallbackTint = material.fallbackTint,
         )
     }
     Column(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = .48f))
+        modifier = modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = if (styled) .30f else .48f))
             .clickable(onClick = onDismiss),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        // Style on: the menu opens on the left, not across the middle.
+        horizontalAlignment = if (styled) Alignment.Start else Alignment.CenterHorizontally,
     ) {
         Surface(
             color = Color.Transparent,
@@ -97,11 +109,13 @@ fun AccountProfileSelector(
             shape = shape,
             modifier = Modifier
                 .padding(top = 56.dp, start = 20.dp, end = 20.dp)
-                .fillMaxWidth()
+                .then(if (styled) Modifier.fillMaxWidth(0.82f) else Modifier.fillMaxWidth())
                 .clip(shape)
                 .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
+                    if (reduceDynamicBlur || panelSolid) {
+                        Modifier.background(
+                            if (styled && panelTint != null) panelTint.copy(alpha = 0.94f) else MaterialTheme.colorScheme.surface,
+                        )
                     } else {
                         Modifier.optimizedHazeEffect(
                             state = hazeState,
@@ -109,13 +123,19 @@ fun AccountProfileSelector(
                         )
                     },
                 )
-                // The same hairline the mini player and the nav bar wear.
-                .border(
-                    0.5.dp,
-                    // White on dark like the bars; a light surface has nothing
-                    // for a white hairline to show against.
-                    if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.10f),
-                    shape,
+                .then(
+                    if (styled) {
+                        Modifier.violenceGlassRim(shape)
+                    } else {
+                        // The same hairline the mini player and the nav bar wear.
+                        Modifier.border(
+                            0.5.dp,
+                            // White on dark like the bars; a light surface has nothing
+                            // for a white hairline to show against.
+                            if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.10f),
+                            shape,
+                        )
+                    },
                 )
                 .clickable(onClick = {}),
         ) {
