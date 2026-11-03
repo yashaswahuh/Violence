@@ -29,6 +29,7 @@ object ViolenceStyleSettings {
     private const val KEY_HEADING_FONT = P + "heading_font"
     private const val KEY_REDUCE_TRANSPARENCY = P + "reduce_transparency"
     private const val KEY_DETAIL_GLOW = P + "detail_glow"
+    private const val KEY_ACCOUNT_LIQUID_GLASS = P + "account_liquid_glass"
     internal const val KEY_PENDING = P + "startup_pending"
     internal const val KEY_NOTICE = P + "safe_mode_notice"
 
@@ -46,6 +47,9 @@ object ViolenceStyleSettings {
     val reduceTransparency = MutableStateFlow(false)
     val detailGlow = MutableStateFlow(StyleDefaults.DETAIL_GLOW)
 
+    /** The account menu drawn as Liquid Glass (the bars' lens and blur). Off by default. */
+    val accountLiquidGlass = MutableStateFlow(false)
+
     /** True after safe mode switched the style off; cleared when the user turns it on again. */
     val safeModeTriggered = MutableStateFlow(false)
 
@@ -61,6 +65,7 @@ object ViolenceStyleSettings {
         headingFont.value = StylePrefsParse.enumOr(p.getString(KEY_HEADING_FONT, null), StyleDefaults.HEADING_FONT)
         reduceTransparency.value = p.getBoolean(KEY_REDUCE_TRANSPARENCY, false)
         detailGlow.value = p.getBoolean(KEY_DETAIL_GLOW, StyleDefaults.DETAIL_GLOW)
+        accountLiquidGlass.value = p.getBoolean(KEY_ACCOUNT_LIQUID_GLASS, false)
         safeModeTriggered.value = p.getBoolean(KEY_NOTICE, false)
     }
 
@@ -94,6 +99,11 @@ object ViolenceStyleSettings {
     fun setDetailGlow(value: Boolean) {
         detailGlow.value = value
         prefs?.edit()?.putBoolean(KEY_DETAIL_GLOW, value)?.apply()
+    }
+
+    fun setAccountLiquidGlass(value: Boolean) {
+        accountLiquidGlass.value = value
+        prefs?.edit()?.putBoolean(KEY_ACCOUNT_LIQUID_GLASS, value)?.apply()
     }
 
     private fun put(key: String, value: String) {

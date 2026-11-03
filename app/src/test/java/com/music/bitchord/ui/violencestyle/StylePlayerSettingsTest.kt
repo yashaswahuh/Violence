@@ -40,6 +40,14 @@ class StylePlayerSettingsTest {
         }
     }
 
+    @Test fun replayCardColoursAreDerivedFromTheAccentOnly() {
+        val colours = violenceReplayColors(shared)
+        assertEquals(4, colours.size)
+        assertEquals(shared.accent, colours[0])
+        // Every shade keeps the accent's hue family: blue stays blue-dominant, never another colour.
+        for (c in colours) assertTrue(c.blue >= c.red && c.blue >= c.green)
+    }
+
     @Test fun settingsGroupFillIsTranslucentAndNearSolidWhenTransparencyIsReduced() {
         assertTrue(ViolenceGlassColors.groupFillAlpha(false) < ViolenceGlassColors.groupFillAlpha(true))
         for (p in AccentPreset.entries) {

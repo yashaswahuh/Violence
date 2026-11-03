@@ -39,6 +39,9 @@ import com.music.bitchord.sharedui.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import com.music.bitchord.ui.player.MeshGradientBackground
+import com.music.bitchord.ui.player.MeshPalette
+import com.music.bitchord.ui.violencestyle.LocalViolenceShared
+import com.music.bitchord.ui.violencestyle.violenceReplayColors
 import com.music.bitchord.ui.player.rememberArtworkColors
 import java.util.Locale
 
@@ -99,7 +102,11 @@ fun ReplayCreditCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val palette = rememberArtworkColors(artworkUrl)
+    // Violence Style: every card is lit by the app accent instead of its own cover, so the cards and the app
+    // agree (the covers differ card to card). Style off: the cover's own palette, as before.
+    val violence = LocalViolenceShared.current
+    val artworkPalette = rememberArtworkColors(if (violence != null) null else artworkUrl)
+    val palette = if (violence != null) MeshPalette(violenceReplayColors(violence)) else artworkPalette
     Box(
         modifier = modifier
             .aspectRatio(CARD_RATIO)
