@@ -139,3 +139,35 @@ At the start of `MainActivity.onCreate`, before any skin code: if the skin is on
 | Libraries | none added (Compose, AndroidX Core already in the app) | |
 
 Font files were fetched from the Google Fonts repository (`github.com/google/fonts`, `ofl/` folders) at build time of this stage and are bundled; nothing is downloaded at runtime. They add about 3.1 MB to the APK.
+
+## S2 built (2026-11-03)
+
+**What exists** (new files in `app/.../ui/violencestyle/` unless noted):
+- `StyleBackgroundGeometry.kt`: pure geometry (`BackgroundGeometry`: blob positions, radii, alphas, drift, falloff, vignette, `compositeAt`), the contrast guard (`GlowGuard`), the frame throttle levels (`StyleFrameThrottle`).
+- `StyleBackground.kt`: `ViolenceBackground()` (root layer), `ViolenceBackgroundHolder` and `LocalViolenceBackground`, `Modifier.violenceBackground(style, color)` (the one see-through helper), `StyleState.showsBackground()`, the draw function and the clock.
+- `sharedUi/.../ui/violencestyle/StyleHooks.kt`: `LocalViolenceSeeThrough` (default false).
+- Edits: `MainActivity.kt` (the glass floor draws the background; `ViolenceBackground()` is the first child of the root box; the page root box uses `violenceBackground`; the SideEffect also reports whether the full player is open), `SearchScreen.kt` (Top result card), `StyleHost.kt` (provides the holder and the see-through flag).
+
+**Styles:** Aurora, Corner glow, Haze, Off, built as STYLE_SPEC.md section 2 (blob table, vignettes). **Arcs is not built** (owner decision), although the S2 brief lists it; its construction stays in the spec. Intensity Low, Medium and High scale the peak alpha (0.30, 0.50, 0.70) and the blob radius (x0.8, x1.0, x1.15). Reduce transparency replaces the glow with one static 16 percent accent gradient over the top 60 percent of the height.
+
+**Motion:** each blob centre moves on an ellipse driven by one clock (sin and cos of time over a per-blob period: Normal 27 to 39 s, Subtle x1.75; amplitude Normal 0.06 and Subtle 0.025 of the width; the radius breathes 3 and 1.5 percent). The accent crossfade is the 800 ms colour animation from S1.
+
+**Performance design (reasoned, not measured):**
+- One `drawBehind` node on its own `graphicsLayer`: a clock tick redraws that node only, not the page. The picture is recorded into one `GraphicsLayer` and drawn from it; with Liquid Glass on, the same layer is drawn again as the floor of the glass recording (so the glass blurs the glow).
+- Per frame: one base rect, up to 3 unit-radius radial gradient rects (the same cached brush, moved and scaled by the canvas transform) and at most 1 linear gradient rect. No blur, no RenderEffect, no bitmap, no per-frame allocation (the float array and brushes are cached; brushes are rebuilt only when the colour, size or a setting changes).
+- Clock: 30 fps (`withFrameNanos`, one tick per two frames at 60 Hz). It runs only while the style shows a background, motion is not Off, the mode is FULL (not LITE: API below 31, low RAM, battery saver, thermal, Reduce dynamic blur), reduce motion is off, the app is RESUMED (`rememberIsForeground`) and the full player is not covering the page. When it does not run, nothing invalidates: a static background costs no frames.
+- Throttle: the real tick interval is averaged over 30 ticks; if it is more than 1.4x the intended interval the rate steps 30, 20, 10 fps, then static, and never steps back up.
+- Not done: a 30 s idle stop (it needs a global touch hook), and a scroll-linked shift (skipped: it needs the page scroll position at the root and would invalidate the background on every scroll frame, which are exactly the frames that matter; the visual gain is small).
+- Cost to expect with Liquid Glass on: while the clock runs the background changes 30 times a second, so the 2 to 3 glass surfaces (nav bar, mini player, top pill) re-evaluate their blur at that rate. This is the largest unknown and the reason the throttle and LITE exist. UNVERIFIED on a device.
+
+**Legibility:** `GlowGuard` samples a 12 x 24 grid at the base pose and at the four extremes of the drift. Upper 30 percent of the height: white text at least 3:1. Below it: the app's secondary text colour `#8E8E93` at least 4.5:1 (which also covers white). A blob causing a violation is dimmed in 10 percent steps down to 5 percent. Unit tests run it for every preset and for extreme colours (pure blue, red, yellow, cyan, near-white, near-black, gray) x 3 styles x 3 intensities x 3 motions. A Python replica of the same maths shows Medium untouched for Blue, Red and Pink in every style, and only High on Aurora (mid-right blob x0.73) and Haze (x0.73 and x0.9) held back. A 200 percent font scale does not change colours, so contrast holds; fit and wrapping at 200 percent are S3.
+
+**Screens made see-through (only when the style shows a background; one helper, `violenceBackground`):**
+1. The page root in `BitChordApp` (`MainActivity.kt`): a full-screen `Box` filled with `colorScheme.background`. This was the one fill that covered everything.
+2. The Search "Top result" card (`SearchScreen.kt`, a shared file, through `LocalViolenceSeeThrough`).
+
+Left opaque on purpose: Search song rows (their fill hides the swipe-to-queue reveal; the guard keeps the glow under them near black), album, artist and playlist pages (own artwork colours, S5), Replay and onboarding (own full-screen backdrops), full-screen sign-in surfaces, dialogs and sheets (separate windows), the Jam activity-log card (a card, not a page). A solid floor (`windowBackground`, then the base tint of the layer) stays behind everything, so nothing flashes. The top-bar fade and the bottom fade (`BottomFadeScrim`) still fade to plain black; the top one is invisible on Home at rest and the glow is near black at the bottom. Polishing them is S4.
+
+**Differences from the S2 brief:** no Arcs (owner); no scroll shift (reason above); no idle stop; no Compose or Robolectric UI test (no such infrastructure in `:app`; the toggle-while-playing check is on the owner checklist instead); the OFF-parity proof is `violenceBackground(DISABLED, c)` equal to `background(c)`, `ViolenceBackground()` returning before it composes anything, and `LocalViolenceBackground` defaulting to null.
+
+**UNCLEAR, to verify on a device:** that the glow on the glass floor lines up with the glow on the page (the floor assumes the page area starts at the window origin and has the window size); that the glass blur updates on every tick; smoothness with Liquid Glass on; behaviour of `GraphicsLayer.record` inside `drawBehind` on every supported Android version.
