@@ -947,7 +947,8 @@ private fun RecentSearchEntityRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
+                // Violence Style: the swipe reveal is clipped to the swiped strip, so a see-through row is safe.
+                .then(if (LocalViolenceSeeThrough.current) Modifier else Modifier.background(MaterialTheme.colorScheme.background))
                 .longPressMenuClickable(
                     onClick = onClick,
                     onLongClick = onLongPress,

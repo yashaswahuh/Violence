@@ -17,12 +17,12 @@ enum class StyleMotion { OFF, SUBTLE, NORMAL }
 enum class StyleIntensity {
     LOW, MEDIUM, HIGH;
 
-    /** Peak alpha of the strongest glow blob (STYLE_SPEC.md section 2). */
+    /** Peak alpha of the strongest glow blob (STYLE_SPEC.md section 2; raised about 25 percent after the S2 device review). */
     val peakAlpha: Float
         get() = when (this) {
-            LOW -> 0.30f
-            MEDIUM -> 0.50f
-            HIGH -> 0.70f
+            LOW -> 0.38f
+            MEDIUM -> 0.62f
+            HIGH -> 0.85f
         }
 }
 
