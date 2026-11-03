@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
@@ -31,6 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalDensity
+import com.music.bitchord.ui.components.backdrop.Backdrop
+import com.music.bitchord.ui.components.backdrop.drawBackdrop
+import com.music.bitchord.ui.components.backdrop.effects.blur
+import com.music.bitchord.ui.components.backdrop.effects.colorControls
+import com.music.bitchord.ui.components.backdrop.effects.lens
+import com.music.bitchord.ui.components.backdrop.highlight.Highlight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
@@ -47,6 +55,7 @@ import com.music.bitchord.auth.YouTubeProfile
 import com.music.bitchord.data.settings.AppSettings
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.ui.violencestyle.LocalViolenceStyle
+import com.music.bitchord.ui.violencestyle.ViolenceStyleSettings
 import com.music.bitchord.ui.violencestyle.violenceGlassRim
 import com.music.bitchord.ui.violencestyle.violencePanelSolid
 import com.music.bitchord.ui.violencestyle.violencePanelTint
@@ -85,6 +94,17 @@ fun AccountProfileSelector(
     val panelSolid = violencePanelSolid()
     // Style on: the menu drops from the avatar (top end), just under the top bar.
     val menuTop = if (styled) topBarHeight() + 4.dp else 56.dp
+    // Violence Style, "Liquid Glass account menu" switch: the bars' glass (blur and lens over the live page).
+    // Needs Liquid Glass on, Android 12+ and transparency not reduced; otherwise the frosted look above.
+    val accountGlass by ViolenceStyleSettings.accountLiquidGlass.collectAsStateWithLifecycle()
+    val liquid = styled && accountGlass && LocalLiquidGlassEnabled.current && isGlassSupported() &&
+        !reduceDynamicBlur && !panelSolid
+    val menuShape = if (liquid) RoundedCornerShape(30.dp) else shape
+    val liquidGlass = if (liquid) {
+        Modifier.accountLiquidGlass(LocalAppBackdrop.current, menuShape, panelTint ?: Color(0xFF121214))
+    } else {
+        Modifier
+    }
     val material = HazeMaterials.thin(surface)
     val style = remember(material, dark, styled, panelTint) {
         HazeStyle(
@@ -109,13 +129,15 @@ fun AccountProfileSelector(
         Surface(
             color = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            shape = shape,
+            shape = menuShape,
             modifier = Modifier
                 .padding(top = menuTop, start = if (styled) 12.dp else 20.dp, end = if (styled) 12.dp else 20.dp)
                 .then(if (styled) Modifier.fillMaxWidth(0.80f) else Modifier.fillMaxWidth())
-                .clip(shape)
+                .clip(menuShape)
                 .then(
-                    if (reduceDynamicBlur || panelSolid) {
+                    if (liquid) {
+                        liquidGlass
+                    } else if (reduceDynamicBlur || panelSolid) {
                         Modifier.background(
                             if (styled && panelTint != null) panelTint.copy(alpha = 0.94f) else MaterialTheme.colorScheme.surface,
                         )
@@ -128,7 +150,7 @@ fun AccountProfileSelector(
                 )
                 // Style on: a faint sheen from the top edge, the way light falls on glass.
                 .then(
-                    if (styled && !panelSolid && !reduceDynamicBlur) {
+                    if (styled && !liquid && !panelSolid && !reduceDynamicBlur) {
                         Modifier.background(
                             Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.White.copy(alpha = 0.02f))),
                         )
@@ -138,7 +160,7 @@ fun AccountProfileSelector(
                 )
                 .then(
                     if (styled) {
-                        Modifier.violenceGlassRim(shape)
+                        Modifier.violenceGlassRim(menuShape)
                     } else {
                         // The same hairline the mini player and the nav bar wear.
                         Modifier.border(
@@ -211,3 +233,41 @@ fun AccountProfileSelector(
         Spacer(Modifier.width(12.dp)); Text(label)
     }
 }
+
+/**
+ * The account menu as Liquid Glass: the live page blurred, lensed at the edges (Android 13+; Android 12
+ * gets the blur) and a light-catching highlight, under a thin accent-tinted fill. The same pipeline as the
+ * bars and the song menu.
+ */
+@Composable
+private fun Modifier.accountLiquidGlass(backdrop: Backdrop, shape: androidx.compose.ui.graphics.Shape, tint: Color): Modifier {
+    val density = LocalDensity.current
+    val blurPx = with(density) { 20.dp.toPx() } * ACCOUNT_GLASS_SCALE
+    val lensPx = with(density) { 22.dp.toPx() } * ACCOUNT_GLASS_SCALE
+    val fill = remember(tint) { tint.copy(alpha = 0.30f) }
+    val glass = remember(backdrop, shape, blurPx, lensPx, fill) {
+        Modifier.drawBackdrop(
+            backdrop = backdrop,
+            shape = { shape },
+            effects = {
+                colorControls(saturation = 1.8f)
+                blur(blurPx)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    lens(
+                        refractionHeight = lensPx,
+                        refractionAmount = lensPx,
+                        depthEffect = true,
+                        chromaticAberration = true,
+                    )
+                }
+            },
+            highlight = { Highlight.Default },
+            shadow = null,
+            onDrawSurface = { drawRect(fill) },
+            backdropScale = ACCOUNT_GLASS_SCALE,
+        )
+    }
+    return then(glass)
+}
+
+private const val ACCOUNT_GLASS_SCALE = 0.25f

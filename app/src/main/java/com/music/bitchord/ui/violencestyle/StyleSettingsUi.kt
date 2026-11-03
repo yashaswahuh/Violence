@@ -87,6 +87,7 @@ private fun ViolenceStyleOptions() {
     val headingFont by ViolenceStyleSettings.headingFont.collectAsStateWithLifecycle()
     val forcedTransparency by ViolenceStyleSettings.reduceTransparency.collectAsStateWithLifecycle()
     val detailGlow by ViolenceStyleSettings.detailGlow.collectAsStateWithLifecycle()
+    val accountLiquidGlass by ViolenceStyleSettings.accountLiquidGlass.collectAsStateWithLifecycle()
     val style = LocalViolenceStyle.current
 
     OptionDivider()
@@ -133,6 +134,12 @@ private fun ViolenceStyleOptions() {
         subtitle = stringResource(R.string.vs_detail_glow_subtitle),
         trailing = { IosSwitch(checked = detailGlow, onCheckedChange = ViolenceStyleSettings::setDetailGlow) },
         onClick = { ViolenceStyleSettings.setDetailGlow(!detailGlow) },
+    )
+    SettingsRow(
+        title = stringResource(R.string.vs_account_liquid_glass),
+        subtitle = stringResource(R.string.vs_account_liquid_glass_subtitle),
+        trailing = { IosSwitch(checked = accountLiquidGlass, onCheckedChange = ViolenceStyleSettings::setAccountLiquidGlass) },
+        onClick = { ViolenceStyleSettings.setAccountLiquidGlass(!accountLiquidGlass) },
     )
     Text(
         text = if (style.capability == StyleCapability.FULL) {

@@ -44,6 +44,8 @@
     <string name="vs_reduce_transparency">Reduce transparency</string>
     <string name="vs_reduce_transparency_subtitle">Use solid fills instead of glass. It also follows Reduce dynamic blur.</string>
     <string name="vs_detail_glow">Glow on album and artist pages</string>
+    <string name="vs_account_liquid_glass">Liquid Glass account menu</string>
+    <string name="vs_account_liquid_glass_subtitle">Draws the account menu as Liquid Glass, like the navigation bar. Needs Liquid Glass on and Android 12 or later; otherwise it stays frosted.</string>
     <string name="vs_detail_glow_subtitle">Adds a soft accent glow at the top of album, artist and playlist pages.</string>
     <string name="vs_mode_full">Mode: Full</string>
     <string name="vs_mode_lite">Mode: Lite (%1$s)</string>

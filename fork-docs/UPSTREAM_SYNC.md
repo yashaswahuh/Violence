@@ -87,3 +87,4 @@ Each is a swapped expression or an appended modifier; re-apply after a sync if o
 ### Follow-up: account menu and Replay cards (2026-11-03)
 - `app/.../ui/components/AccountProfileSelector.kt`: style on: lighter wash plus accent tint, rim, opens on the left (82 percent width), lighter scrim; style off: the original code path.
 - `sharedUi/.../ui/replay/ReplayCard.kt` (`ReplayCreditCard`): style on: mesh colours from the app accent (`violenceReplayColors`) instead of the cover; off: the cover palette as before.
+- `AccountProfileSelector.kt`: also reads `ViolenceStyleSettings.accountLiquidGlass` and, when on with the style, draws via `accountLiquidGlass()` (private, same `drawBackdrop` pipeline as `IosMenu.kt` `menuGlass`).
