@@ -37,3 +37,7 @@ New code lives in `app/src/main/java/com/music/bitchord/ui/violencestyle/` and `
 - `app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt`: one `row(...) { ViolenceStyleSettingsBlock() }` at the top of the `ADVANCED` group.
 - `NOTICE`: the font licence section. `.gitignore`: `/fork-docs/style-reference/`.
 Later stages add more touch points here (see `fork-docs/style/STYLE_MAPPING.md`).
+
+### S2 additions (2026-11-03)
+- `app/src/main/java/com/music/bitchord/MainActivity.kt`: 5 more import lines; in `setContent`, `violenceBackdrop = LocalViolenceBackground.current` and `violenceBackdrop?.drawInto(this)` inside `paintBackdrop`; `ViolenceBackground()` before `BitChordApp(...)` in the root box; in `BitChordApp` the page root `Box` uses `.violenceBackground(LocalViolenceStyle.current, MaterialTheme.colorScheme.background)` instead of `.background(MaterialTheme.colorScheme.background)`; the SideEffect passes `showNowPlaying`.
+- `sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/screens/SearchScreen.kt` (shared with desktop): the `TopResultCard` background is wrapped in `if (LocalViolenceSeeThrough.current)`, plus one import. New shared file `sharedUi/.../ui/violencestyle/StyleHooks.kt`.
