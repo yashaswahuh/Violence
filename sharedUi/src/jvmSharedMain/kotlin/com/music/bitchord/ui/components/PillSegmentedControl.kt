@@ -71,7 +71,12 @@ fun PillSegmentedControl(
     val measurer = rememberTextMeasurer()
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val trackColor = TRACK_FILL.copy(alpha = if (light) LIGHT_TRACK_ALPHA else DARK_TRACK_ALPHA)
-    val pillColor = if (light) Color.White else DARK_PILL
+    val violence = com.music.bitchord.ui.violencestyle.LocalViolenceShared.current
+    val pillColor = when {
+        violence != null -> com.music.bitchord.ui.violencestyle.violencePillColor(DARK_PILL, violence.accent)
+        light -> Color.White
+        else -> DARK_PILL
+    }
     val labelColor = if (light) Color.Black else Color.White
     val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
     val selected = selectedIndex.takeIf { it in options.indices }

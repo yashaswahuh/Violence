@@ -48,3 +48,13 @@ All edits are early branches on `LocalViolenceShared.current` (null when the sty
 - `sharedUi/.../ui/screens/TopPicksShelf.kt` (shared): 5 imports; `SectionHeader(..., hero = true)`; `TopPickCard` gains `first: Boolean = false` (call site passes `index == 0`), shape, `.violenceCardRim`, the scrim box; `CardCaption` styled early return; the skeleton's shape.
 - `app/.../ui/components/FrostedTopBar.kt`: 2 imports; in `artworkPageSurface`, `liquidGlass(shape, surfaceTint = violenceGlassTint())` and `.violenceGlassEdge(shape, GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR)` instead of the plain `.border(...)`.
 - New: `sharedUi/.../ui/violencestyle/StyledComponents.kt`, `app/.../ui/violencestyle/StyleChrome.kt`; `StyleHost.kt` provides `LocalViolenceShared`.
+
+### S4 additions (2026-11-03)
+Each is a swapped expression or an appended modifier; re-apply after a sync if overwritten.
+- `app/.../ui/components/GlassNavBar.kt`: 4 imports; `glassSurface` passes `surfaceTint = violenceGlassTint()` and appends `.violenceGlassRim(pillShape)`; `indicatorColor = violenceIndicatorColor() ?: glassIndicatorColor()`.
+- `app/.../ui/components/floatingtabbar/FloatingTabBar.kt` (vendored): 2 imports; `.violenceCapsuleGlow()` appended to the two selection-pill modifier chains; `.violenceTabSemantics(isSelected)` after the expanded tab's `clickable`.
+- `app/.../ui/components/FloatingBottomBar.kt`: imports; `liquidGlass(shape = pillShape, surfaceTint = violenceGlassTint())`; the plain `.border(...)` replaced by `.violenceGlassEdge(...)`; the selected indicator's fill `violenceIndicatorColor() ?: <old>` plus `.violenceCapsuleGlow()`; `.violenceTabSemantics(selected)` on `BottomBarItem`.
+- `app/.../ui/components/MiniPlayer.kt`: `.border(0.5.dp, Color.White.copy(alpha = 0.10f), shape)` replaced by `.violenceGlassEdge(shape, 0.5.dp, Color.White.copy(alpha = 0.10f))`.
+- `app/.../ui/components/IosSwitch.kt`: `violenceSwitchTrack()` first in the track colour `when`.
+- `sharedUi/.../ui/components/PillSegmentedControl.kt` (shared with desktop): `pillColor` branch on `LocalViolenceShared`.
+- `sharedUi/.../ui/player/ThinSlider.kt` (shared): `activeColor` default reads `LocalViolenceShared`.

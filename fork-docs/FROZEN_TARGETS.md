@@ -61,6 +61,8 @@ Append one line per change: `date | file | what changed | why it could affect a 
 
 2026-11-03 | `sharedUi/.../ui/screens/HomeScreen.kt` (`SectionHeader`, `RecentSectionHeader`, `CompactTrackRow`, `HeroCard`), `TopPicksShelf.kt` (`TopPickCard`, `CardCaption`, skeleton), new `sharedUi/.../ui/violencestyle/StyledComponents.kt` | Violence Style S3 (phone only) | Additive and default-off: each branch reads `LocalViolenceShared`, which defaults to null and which the desktop never provides, so desktop rendering is unchanged. `SectionHeader` gained a defaulted trailing parameter (source compatible). Not built for desktop.
 
+2026-11-03 | `sharedUi/.../ui/components/PillSegmentedControl.kt` (selected segment colour), `sharedUi/.../ui/player/ThinSlider.kt` (default `activeColor`), `StyledComponents.kt` (`violencePillColor`) | Violence Style S4 (phone only) | Additive and default-off: both branches read `LocalViolenceShared`, which defaults to null and which the desktop never provides, so desktop rendering is unchanged. Not built for desktop.
+
 ## 2026-11-02: Part 2 bug fixes (shared code touched)
 
 - `shared/.../data/share/PlaylistLinks.kt` (new), `IncomingLinks.kt` (new `IncomingLink.Playlist`): additive. Wear OS and desktop do not read share links, so neither is affected.

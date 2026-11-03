@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.music.bitchord.ui.haptics.Haptic
+import com.music.bitchord.ui.violencestyle.violenceSwitchTrack
 import com.music.bitchord.ui.haptics.rememberHaptics
 
 /**
@@ -80,8 +81,10 @@ fun IosSwitch(
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 900f),
         label = "iosSwitchStretch",
     )
+    val violenceTrack = violenceSwitchTrack()
     val track by animateColorAsState(
         targetValue = when {
+            checked && violenceTrack != null -> violenceTrack
             checked && dark -> Color(0xFF30D158)
             checked -> Color(0xFF34C759)
             else -> Color(0xFF8E8E93).copy(alpha = if (dark) 0.36f else 0.22f)
