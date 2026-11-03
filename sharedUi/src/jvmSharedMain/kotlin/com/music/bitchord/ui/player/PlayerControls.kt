@@ -514,7 +514,6 @@ internal fun TransportRow(
                 touchSize = playTouch,
                 onClick = onPlayPause,
                 haptic = if (isPlaying) Haptic.Pause else Haptic.Resume,
-                accentRing = true,
             )
         }
         TransportGlyph(
