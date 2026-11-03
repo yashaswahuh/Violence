@@ -471,23 +471,6 @@ object AppSettings {
     /** Real backdrop-sampled glass (blur, lens refraction) on the floating nav bar, Android 12+ only. */
     val liquidGlass = MutableStateFlow(false)
 
-    // ---- Brutal UI (ui/brutal; fork-docs/BRUTAL_UI_SPEC.md). All off or default: the current UI is unchanged. ----
-
-    /** Which look the phone app wears. CURRENT unless the user switched it; unknown values read as CURRENT. */
-    val uiVariant = MutableStateFlow(com.music.bitchord.ui.brutal.UiVariant.CURRENT)
-
-    /** Brutal UI: the Neon look (accent bleed, rim tint, under-glow) on glass surfaces. */
-    val brutalGlow = MutableStateFlow(true)
-
-    /** Brutal UI: the accent colour, a preset or a custom colour. Yellow by default. */
-    val brutalAccent = MutableStateFlow<com.music.bitchord.ui.brutal.BrutalAccent>(com.music.bitchord.ui.brutal.BrutalAccent.Default)
-
-    /** Brutal UI: the edge the navigation rail sits on. */
-    val brutalRailSide = MutableStateFlow(com.music.bitchord.ui.brutal.BrutalRailSide.RIGHT)
-
-    /** Brutal UI: draw every surface solid (no glass). The app's own switch; Android has no system one. */
-    val reduceTransparency = MutableStateFlow(false)
-
     /**
      * Blurs what scrolls under the status bar and the top controls, easing out
      * just below them, instead of fading it to the page colour. A Liquid Glass
@@ -1000,11 +983,6 @@ object AppSettings {
         smartVersionAlignment.value = prefs.getBoolean(KEY_SMART_VERSION_ALIGNMENT, true)
         reduceDynamicBlur.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
         liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, false)
-        uiVariant.value = com.music.bitchord.ui.brutal.UiVariant.parse(prefs.getString(KEY_UI_VARIANT, null))
-        brutalGlow.value = prefs.getBoolean(KEY_BRUTAL_GLOW, true)
-        brutalAccent.value = com.music.bitchord.ui.brutal.BrutalAccent.parse(prefs.getString(KEY_BRUTAL_ACCENT, null))
-        brutalRailSide.value = com.music.bitchord.ui.brutal.BrutalRailSide.parse(prefs.getString(KEY_BRUTAL_RAIL_SIDE, null))
-        reduceTransparency.value = prefs.getBoolean(KEY_REDUCE_TRANSPARENCY, false)
         progressiveBlur.value = prefs.getBoolean(KEY_PROGRESSIVE_BLUR, false)
         lyricsBlur.value = prefs.getBoolean(KEY_LYRICS_BLUR, true)
         lyricsOffsetMs.value = prefs.getInt(KEY_LYRICS_OFFSET_MS, 0)
@@ -1429,31 +1407,6 @@ object AppSettings {
     fun setLiquidGlass(value: Boolean) {
         liquidGlass.value = value
         prefs.edit().putBoolean(KEY_LIQUID_GLASS, value).apply()
-    }
-
-    fun setUiVariant(value: com.music.bitchord.ui.brutal.UiVariant) {
-        uiVariant.value = value
-        prefs.edit().putString(KEY_UI_VARIANT, value.name).apply()
-    }
-
-    fun setBrutalGlow(value: Boolean) {
-        brutalGlow.value = value
-        prefs.edit().putBoolean(KEY_BRUTAL_GLOW, value).apply()
-    }
-
-    fun setBrutalAccent(value: com.music.bitchord.ui.brutal.BrutalAccent) {
-        brutalAccent.value = value
-        prefs.edit().putString(KEY_BRUTAL_ACCENT, value.serialize()).apply()
-    }
-
-    fun setBrutalRailSide(value: com.music.bitchord.ui.brutal.BrutalRailSide) {
-        brutalRailSide.value = value
-        prefs.edit().putString(KEY_BRUTAL_RAIL_SIDE, value.name).apply()
-    }
-
-    fun setReduceTransparency(value: Boolean) {
-        reduceTransparency.value = value
-        prefs.edit().putBoolean(KEY_REDUCE_TRANSPARENCY, value).apply()
     }
 
     fun setProgressiveBlur(value: Boolean) {
@@ -2227,11 +2180,6 @@ object AppSettings {
     private const val KEY_SMART_VERSION_ALIGNMENT = "smart_version_alignment"
     private const val KEY_REDUCE_BLUR = "reduce_dynamic_blur"
     private const val KEY_LIQUID_GLASS = "liquid_glass"
-    private const val KEY_UI_VARIANT = "ui_variant"
-    private const val KEY_BRUTAL_GLOW = "brutal_glow"
-    private const val KEY_BRUTAL_ACCENT = "brutal_accent"
-    private const val KEY_BRUTAL_RAIL_SIDE = "brutal_rail_side"
-    private const val KEY_REDUCE_TRANSPARENCY = "ui_reduce_transparency"
     private const val KEY_PROGRESSIVE_BLUR = "progressive_blur"
     private const val KEY_LYRICS_BLUR = "lyrics_blur"
     private const val KEY_LYRICS_OFFSET_MS = "lyrics_offset_ms"

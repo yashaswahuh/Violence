@@ -273,18 +273,6 @@ A second, switchable phone UI (Liquid Glass kept; its own identity, accessible, 
 | UI-3 | Now Playing, Jam, sharing surfaces | cancelled |
 | UI-4 | Pages, polish, performance | cancelled |
 
-### Brutal UI (replaces the cancelled UI-1 to UI-4 above)
-
-A new "brutal" look (black pages, one acid accent, heavy type, glass with an optional Neon glow), specified in `BRUTAL_UI_SPEC.md` from two mockups and planned in `BRUTAL_UI_PLAN.md`. Same rules as before: Android phone only, the current UI is the default and unchanged when it is off, new code lives in `app/.../ui/brutal/`, and every upstream file edit is listed in `UPSTREAM_SYNC.md` ("Custom UI touch points").
-
-| Phase | What | Status |
-|---|---|---|
-| Spec | `BRUTAL_UI_SPEC.md`, `brutal-ui/type-board.html` | **DONE (2026-11-02)**, documentation only |
-| B-1 | Plumbing: settings (`uiVariant`, `brutalGlow`, `brutalAccent`, `brutalRailSide`, `reduceTransparency`), Settings rows and accent sheet, `BrutalRoot` switch, safe mode, glass-level decision and budget, tokens, contrast engine, OFL fonts, strings (English placeholders), tests. Visual result deliberately minimal (the existing app in the new colours and type) | **BUILT (2026-11-02)**. Build and test results, screenshots and the deviation list are in `BRUTAL_UI_PLAN.md` sections 5 to 7. Not verified on a real phone; translations pending |
-| B-2 | Navigation chrome (rail, mini player bar, dock, header, Hub) | not started |
-| B-3 | Components and the Glow layers | not started |
-| B-4 | Pages, performance, accessibility pass, translations | not started |
-
 **Phase 10 (Final audit and handover) waits until the custom UI work is finished.** Phase 11 is independent.
 
 
