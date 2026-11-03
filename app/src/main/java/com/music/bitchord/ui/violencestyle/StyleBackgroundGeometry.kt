@@ -67,12 +67,12 @@ object BackgroundGeometry {
     /** Drift amplitude as a fraction of the layer width (STYLE_SPEC.md: Subtle 0.025, Normal 0.06). */
     fun amplitude(motion: StyleMotion): Float = when (motion) {
         StyleMotion.OFF -> 0f
-        StyleMotion.SUBTLE -> 0.025f
-        StyleMotion.NORMAL -> 0.06f
+        StyleMotion.SUBTLE -> 0.07f
+        StyleMotion.NORMAL -> 0.15f
     }
 
-    /** Subtle stretches the periods (45 to 70 s against 24 to 40 s). */
-    fun periodScale(motion: StyleMotion): Float = if (motion == StyleMotion.SUBTLE) 1.75f else 1f
+    /** Normal runs the base periods x0.6 (about 16 to 24 s per loop); Subtle x1.0 (27 to 40 s). Raised after the S2 device review: the first values were too slow to see. */
+    fun periodScale(motion: StyleMotion): Float = if (motion == StyleMotion.SUBTLE) 1f else 0.6f
 
     /** Intensity also scales blob radii: Low x0.8, Medium x1.0, High x1.15. */
     fun radiusScale(intensity: StyleIntensity): Float = when (intensity) {
@@ -84,8 +84,8 @@ object BackgroundGeometry {
     /** Radius breathing, as a fraction of the radius (Normal 3 percent, Subtle 1.5 percent). */
     private fun breath(motion: StyleMotion): Float = when (motion) {
         StyleMotion.OFF -> 0f
-        StyleMotion.SUBTLE -> 0.015f
-        StyleMotion.NORMAL -> 0.03f
+        StyleMotion.SUBTLE -> 0.03f
+        StyleMotion.NORMAL -> 0.06f
     }
 
     /**

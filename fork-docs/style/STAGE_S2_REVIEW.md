@@ -1,4 +1,4 @@
-# Violence Style S2: on-device review checklist
+Z# Violence Style S2: on-device review checklist
 
 Stage S2 adds the **live background** behind the app: three styles (Aurora, Corner, Haze; Arcs was dropped by you), drifting slowly, tinted by the accent. Everything else stays as in S1: new headings, glass tinting and rims come in S3 and S4. With the style OFF the app must be identical to before.
 
@@ -58,3 +58,8 @@ Tick "S2 approved" and "S2 OFF-parity verified on device" in `STYLE_APPROVALS.md
 - Album, artist, playlist pages and Replay show no glow yet. The top status-bar fade and bottom fade still fade to plain black while you scroll.
 - Heading fonts, glass tinting and rims are still S3 and S4. Strings are English only in other languages.
 - Frame times were not measured on a device by me (no adb on the build PC); the numbers in `STYLE_PLAN.md` are reasoning, yours are the real ones.
+
+## Update after your first device review (2026-11-03)
+- Glow peak brightness raised about 25 percent (Low 0.38, Medium 0.62, High 0.85; before 0.30, 0.50, 0.70).
+- Motion made visible: Normal now drifts 0.15 of the screen width with loops of about 16 to 24 s (before 0.06 and 27 to 39 s); Subtle 0.07 with 27 to 40 s. If the background still does not move, read the "Mode:" line in the Violence Style settings (battery saver, Reduce dynamic blur and Remove animations freeze it on purpose).
+- Search: the "Recent searches" rows no longer have a black fill while the style is on. Check that the rows are readable and that swiping a row right still shows the Queue reveal.

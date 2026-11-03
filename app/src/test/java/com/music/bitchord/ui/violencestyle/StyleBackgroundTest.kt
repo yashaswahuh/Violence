@@ -78,9 +78,9 @@ class BackgroundGeometryTest {
 
     @Test fun alphaIsPeakTimesIntensityTimesScale() {
         BackgroundGeometry.fill(StyleBackground.AURORA, w, h, 0.0, StyleMotion.OFF, StyleIntensity.HIGH, null, buf)
-        assertEquals(0.70f, buf[3], 1e-5f)
+        assertEquals(0.85f, buf[3], 1e-5f)
         BackgroundGeometry.fill(StyleBackground.AURORA, w, h, 0.0, StyleMotion.OFF, StyleIntensity.LOW, floatArrayOf(0.5f, 1f, 1f), buf)
-        assertEquals(0.30f * 0.5f, buf[3], 1e-5f)
+        assertEquals(0.38f * 0.5f, buf[3], 1e-5f)
     }
 
     @Test fun intensityScalesTheRadius() {
@@ -92,8 +92,10 @@ class BackgroundGeometryTest {
     }
 
     @Test fun subtleStretchesThePeriods() {
-        assertEquals(1.75f, BackgroundGeometry.periodScale(StyleMotion.SUBTLE), 0f)
-        assertEquals(1f, BackgroundGeometry.periodScale(StyleMotion.NORMAL), 0f)
+        assertEquals(1f, BackgroundGeometry.periodScale(StyleMotion.SUBTLE), 0f)
+        assertEquals(0.6f, BackgroundGeometry.periodScale(StyleMotion.NORMAL), 0f)
+        // Normal must be visibly livelier than Subtle: a larger drift in a shorter loop.
+        assertTrue(BackgroundGeometry.amplitude(StyleMotion.NORMAL) >= 2f * BackgroundGeometry.amplitude(StyleMotion.SUBTLE))
     }
 
     @Test fun falloffIsMonotonicAndHitsTheStops() {

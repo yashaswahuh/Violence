@@ -155,8 +155,8 @@ class StyleOffParityTest {
     }
 
     @Test fun intensityPeaksMatchTheSpec() {
-        assertEquals(0.30f, StyleIntensity.LOW.peakAlpha, 0f)
-        assertEquals(0.50f, StyleIntensity.MEDIUM.peakAlpha, 0f)
-        assertEquals(0.70f, StyleIntensity.HIGH.peakAlpha, 0f)
+        assertEquals(0.38f, StyleIntensity.LOW.peakAlpha, 0f)
+        assertEquals(0.62f, StyleIntensity.MEDIUM.peakAlpha, 0f)
+        assertEquals(0.85f, StyleIntensity.HIGH.peakAlpha, 0f)
     }
 }
