@@ -41,9 +41,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 object ViolenceStyleSong {
     val artworkUrl = MutableStateFlow<String?>(null)
 
-    /** A plain value write; a no-op when unchanged. Safe to call with the style off. */
-    fun report(url: String?) {
+    /** True while the full player covers the page (the background clock stops). */
+    val playerOpen = MutableStateFlow(false)
+
+    /** Plain value writes; no-ops when unchanged. Safe to call with the style off. */
+    fun report(url: String?, playerOpen: Boolean = false) {
         artworkUrl.value = url
+        this.playerOpen.value = playerOpen
     }
 }
 
@@ -160,6 +164,8 @@ private fun ViolenceStyleHost(content: @Composable () -> Unit) {
 
         val tokens = rememberAccentTokens(state)
         val headings = remember(headingFont) { ViolenceHeadingStyles.build(headingFont.family()) }
+        val backgroundLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+        val backgroundHolder = remember(backgroundLayer) { ViolenceBackgroundHolder(backgroundLayer) }
 
         // The start succeeded once this has been composed and one frame has been drawn.
         LaunchedEffect(Unit) {
@@ -171,6 +177,8 @@ private fun ViolenceStyleHost(content: @Composable () -> Unit) {
             LocalViolenceStyle provides state,
             LocalViolenceAccent provides tokens,
             LocalViolenceHeadings provides headings,
+            LocalViolenceBackground provides backgroundHolder,
+            LocalViolenceSeeThrough provides state.showsBackground(),
             content = content,
         )
     }
