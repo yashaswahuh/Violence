@@ -247,8 +247,6 @@ android {
             // so a test of that layer fails on the logging rather than on the
             // logic it was written to check.
             isReturnDefaultValues = true
-            // Robolectric (UI tests of the brutal look) needs the merged resources on the test classpath.
-            isIncludeAndroidResources = true
         }
     }
 }
@@ -480,10 +478,6 @@ dependencies {
     implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
 
     testImplementation("junit:junit:4.13.2")
-    // Compose UI tests on the JVM (brutal UI, ui/brutal). Robolectric: Apache-2.0. ui-test: Apache-2.0.
-    testImplementation("org.robolectric:robolectric:4.14.1")
-    testImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
     // A real HTTP server for the addon tests. The addon protocol is entirely
     // "what does this app send, and what does it do with what comes back", and
     // a hand-rolled fake of the client would be a test of the fake. Pinned to

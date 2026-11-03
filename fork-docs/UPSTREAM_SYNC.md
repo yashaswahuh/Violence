@@ -28,26 +28,5 @@ Keep OURS, re-apply on top of upstream if overwritten:
 - **Docs and rules:** `CLAUDE.md`, everything in `fork-docs/`, `.gitignore` additions, `.claude/` is removed upstream (we follow).
 - **Deliberately deleted by us (stay deleted):** `upi_support.jpg`, `.github/FUNDING.yml`, `.github/workflows/deploy-backend.yml`, `.github/workflows/close-issue.yml`.
 
-## Custom UI touch points (Brutal UI, `fork-docs/BRUTAL_UI_PLAN.md`)
-Every **upstream file** the brutal look edits, with how small the edit is. All new code is in `app/src/main/java/com/music/bitchord/ui/brutal/` (ours, no conflicts). Re-apply these if a sync overwrites them; each is one call or one appended block.
-- **`app/src/main/java/com/music/bitchord/MainActivity.kt`** (high conflict risk, 6,500 lines): eight touch points, the first four marked `Brutal UI touch point N`, the last four inside `BitChordApp` (N-1, see below):
-  1. `onCreate`: one line, `BrutalSafeMode.startupCheck(this)`, before `FrameStats.attach`.
-  2. In `setContent`: `val darkTheme = brutalEffectiveDark(chosenDark)` (the old `val darkTheme = when ...` became `val chosenDark = when ...`).
-  3. `val windowBackground = brutalWindowBackground(MaterialTheme.colorScheme.background)` (was `MaterialTheme.colorScheme.background`).
-  4. `BrutalRoot(dark = darkTheme) { ...the existing BoxWithConstraints(... BitChordApp(...) ...) }`: one wrapper call and its closing brace around the existing `BoxWithConstraints`.
-  5. (N-1) In `BitChordApp`, right after `val listPadding = PaddingValues(...)`: `val brutalUi = com.music.bitchord.ui.brutal.rememberBrutalUi()` (marked `touch point 5`).
-  6. (N-1) The Home tab branch: `TAB_HOME -> if (brutalUi) BrutalHomePage(...) else HomeScreen(` (the existing `HomeScreen(...)` call is unchanged after the `else`).
-  7. (N-1) The Library branch: `else -> if (brutalUi) BrutalLibraryPage(...) else LibraryScreen(` (existing call unchanged).
-  8. (N-1) The bottom bars: `if (brutalUi) BrutalChrome(...) else if (glassActive) Column(...) {...} else Column(...) {...}` (the two existing bars are unchanged after the new first branch).
-  `BitChordApp` is at the JVM method-size limit; the four N-1 edits add about 60 lines of plain-parameter calls and the phone build still passes. If a future sync makes it too big, move the four calls behind one `BrutalScreens` object.
-- **`app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt`** (2,900 lines): one statement at the top of the `SettingsCategory.ADVANCED` group, `brutalSettingRows().forEach { r -> row(*r.keywords) { r.content() } }`.
-- **`app/src/main/java/com/music/bitchord/data/settings/AppSettings.kt`**: appended next to `liquidGlass`: five `MutableStateFlow`s (`uiVariant`, `brutalGlow`, `brutalAccent`, `brutalRailSide`, `reduceTransparency`), their five reads in `readAll()`, five setters, five `KEY_*` constants. Nothing existing was changed.
-- **`app/src/main/java/com/music/bitchord/ui/components/AppGlass.kt`** (glass kit): `rememberPanelGlass` changed from `private` to `internal` (one word, marked `Brutal UI touch point`), so `ui/brutal/glass` reuses the panel glass as it is. Nothing else in that file changed; `LiquidGlass.kt`, `GlassPanels.kt`, `GlassNavBar.kt` and `MiniPlayer.kt` are only called.
-- **`app/build.gradle.kts`**: `isIncludeAndroidResources = true` in `testOptions.unitTests`, and test-only dependencies `org.robolectric:robolectric:4.14.1`, `androidx.compose.ui:ui-test-junit4`, `debugImplementation androidx.compose.ui:ui-test-manifest`.
-- **`app/src/main/res/values*/strings.xml`** (20 files): 73 `brutal_*` keys (29 from B-1, 17 from the components phase, 27 from N-1: rail, PLAYING bar, Hub, Library) appended before `</resources>` under the comment `Brutal UI (English placeholders until translated)`. `LocaleStringsTest` needs every key in every locale.
-- **`app/src/main/res/font/`**: four new files `brutal_display.ttf`, `brutal_stamp.ttf`, `brutal_body.ttf`, `brutal_mono.ttf` (unmodified OFL fonts). `NOTICE`: the four OFL texts appended at the end.
-- Not edited: `Theme.kt`, `LiquidGlass.kt`, `GlassPanels.kt`, `MiniPlayer.kt`, `GlassNavBar.kt` (all of `AppGlass.kt` except the one word above), `:sharedUi`, `:shared`, `tv/`, the dormant modules.
-
 ## After every merge, re-check
-The `Brutal UI touch point` markers 1-5 and the `if (brutalUi)` branches (Home, Library, bars) in `MainActivity.kt` and the `brutalSettingRows()` line in `SettingsSheet.kt` survived; `BrutalRoot` still wraps the `BoxWithConstraints` that calls `BitChordApp`; the five `brutal*` settings still exist in `AppSettings.kt`. Then:
 `grep -r "BitChord"` in added user-visible text; new hosts in added lines; new presence/analytics/update/donation code; `Presence.kt` and `AppUpdateChecker.kt` still blank; exactly one `android:enabled="true"` launcher alias; Jam protocol files (`backend/protocol|party|hub`, `PartyModels.kt`, `ListenTogether.kt`, `web/app/src/party/*`) changed or not; build phone, TV, web with explicit tasks.

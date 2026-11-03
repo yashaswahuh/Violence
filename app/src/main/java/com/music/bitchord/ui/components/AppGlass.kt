@@ -86,9 +86,8 @@ private fun panelTintAlpha(dark: Boolean): Float = if (dark) 0.42f else 0.52f
  * ordinary surface — while Liquid Glass is off, unsupported, under "reduce dynamic blur", or with
  * no page still to sample.
  */
-// Brutal UI touch point: `internal` (was `private`) so ui/brutal/glass reuses the panel glass as it is.
 @Composable
-internal fun rememberPanelGlass(shape: CornerBasedShape): Modifier? {
+private fun rememberPanelGlass(shape: CornerBasedShape): Modifier? {
     if (!LocalLiquidGlassEnabled.current || !isGlassSupported()) return null
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     if (reduceDynamicBlur) return null

@@ -1,4 +1,4 @@
-# Project Roadmap & Implementation Phases
+﻿# Project Roadmap & Implementation Phases
 
 **Audit Date:** 2026-10-29  
 **Execution Model:** Phased implementation. Each phase is scoped to be executed independently in a fresh AI chat session.  
@@ -273,21 +273,23 @@ A second, switchable phone UI (Liquid Glass kept; its own identity, accessible, 
 | UI-3 | Now Playing, Jam, sharing surfaces | cancelled |
 | UI-4 | Pages, polish, performance | cancelled |
 
-### Brutal UI (replaces the cancelled UI-1 to UI-4 above)
+**Phase 10 (Final audit and handover) waits until Violence Style (below) is finished.** Phase 11 is independent.
 
-A new "brutal" look (black pages, one acid accent, heavy type, glass with an optional Neon glow), specified in `BRUTAL_UI_SPEC.md` from two mockups and planned in `BRUTAL_UI_PLAN.md`. Same rules as before: Android phone only, the current UI is the default and unchanged when it is off, new code lives in `app/.../ui/brutal/`, and every upstream file edit is listed in `UPSTREAM_SYNC.md` ("Custom UI touch points").
 
-| Phase | What | Status |
+## Extra: Violence Style (S0 to S6)
+
+A **skin** on the existing phone UI, switched by one toggle (default OFF): display-serif headings with a hairline and dot, a live glowing background, glass bars and buttons, and accent colouring from the song, the device or a chosen colour. It keeps every layout, screen and feature; toggle OFF = the app exactly as today. Phone only. Supersedes the reverted Custom UI attempt above. Documents: `fork-docs/style/` (`STYLE_AUDIT`, `STYLE_SPEC`, `STYLE_MAPPING`, `STYLE_PLAN`, `FONT_SPECIMEN.html`, `STYLE_DECISIONS` (owner fills in), `STYLE_APPROVALS` (owner ticks)). Reference mockups live in `fork-docs/style-reference/` and are gitignored (copyrighted covers, never commit).
+
+| Stage | What | Status |
 |---|---|---|
-| Spec | `BRUTAL_UI_SPEC.md`, `brutal-ui/type-board.html` | **DONE (2026-11-02)**, documentation only |
-| B-1 | Plumbing: settings (`uiVariant`, `brutalGlow`, `brutalAccent`, `brutalRailSide`, `reduceTransparency`), Settings rows and accent sheet, `BrutalRoot` switch, safe mode, glass-level decision and budget, tokens, contrast engine, OFL fonts, strings (English placeholders), tests. Visual result deliberately minimal (the existing app in the new colours and type) | **BUILT (2026-11-02)**. Build and test results, screenshots and the deviation list are in `BRUTAL_UI_PLAN.md` sections 5 to 7. Not verified on a real phone; translations pending |
-| G-1 | **Glass kit** (`ui/brutal/glass/`): `Modifier.brutalGlass(shape, kind, glow)` with kinds Floating, Panel, Tile, Chip; levels FULL, SIMPLIFIED, SOLID; GLOW and NO-GLOW; bevel, specular arcs, rim, gloss, glint, accent bleed, under-glow; budget and list guard; preview gallery and perf harness. Built on `liquidGlass()` and the app's panel glass. No screens | **BUILT (2026-11-02)** without an emulator or adb: unit, Robolectric and offscreen pixel tests (`BRUTAL_UI_PLAN.md` section 9). **Frame times NOT measured; FULL's live backdrop never rendered** |
-| C-1 | **Components** (`ui/brutal/components/`): StickerLabel, Wordmark and tag, VerticalLabel, DateStamp, ArtTile and PlayButton, TrackRow and DurationChip, GenreRailTab, RoundGlassButton, MasonryColumns, skeleton, empty and error states; rotation that takes part in layout; focus ring; contrast pairs; gallery with ten previews. No screens | **BUILT (2026-11-02)** without an emulator or adb: unit, Robolectric native and JVM pixel-render tests (`BRUTAL_UI_PLAN.md` section 10). Renders in `brutal-ui/screens/components-*.png` are JVM renders, **not device screenshots**; nothing seen on a phone |
-| B-2 | Navigation chrome (rail, mini player bar, dock, header, Hub) | not started |
-| B-3 | Components and the Glow layers | not started |
-| N-1 | **Navigation and two pages** (`ui/brutal/chrome/`): rail with collapse, search and tabs, PLAYING bar, Hub, Home and Library on the masonry grid, behind the New UI switch | **BUILT (2026-11-03)**, JVM tests and renders only, nothing seen on a phone; no dock, other pages not redrawn (`BRUTAL_UI_PLAN.md` section 11) |
-| B-4 | Remaining pages, performance, accessibility pass, translations | not started |
+| S0 | Audit, specification, mapping, plan, font specimen, decision and approval templates (documents only) | **DONE (2026-11-03)**, documentation only, no app code changed. Waiting for the owner: open `FONT_SPECIMEN.html`, fill in `STYLE_DECISIONS.md`, tick S0 in `STYLE_APPROVALS.md` |
+| S1 | Foundation: toggle and settings, state holder, accent engine, fonts, safe mode, style preview card | PLANNED |
+| S2 | Live background (Corner glow, Aurora, Haze, Arcs, Off), motion, LITE mode | PLANNED |
+| S3 | Typography, section headings, hero cards, list rows, top bar | PLANNED |
+| S4 | Glass buttons, bottom navigation, mini player, accent-tinted active states | PLANNED |
+| S5 | Rollout to every remaining screen, dialogs and sheets | PLANNED |
+| S6 | Polish, accessibility, performance, QA | PLANNED |
 
-**Phase 10 (Final audit and handover) waits until the custom UI work is finished.** Phase 11 is independent.
+Each stage starts with a `pre-skin-<stage>` backup tag and waits for the previous stage (and its "OFF-parity verified on device" line) to be ticked in `STYLE_APPROVALS.md`.
 
-
+**Phase 10 (Final audit and handover) waits until Violence Style is finished.** Phase 11 is independent.

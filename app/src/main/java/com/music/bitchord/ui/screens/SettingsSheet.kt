@@ -1572,9 +1572,6 @@ fun SettingsScreen(
         }
 
         if (shows(SettingsCategory.ADVANCED)) SearchableSettingsGroup(search, header = stringResource(R.string.advanced_options)) {
-            // Brutal UI touch point: the New UI switch and, while it is on, its Glow, Accent colour,
-            // Rail side and Reduce transparency rows (all implemented in ui/brutal/settings).
-            com.music.bitchord.ui.brutal.settings.brutalSettingRows().forEach { r -> row(*r.keywords) { r.content() } }
             val smartAlignmentTitle = stringResource(R.string.smart_version_alignment)
             row(smartAlignmentTitle, "alignment", "sync", "waveform", "video", "audio", "skit", "intro") {
                 SettingsRow(

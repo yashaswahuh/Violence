@@ -424,8 +424,6 @@ class MainActivity : AppCompatActivity() {
         MusicLink.consume(intent)
         // And the Receive tile in Quick Settings.
         com.music.bitchord.share.ReceiveDeepLink.consume(intent)
-        // Brutal UI touch point 1: two failed new-UI starts in a row put the setting back to CURRENT.
-        com.music.bitchord.ui.brutal.safemode.BrutalSafeMode.startupCheck(this)
         // Debug builds only: frame times to logcat (tag VioFrames), tagged with the glass setting.
         FrameStats.attach(this) { "glass=" + (if (AppSettings.liquidGlass.value) "on" else "off") }
         setContent {
@@ -439,13 +437,11 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(highPerformance, performanceRefreshRate, composeView) {
                 applyPerformanceMode(highPerformance, performanceRefreshRate, composeView)
             }
-            val chosenDark = when (theme) {
+            val darkTheme = when (theme) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
-            // Brutal UI touch point 2: the new look is dark only; this is chosenDark when it is off.
-            val darkTheme = com.music.bitchord.ui.brutal.brutalEffectiveDark(chosenDark)
             BitChordTheme(darkTheme = darkTheme, font = appFont) {
                 // The glass surfaces sample this layer, and a layer records only
                 // what is drawn into it — which, for BitChord, is a page that
@@ -456,8 +452,7 @@ class MainActivity : AppCompatActivity() {
                 // and text came through it untouched. The window's background is
                 // the floor the pages have always been drawn against, so it is
                 // laid down here too and the recording is opaque like the screen.
-                // Brutal UI touch point 3: the new look's page colour (unchanged with the current UI).
-                val windowBackground = com.music.bitchord.ui.brutal.brutalWindowBackground(MaterialTheme.colorScheme.background)
+                val windowBackground = MaterialTheme.colorScheme.background
                 val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground) {
                     {
                         drawRect(windowBackground)
@@ -493,9 +488,6 @@ class MainActivity : AppCompatActivity() {
                 // longer exists and a page squeezed to a sliver to pay for it.
                 // A measured constraint cannot be stale — it is the very width
                 // the split is about to be laid out in.
-                // Brutal UI touch point 4: the one app-root decision. A pass-through with the current
-                // UI; the same composition shape in both looks (see ui/brutal/BrutalRoot.kt).
-                com.music.bitchord.ui.brutal.BrutalRoot(dark = darkTheme) {
                 BoxWithConstraints(
                     Modifier
                         .fillMaxSize()
@@ -508,7 +500,6 @@ class MainActivity : AppCompatActivity() {
                         windowHeight = maxHeight,
                         appBackdrop = appBackdrop,
                     )
-                }
                 }
                 }
             }
@@ -2474,8 +2465,6 @@ private fun BitChordApp(
         top = topBarContentPadding(),
         bottom = if (player.song != null) 210.dp else 140.dp,
     )
-    // Brutal UI touch point 5: the new look's navigation and its Home / Library pages (see ui/brutal/chrome).
-    val brutalUi = com.music.bitchord.ui.brutal.rememberBrutalUi()
 
     // What colour the page currently under the bars is. The fades either end
     // of the screen are flat colour wherever their blur has least to say, so
@@ -3445,31 +3434,7 @@ private fun BitChordApp(
                                 },
                             )
                         } else when ((destination as? AppDestination.Tab)?.index ?: selectedTab) {
-                            TAB_HOME -> if (brutalUi) com.music.bitchord.ui.brutal.chrome.BrutalHomePage(
-                                state = homeState,
-                                title = stringResource(R.string.listen_now),
-                                onItemClick = { item, shelfTitle ->
-                                    val song = shelfSong(item)
-                                    val browseId = item.browseId
-                                    when {
-                                        song != null -> playRadio(song, QueueSource(shelfTitle, PlaybackSourceType.HOME))
-                                        browseId != null -> viewModel.openDetail(
-                                            browseId = browseId,
-                                            title = item.title,
-                                            subtitle = item.subtitle,
-                                            thumbnailUrl = item.thumbnailUrl,
-                                        )
-                                    }
-                                },
-                                onItemLongPress = onShelfLongPress,
-                                onRetry = viewModel::loadHome,
-                                refreshing = MainViewModel.Feed.HOME in refreshing,
-                                onRefresh = { viewModel.refresh(MainViewModel.Feed.HOME) },
-                                pullState = homePull,
-                                contentPadding = listPadding,
-                                onLoadMore = viewModel::loadMoreHome,
-                                loadingMore = homeLoadingMore,
-                            ) else HomeScreen(
+                            TAB_HOME -> HomeScreen(
                                 state = homeState,
                                 listState = homeListState,
                                 currentSong = player.song,
@@ -3752,22 +3717,7 @@ private fun BitChordApp(
                                     )
                                 },
                             )
-                            else -> if (brutalUi) com.music.bitchord.ui.brutal.chrome.BrutalLibraryPage(
-                                signedIn = signedIn,
-                                state = libraryState,
-                                title = stringResource(R.string.library),
-                                onItemClick = onLibraryItemClick,
-                                onItemLongPress = onBrowseLongPress,
-                                onNewPlaylist = { creatingPlaylist = true },
-                                onSignIn = { webSession = WebSessionMode.SIGN_IN },
-                                onRetry = viewModel::loadLibrary,
-                                refreshing = MainViewModel.Feed.LIBRARY in refreshing,
-                                onRefresh = { viewModel.refresh(MainViewModel.Feed.LIBRARY) },
-                                pullState = libraryPull,
-                                contentPadding = listPadding,
-                                links = libraryLinks(),
-                                deviceItems = libraryDeviceItems(downloadedReleases) + localPlaylistItems,
-                            ) else LibraryScreen(
+                            else -> LibraryScreen(
                                 signedIn = signedIn,
                                 state = libraryState,
                                 listState = libraryListState,
@@ -4296,18 +4246,7 @@ private fun BitChordApp(
                     }
                 }
 
-                if (brutalUi) com.music.bitchord.ui.brutal.chrome.BrutalChrome(
-                    tabLabels = tabs.map { it.label },
-                    selectedTab = selectedTab,
-                    searchTab = TAB_SEARCH,
-                    onTabSelected = onTabSelected,
-                    nowPlaying = player.song?.let {
-                        com.music.bitchord.ui.brutal.chrome.BrutalNowPlaying(it.title, it.artist, it.thumbnailUrl, player.isPlaying, playPauseBusy)
-                    },
-                    onPlayPause = { togglePlayPause() },
-                    onExpandPlayer = if (reducePlayerMotion) { { showNowPlaying = true } } else playerSheetMotion::open,
-                    onOpenRoute = navigator::push,
-                ) else if (glassActive) Column(
+                if (glassActive) Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .widthIn(max = FLOATING_BAR_MAX_WIDTH)
