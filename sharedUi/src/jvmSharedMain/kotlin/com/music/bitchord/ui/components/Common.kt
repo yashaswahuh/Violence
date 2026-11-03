@@ -365,7 +365,10 @@ fun SongRow(
             onClick = onClick,
             onLongPress = onLongPress,
             onMore = onMore ?: onLongPress,
-            modifier = if (onSwipeToQueue != null) Modifier.background(rowBackground) else modifier,
+            // Violence Style: see-through while the live background shows (the swipe reveal is clipped to the swiped strip).
+            modifier = if (onSwipeToQueue != null) {
+                if (com.music.bitchord.ui.violencestyle.LocalViolenceSeeThrough.current) Modifier else Modifier.background(rowBackground)
+            } else modifier,
             trackNumber = trackNumber,
             subtitleColor = subtitleColor,
             downloadedTint = downloadedTint,
