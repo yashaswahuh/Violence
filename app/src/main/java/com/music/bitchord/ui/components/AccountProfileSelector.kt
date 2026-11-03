@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
@@ -82,12 +83,14 @@ fun AccountProfileSelector(
     val styled = LocalViolenceStyle.current.enabled
     val panelTint = violencePanelTint()
     val panelSolid = violencePanelSolid()
+    // Style on: the menu drops from the avatar (top end), just under the top bar.
+    val menuTop = if (styled) topBarHeight() + 4.dp else 56.dp
     val material = HazeMaterials.thin(surface)
     val style = remember(material, dark, styled, panelTint) {
         HazeStyle(
             backgroundColor = material.backgroundColor,
             tints = material.tints + if (styled && panelTint != null) {
-                listOf(HazeTint(Color.Black.copy(alpha = 0.20f)), HazeTint(panelTint.copy(alpha = 0.22f)))
+                listOf(HazeTint(Color.Black.copy(alpha = 0.12f)), HazeTint(panelTint.copy(alpha = 0.16f)))
             } else {
                 listOf(HazeTint(if (dark) Color.Black.copy(alpha = 0.38f) else Color.White.copy(alpha = 0.40f)))
             },
@@ -100,16 +103,16 @@ fun AccountProfileSelector(
         modifier = modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.scrim.copy(alpha = if (styled) .30f else .48f))
             .clickable(onClick = onDismiss),
-        // Style on: the menu opens on the left, not across the middle.
-        horizontalAlignment = if (styled) Alignment.Start else Alignment.CenterHorizontally,
+        // Style on: the menu opens under the account picture, on the right.
+        horizontalAlignment = if (styled) Alignment.End else Alignment.CenterHorizontally,
     ) {
         Surface(
             color = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = shape,
             modifier = Modifier
-                .padding(top = 56.dp, start = 20.dp, end = 20.dp)
-                .then(if (styled) Modifier.fillMaxWidth(0.82f) else Modifier.fillMaxWidth())
+                .padding(top = menuTop, start = if (styled) 12.dp else 20.dp, end = if (styled) 12.dp else 20.dp)
+                .then(if (styled) Modifier.fillMaxWidth(0.80f) else Modifier.fillMaxWidth())
                 .clip(shape)
                 .then(
                     if (reduceDynamicBlur || panelSolid) {
@@ -121,6 +124,16 @@ fun AccountProfileSelector(
                             state = hazeState,
                             style = style,
                         )
+                    },
+                )
+                // Style on: a faint sheen from the top edge, the way light falls on glass.
+                .then(
+                    if (styled && !panelSolid && !reduceDynamicBlur) {
+                        Modifier.background(
+                            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.White.copy(alpha = 0.02f))),
+                        )
+                    } else {
+                        Modifier
                     },
                 )
                 .then(

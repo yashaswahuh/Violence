@@ -58,3 +58,4 @@ No Compose or Robolectric smoke tests ("open every screen with the style on and 
 ## Update (2026-11-03, account menu and Replay)
 - **Account menu ("Switch account"):** glass with a lighter wash and a faint accent tint, accent rim, anchored left (82 percent width); near-solid under Reduce transparency or Reduce dynamic blur. Other Haze menus and alerts are still unstyled.
 - **Replay cards:** lit by the app accent, so all cards agree (before, each took its own cover's colours). The share poster (`ReplayPoster`) is not changed. UNVERIFIED on a device.
+- **Account menu, correction (2026-11-03):** it drops from the account picture at the top right (under the top bar, 80 percent width, right-aligned), not from the left; lighter wash, a top sheen and the accent tint for a glassier look. UNVERIFIED on a device.
