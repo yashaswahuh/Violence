@@ -199,3 +199,27 @@ Left opaque on purpose: Search song rows (their fill hides the swipe-to-queue re
 - The hairline's vertical position uses a fixed line height (40 dp hero, 28 dp others) rather than measuring the last text baseline.
 
 **UNCLEAR / to verify on a device.** The look against the mockups; the 48 dp three-dot button's position (it hangs into the gutter through `hangIntoGutter`, sized for 36 dp, so the icon may sit up to 6 dp further left); heading wrap at 200 percent; drawing cost of the rim on the first card (one `drawWithCache`, no clock).
+
+## S4 built (2026-11-03)
+
+**How the existing Liquid Glass was extended.** Nothing in `LiquidGlass.kt` or the vendored `backdrop/` renderer was edited. The glass already accepts a `surfaceTint` (used for the top bar since S3); S4 passes an accent-tinted colour through it (`violenceGlassTint()`: the dark base `#101018` with 12 percent of the accent, 45 percent opaque; 92 percent opaque under Reduce transparency) and adds the rim as a separate border (`violenceGlassRim` / `violenceGlassEdge`: 0.75 dp, white 22 percent at the top fading to the accent at 14 percent). Upstream improvements to the glass carry over because the renderer is untouched. FULL/LITE: the glass path keeps whatever the app already chooses (glass on, Reduce dynamic blur off: the existing glass; otherwise the existing Haze or solid fallback), and every fallback gets the same rim and capsule. No new blurred layer, so the app's limit on simultaneous glass surfaces is unchanged.
+
+**New code** (`app/.../ui/violencestyle/StyleGlass.kt`, plus `violencePillColor` in `sharedUi/.../StyledComponents.kt`):
+- `ViolenceGlassColors`: capsule fill (accent at most 32 percent alpha, lowered until white labels keep 4.5:1 over the dark glass; faint 6 percent fallback), the glow-line colour (accent lightened by 15 points), glow strength from the intensity (0.6x to 1.4x of Medium), the switch track (accent darkened until the white thumb keeps 3:1), the solid-tint alpha.
+- `violenceCapsuleGlowFor(style, tokens)`: the bright bottom line (2 dp gradient line, 6 dp soft line, and an accent wash over the lower 45 percent of the capsule), one `drawWithCache`, strokes and gradients only; returns the same Modifier when the style is off or the accent is neutral (the White preset keeps the gray capsule of ref1).
+- `violenceIndicatorColor()`, `violenceSwitchTrack()`, `violenceTabSemantics(selected)`.
+
+**Call sites (each swaps one expression; the else path is the original):** `GlassNavBar.kt` (glass surface tint and rim, indicator colour), `floatingtabbar/FloatingTabBar.kt` (the glow modifier on both the resting and the glass selection capsule; `violenceTabSemantics` on the expanded tabs), `FloatingBottomBar.kt` (the plain bar: tint, rim, capsule, glow, tab semantics), `MiniPlayer.kt` (rim), `IosSwitch.kt` (track), `sharedUi/.../PillSegmentedControl.kt` (selected segment), `sharedUi/.../ThinSlider.kt` (default active colour). The mini player inside the glass bar (`GlassNowPlaying`) and the Search circle use the same glass surface as the bar, so they inherit the tint and rim.
+
+**Accessibility.** Selected tab capsule: white icon and label at least 4.5:1 for every preset (computed and unit-tested, with the alpha lowered where needed, including Yellow); switch thumb at least 3:1; chips at least 4.4:1; the selected tab is also conveyed by shape (the capsule) and, with the style on, by `Role.Tab` and `selected = true` (the bars had no selected semantics before; with the style off nothing is added, so OFF is unchanged). TalkBack labels unchanged. Reduce transparency: the glass tint becomes 92 percent opaque dark, rim and accent kept. Reduce motion: S4 adds no animation of its own.
+
+**Performance (reasoned, not measured).** No new layers or blur: the glow is three draws per selection capsule from cached brushes, and the tint and rim are parameters of the existing glass pass. The nav bar and mini player keep one glass surface each. The cost to watch remains S2's moving background behind the glass (the glass re-evaluates as it changes). The owner checklist includes a frame-stats comparison; no numbers have been measured on a device.
+
+**Differences from the S4 brief.**
+- The play button in the full player and the Material sliders in Settings are not restyled: they are inside the 4,000-line player and many screens; they move to S5.
+- No pressed-scale, focus ring or disabled redefinition: tabs keep their existing press behaviour, switches keep their dimming, and focus is a TV concern.
+- The mini player has no progress bar in this app, so there is no accent progress; its rim and glass tint follow the accent.
+- No separate round-search restyle was needed: the Search circle is the bar's standalone tab and takes the same surface.
+- No Compose or Robolectric tests (none in this project): selection semantics and "nothing was lost" are on the owner checklist; the colour and contrast rules and the OFF parity of the modifiers are unit-tested.
+
+**UNCLEAR / to verify on a device.** The look against the mockups; that the glow line follows the capsule through the glass "lift" animation; that the 0.75 dp rim and the glass's own highlight do not double up visibly on the nav pill; TalkBack output of the new tab semantics.
