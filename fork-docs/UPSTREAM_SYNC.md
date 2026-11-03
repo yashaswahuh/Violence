@@ -58,3 +58,10 @@ Each is a swapped expression or an appended modifier; re-apply after a sync if o
 - `app/.../ui/components/IosSwitch.kt`: `violenceSwitchTrack()` first in the track colour `when`.
 - `sharedUi/.../ui/components/PillSegmentedControl.kt` (shared with desktop): `pillColor` branch on `LocalViolenceShared`.
 - `sharedUi/.../ui/player/ThinSlider.kt` (shared): `activeColor` default reads `LocalViolenceShared`.
+
+### S5 additions (2026-11-03)
+- `app/.../ui/components/AppGlass.kt`: 4 imports; in `rememberPanelGlass`, `val tint = violencePanelTint() ?: panelTint(dark)` and the tint alpha target uses `violencePanelSolid()`; `GlassSurface` appends `.violenceGlassRim(shape)` on both branches.
+- `app/.../ui/components/GlassPanels.kt`: 4 imports; the dialog's button colour is `violenceButtonColor() ?: MaterialTheme.colorScheme.primary`.
+- `app/.../ui/screens/DetailScreen.kt`: 1 import; `.violenceDetailGlow()` after `.background(pageColor)` on the detail page root.
+- `sharedUi/.../ui/player/PlayerControls.kt` (shared with desktop): `TransportGlyph` gains `accentRing: Boolean = false` (the play call passes `true`), reads `LocalViolenceShared`, and draws the ring with `drawBehind`; one import.
+- `app/src/main/res/values/strings_violence_style.xml`: the `vs_detail_glow_subtitle` text.

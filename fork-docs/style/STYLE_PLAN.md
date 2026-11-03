@@ -223,3 +223,18 @@ Left opaque on purpose: Search song rows (their fill hides the swipe-to-queue re
 - No Compose or Robolectric tests (none in this project): selection semantics and "nothing was lost" are on the owner checklist; the colour and contrast rules and the OFF parity of the modifiers are unit-tested.
 
 **UNCLEAR / to verify on a device.** The look against the mockups; that the glow line follows the capsule through the glass "lift" animation; that the 0.75 dp rim and the glass's own highlight do not double up visibly on the nav pill; TalkBack output of the new tab semantics.
+
+## S5 built (2026-11-03)
+
+**Approach.** S5 is a rollout through shared pieces, not a screen-by-screen rewrite. The inventory, what each screen inherits and what stays plain are in `STYLE_COVERAGE.md`.
+
+**What was added.**
+- Dialogs, sheets and menus that use `GlassSurface` (through `GlassAlertDialog`, `GlassBottomSheet`): a thin rim (`violenceGlassRim`), an accent-tinted dark panel colour (`#121214` with 8 percent accent, `violencePanelTint`), the near-solid alpha under Reduce transparency (`violencePanelSolid`), and accent text buttons (`violenceButtonColor`, the lightened accent). No change to any dialog's content or actions. The plain non-glass path gets the rim only.
+- Player: an accent ring (6 dp translucent stroke plus a 1.5 dp line) around the play/pause control, drawn behind the existing glyph in `TransportGlyph` (a `drawBehind`, no layout change, no clock). The seek and volume bars already took the accent in S4.
+- Album, playlist and artist pages: `violenceDetailGlow()` on the page root in `DetailScreen`: a static radial accent wash from the top edge (alpha 0.30 at Medium, 0.19 to 0.42 over the intensities), controlled by its own settings switch (whose subtitle now says what it does). Computed contrast: white text keeps at least 3:1 over the strongest glow on near-black and mid-dark page colours (unit-tested for every preset).
+
+**Not done, and why** (details and the full table in `STYLE_COVERAGE.md`): the player's serif title and a live glow behind the player (own window and mesh, large shared file); `AlertScaffold` account alerts and the Haze-based menus (separate containers); other shelf cards and one-off buttons; Replay, onboarding and login web views (excluded on purpose); snackbars and system prompts. No Compose or Robolectric screen-open smoke tests: the project has none, so `STAGE_S5_REVIEW.md` is the substitute; the new rules are unit-tested (panel tint contrast, detail glow alpha and contrast, OFF parity of the detail-glow modifier).
+
+**Performance.** Nothing new animates. The detail glow is one cached radial brush per page size; the ring is two circle strokes; the panel tint is a parameter of the existing panel glass pass.
+
+**UNCLEAR, verify on a device.** How the accent tint looks on each dialog and sheet; whether any dialog bypasses `GlassSurface` and stays plain; the ring's size against the play glyph; the glow over an artist page.
