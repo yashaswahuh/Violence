@@ -62,6 +62,10 @@ import com.music.bitchord.ui.components.floatingtabbar.FloatingTabBar
 import com.music.bitchord.ui.components.floatingtabbar.FloatingTabBarDefaults
 import com.music.bitchord.ui.components.floatingtabbar.FloatingTabBarScrollConnection
 import com.music.bitchord.ui.haptics.Haptic
+import com.music.bitchord.ui.violencestyle.violenceCapsuleGlow
+import com.music.bitchord.ui.violencestyle.violenceGlassRim
+import com.music.bitchord.ui.violencestyle.violenceGlassTint
+import com.music.bitchord.ui.violencestyle.violenceIndicatorColor
 import com.music.bitchord.ui.haptics.rememberHaptics
 import com.music.bitchord.ui.player.PlayerDock
 import com.music.bitchord.ui.player.AndroidMusicVideo
@@ -136,7 +140,9 @@ fun GlassNavBar(
     // A factory, not a value — see the note in FloatingTabBar's header. Each of
     // the three surfaces gets its own glass modifier and so its own shape cache.
     // The theme's own glass tint, as the liquid top bar has it — no white wash.
-    val glassSurface: @Composable () -> Modifier = { Modifier.liquidGlass(shape = pillShape) }
+    val glassSurface: @Composable () -> Modifier = {
+        Modifier.liquidGlass(shape = pillShape, surfaceTint = violenceGlassTint()).violenceGlassRim(pillShape)
+    }
 
     FloatingTabBar(
         selectedTabKey = selectedIndex,
@@ -194,7 +200,7 @@ fun GlassNavBar(
         colors = FloatingTabBarDefaults.colors(
             backgroundColor = Color.Transparent,
             accessoryBackgroundColor = Color.Transparent,
-            indicatorColor = glassIndicatorColor(),
+            indicatorColor = violenceIndicatorColor() ?: glassIndicatorColor(),
         ),
         // Flat, because the glass is not. Every surface here already draws its
         // own [Shadow.Default] as part of the backdrop pass, and the library's

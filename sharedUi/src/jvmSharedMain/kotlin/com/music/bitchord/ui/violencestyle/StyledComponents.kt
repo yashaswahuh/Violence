@@ -297,3 +297,22 @@ private fun DrawScope.strokeOutline(outline: Outline, color: Color, style: Strok
         is Outline.Generic -> drawPath(outline.path, color, style = style)
     }
 }
+
+/**
+ * The selected segment of a chip row under the style: [base] mixed toward the [accent] (35 percent), the
+ * mix lowered until white labels keep 4.5:1 against it. Pure, so the phone app's tests cover it.
+ */
+fun violencePillColor(base: Color, accent: Color): Color {
+    var mix = 0.35f
+    while (true) {
+        val c = androidx.compose.ui.graphics.lerp(base, accent, mix)
+        val contrast = (1.0f + 0.05f) / (relativeLum(c) + 0.05f)
+        if (contrast >= 4.5f || mix <= 0.05f) return c
+        mix -= 0.05f
+    }
+}
+
+private fun relativeLum(c: Color): Float {
+    fun ch(v: Float) = if (v <= 0.03928f) v / 12.92f else Math.pow(((v + 0.055f) / 1.055f).toDouble(), 2.4).toFloat()
+    return 0.2126f * ch(c.red) + 0.7152f * ch(c.green) + 0.0722f * ch(c.blue)
+}

@@ -95,7 +95,7 @@ fun ThinSlider(
     transitionWindow: ClosedFloatingPointRange<Float>? = null,
     idleHeight: Dp = 7.dp,
     activeHeight: Dp = 12.dp,
-    activeColor: Color = Color.White.copy(alpha = 0.92f),
+    activeColor: Color = com.music.bitchord.ui.violencestyle.LocalViolenceShared.current?.textAccent ?: Color.White.copy(alpha = 0.92f),
     inactiveColor: Color = Color.White.copy(alpha = 0.26f),
     /** Halfway between the two track colours: visible against unplayed, invisible under played. */
     markerColor: Color = Color.White.copy(alpha = 0.5f),

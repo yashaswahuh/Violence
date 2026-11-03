@@ -55,6 +55,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.haptics.Haptic
+import com.music.bitchord.ui.violencestyle.violenceCapsuleGlow
+import com.music.bitchord.ui.violencestyle.violenceGlassEdge
+import com.music.bitchord.ui.violencestyle.violenceTabSemantics
+import com.music.bitchord.ui.violencestyle.violenceGlassTint
+import com.music.bitchord.ui.violencestyle.violenceIndicatorColor
 import com.music.bitchord.ui.haptics.rememberHaptics
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -257,7 +262,7 @@ fun FloatingBottomBar(
                 if (reduceDynamicBlur) {
                     Modifier.background(container)
                 } else if (useGlass) {
-                    Modifier.liquidGlass(shape = pillShape)
+                    Modifier.liquidGlass(shape = pillShape, surfaceTint = violenceGlassTint())
                 } else {
                     Modifier.optimizedHazeEffect(
                         state = hazeState,
@@ -265,7 +270,7 @@ fun FloatingBottomBar(
                     )
                 },
             )
-            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape)
+            .violenceGlassEdge(pillShape, GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR)
             .padding(horizontal = PILL_INSET, vertical = PILL_INSET),
     ) {
         if (tabWidthPx > 0f) {
@@ -284,7 +289,8 @@ fun FloatingBottomBar(
                         scaleY = 1f - lag * STRETCH * SQUASH
                     }
                     .clip(pillShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                    .background(violenceIndicatorColor() ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                    .violenceCapsuleGlow(),
             )
         }
 
@@ -398,6 +404,7 @@ private fun BottomBarItem(
                 if (!selected) haptics.play(Haptic.Select)
                 onClick()
             }
+            .violenceTabSemantics(selected)
             .padding(vertical = TAB_VERTICAL_PADDING),
     ) {
         Icon(

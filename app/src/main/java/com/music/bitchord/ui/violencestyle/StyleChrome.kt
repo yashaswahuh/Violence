@@ -22,14 +22,14 @@ object ViolenceChromeColors {
     const val TINT_ACCENT_MIX = 0.12f
     const val TINT_ALPHA = 0.45f
 
-    fun tint(accent: Int): Int {
+    fun tint(accent: Int, alpha: Float = TINT_ALPHA): Int {
         val mixed = AccentMath.argb(
             255,
             mix(AccentMath.red(TINT_BASE), AccentMath.red(accent)),
             mix(AccentMath.green(TINT_BASE), AccentMath.green(accent)),
             mix(AccentMath.blue(TINT_BASE), AccentMath.blue(accent)),
         )
-        return AccentMath.withAlpha(mixed, TINT_ALPHA)
+        return AccentMath.withAlpha(mixed, alpha)
     }
 
     private fun mix(a: Int, b: Int): Int = (a + (b - a) * TINT_ACCENT_MIX).toInt()
@@ -40,7 +40,10 @@ object ViolenceChromeColors {
 fun violenceGlassTint(): Color? {
     if (!LocalViolenceStyle.current.enabled) return null
     val accent = LocalViolenceAccent.current.accent
-    return remember(accent) { Color(ViolenceChromeColors.tint(accent)) }
+    val solid = LocalViolenceStyle.current.reduceTransparency
+    return remember(accent, solid) {
+        Color(ViolenceChromeColors.tint(accent, if (solid) ViolenceGlassColors.SOLID_TINT_ALPHA else ViolenceChromeColors.TINT_ALPHA))
+    }
 }
 
 /**

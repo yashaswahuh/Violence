@@ -39,6 +39,8 @@
 
 package com.music.bitchord.ui.components.floatingtabbar
 
+import com.music.bitchord.ui.violencestyle.violenceCapsuleGlow
+import com.music.bitchord.ui.violencestyle.violenceTabSemantics
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.EnterExitState
@@ -859,7 +861,8 @@ private fun SharedTransitionScope.ExpandedTabs(
                             .pillPlacement(
                                 center = { pillCenterInRow(pill.position) },
                                 size = { pill.liveSize(restSize, liftedSize) },
-                            ),
+                            )
+                            .violenceCapsuleGlow(),
                     )
                 }
 
@@ -972,6 +975,7 @@ private fun SharedTransitionScope.ExpandedTabs(
                                     indication = tab.indication?.invoke(),
                                     interactionSource = remember { MutableInteractionSource() }
                                 )
+                                .violenceTabSemantics(isSelected)
                                 .padding(sizes.tabExpandedContentPadding)
                         )
                     }
@@ -990,7 +994,8 @@ private fun SharedTransitionScope.ExpandedTabs(
                     .pillPlacement(
                         center = { pillCenterInRow(pill.position) + Offset(padLeftPx, padTopPx) },
                         size = { pill.liveSize(restSize, liftedSize) },
-                    ),
+                    )
+                    .violenceCapsuleGlow(),
             )
         }
     }
