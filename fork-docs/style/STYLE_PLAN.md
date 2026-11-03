@@ -173,3 +173,29 @@ Left opaque on purpose: Search song rows (their fill hides the swipe-to-queue re
 **UNCLEAR, to verify on a device:** that the glow on the glass floor lines up with the glow on the page (the floor assumes the page area starts at the window origin and has the window size); that the glass blur updates on every tick; smoothness with Liquid Glass on; behaviour of `GraphicsLayer.record` inside `drawBehind` on every supported Android version.
 
 **S2 tuning after the first device review (2026-11-03):** peak alpha x1.25 (0.38, 0.62, 0.85); motion amplitude Normal 0.15 and Subtle 0.07 of the width, period scale Normal 0.6 and Subtle 1.0, radius breathing 6 and 3 percent; the recent-search row fill (`RecentSearchEntityRow`, `SearchScreen.kt`) now also uses `LocalViolenceSeeThrough` (its swipe reveal is clipped to the swiped strip and draws nothing at rest). The Python replica of the guard shows Medium now trims only the mid-right Aurora blob (x0.81) on Blue and Red, and Haze/Aurora High more (x0.59). Unit tests: 1357 phone, 0 failures.
+
+## S3 built (2026-11-03)
+
+**What exists.**
+- `sharedUi/.../ui/violencestyle/StyledComponents.kt` (new, shared): `ViolenceSharedStyle` and `LocalViolenceShared` (default null), `ViolenceSectionHeader`, `Modifier.violenceCardRim`, `ViolenceCardScrim` and `ViolenceScrim`, `ViolenceStyleText` (title split, font-scale cap, hairline width). The phone app provides the local from the style host, so with the style off, or on desktop, every shared component keeps its original code path.
+- `app/.../ui/violencestyle/StyleChrome.kt` (new): `violenceGlassTint()` and `Modifier.violenceGlassEdge(shape, width, color)` for the top bar; `ViolenceChromeColors.tint`.
+- Edited call sites (each one an early branch or a swapped expression; the else path is the original code): `HomeScreen.kt` (`SectionHeader`, `RecentSectionHeader`, `CompactTrackRow`, `HeroCard`), `TopPicksShelf.kt` (`TopPickCard`, `CardCaption`, skeleton, hero heading flag), `FrostedTopBar.kt` (`artworkPageSurface`), `StyleHost.kt` (provides the shared style).
+
+**Behaviour under the style.**
+- Section headings: serif caps; a title containing the word "for" splits into caps plus an italic second line ("TOP PICKS" / "for You"); everything else is one caps line. The hero heading (Home's Top Picks) is 36 sp with the hairline ending in the glowing accent dot (accent plus two translucent halos, plain circles); every other heading is 24 sp with a plain hairline. The streak variant belongs to Arcs and is not built. The title is a TalkBack heading; the hairline is a Canvas without semantics; "Show all" has a 48 dp target and a button role. The serif scales at most 1.3x; the hairline shortens and then disappears (minimum 24 dp) before the title is squeezed; titles wrap to two lines then ellipsize.
+- Hero cards (Top Picks and the Home editorial cards): 26 dp corners, a bottom scrim (stops 0.35 / 0.62 / 1.0 at 0 / 0.60 / 0.88 black), label in Inter sentence case (white 90 percent), title in serif caps (20 sp), subtitle white 86 percent, a 1 dp translucent rim. The first Top Picks card also gets the accent rim light: 1.2 dp accent line, a 6 dp bloom stroke scaled by the intensity (0.5x to 1.4x of the medium value), and a 35 percent accent edge over the bottom 12 percent. None with the neutral (White) accent. Strokes only: no blur, no per-item animation, brushes and strokes built in `drawWithCache`.
+- Recents rows: art corners 9 dp (was 7), artist line white 60 percent, three-dot button at least 48 dp.
+- Top bar: the glass pill, back button and accessory use `liquidGlass(shape, surfaceTint = accent tint)` (dark base with 12 percent accent, 45 percent opaque) and a 0.75 dp rim fading from white 22 percent to accent 14 percent. Every action is unchanged and in place.
+
+**Contrast (computed, unit-tested).** Scrim: white artwork at the label position (70 percent of the card height) gives the label at least 4.5:1 and the title at least 3:1 (tests at 0.70, 0.78 and 0.90 of the height). Glass tint with white icons at least 7:1 for every preset. Row artist line white 60 percent on the guarded background is brighter than the old `#8E8E93`, so the S2 glow guard (which assumes `#8E8E93`) stays conservative.
+
+**Decisions followed.** Heading style Mixed; card labels sentence case; no V mark (the existing VIOLENCE wordmark stays; `HomeTitle` is untouched); heading font toggle respected (the shared styles come from the chosen family); light theme later (dark while on).
+
+**Differences from the S3 brief.**
+- No V mark and no cast button (owner decision: keep the existing wordmark and actions).
+- Only `CompactTrackRow` (Home Recents) is restyled among rows; the other song rows (Search, Library, playlists, album pages, `SongRowContent`) are S5.
+- The top Home hero card widths stay at the app's 60 percent (FLEX).
+- Compose and Robolectric tests were not added: `:app` has no such dependency (adding one is a build change outside this stage). Pure logic is unit-tested (title split, hairline width, font-scale cap, scrim contrast, tint, tokens, OFF parity of the modifiers); heading semantics, the 200 percent layout and the click targets are on the owner checklist (`STAGE_S3_REVIEW.md`).
+- The hairline's vertical position uses a fixed line height (40 dp hero, 28 dp others) rather than measuring the last text baseline.
+
+**UNCLEAR / to verify on a device.** The look against the mockups; the 48 dp three-dot button's position (it hangs into the gutter through `hangIntoGutter`, sized for 36 dp, so the icon may sit up to 6 dp further left); heading wrap at 200 percent; drawing cost of the rim on the first card (one `drawWithCache`, no clock).
