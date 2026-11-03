@@ -2474,8 +2474,6 @@ private fun BitChordApp(
         top = topBarContentPadding(),
         bottom = if (player.song != null) 210.dp else 140.dp,
     )
-    // Brutal UI touch point 5: the new look's navigation and its Home / Library pages (see ui/brutal/chrome).
-    val brutalUi = com.music.bitchord.ui.brutal.rememberBrutalUi()
 
     // What colour the page currently under the bars is. The fades either end
     // of the screen are flat colour wherever their blur has least to say, so
@@ -3445,31 +3443,7 @@ private fun BitChordApp(
                                 },
                             )
                         } else when ((destination as? AppDestination.Tab)?.index ?: selectedTab) {
-                            TAB_HOME -> if (brutalUi) com.music.bitchord.ui.brutal.chrome.BrutalHomePage(
-                                state = homeState,
-                                title = stringResource(R.string.listen_now),
-                                onItemClick = { item, shelfTitle ->
-                                    val song = shelfSong(item)
-                                    val browseId = item.browseId
-                                    when {
-                                        song != null -> playRadio(song, QueueSource(shelfTitle, PlaybackSourceType.HOME))
-                                        browseId != null -> viewModel.openDetail(
-                                            browseId = browseId,
-                                            title = item.title,
-                                            subtitle = item.subtitle,
-                                            thumbnailUrl = item.thumbnailUrl,
-                                        )
-                                    }
-                                },
-                                onItemLongPress = onShelfLongPress,
-                                onRetry = viewModel::loadHome,
-                                refreshing = MainViewModel.Feed.HOME in refreshing,
-                                onRefresh = { viewModel.refresh(MainViewModel.Feed.HOME) },
-                                pullState = homePull,
-                                contentPadding = listPadding,
-                                onLoadMore = viewModel::loadMoreHome,
-                                loadingMore = homeLoadingMore,
-                            ) else HomeScreen(
+                            TAB_HOME -> HomeScreen(
                                 state = homeState,
                                 listState = homeListState,
                                 currentSong = player.song,
@@ -3752,22 +3726,7 @@ private fun BitChordApp(
                                     )
                                 },
                             )
-                            else -> if (brutalUi) com.music.bitchord.ui.brutal.chrome.BrutalLibraryPage(
-                                signedIn = signedIn,
-                                state = libraryState,
-                                title = stringResource(R.string.library),
-                                onItemClick = onLibraryItemClick,
-                                onItemLongPress = onBrowseLongPress,
-                                onNewPlaylist = { creatingPlaylist = true },
-                                onSignIn = { webSession = WebSessionMode.SIGN_IN },
-                                onRetry = viewModel::loadLibrary,
-                                refreshing = MainViewModel.Feed.LIBRARY in refreshing,
-                                onRefresh = { viewModel.refresh(MainViewModel.Feed.LIBRARY) },
-                                pullState = libraryPull,
-                                contentPadding = listPadding,
-                                links = libraryLinks(),
-                                deviceItems = libraryDeviceItems(downloadedReleases) + localPlaylistItems,
-                            ) else LibraryScreen(
+                            else -> LibraryScreen(
                                 signedIn = signedIn,
                                 state = libraryState,
                                 listState = libraryListState,
@@ -4296,18 +4255,7 @@ private fun BitChordApp(
                     }
                 }
 
-                if (brutalUi) com.music.bitchord.ui.brutal.chrome.BrutalChrome(
-                    tabLabels = tabs.map { it.label },
-                    selectedTab = selectedTab,
-                    searchTab = TAB_SEARCH,
-                    onTabSelected = onTabSelected,
-                    nowPlaying = player.song?.let {
-                        com.music.bitchord.ui.brutal.chrome.BrutalNowPlaying(it.title, it.artist, it.thumbnailUrl, player.isPlaying, playPauseBusy)
-                    },
-                    onPlayPause = { togglePlayPause() },
-                    onExpandPlayer = if (reducePlayerMotion) { { showNowPlaying = true } } else playerSheetMotion::open,
-                    onOpenRoute = navigator::push,
-                ) else if (glassActive) Column(
+                if (glassActive) Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .widthIn(max = FLOATING_BAR_MAX_WIDTH)

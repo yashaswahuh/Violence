@@ -1698,32 +1698,4 @@
     <string name="brutal_collapse_navigation">Collapse navigation</string>
     <string name="brutal_search_button">Search</string>
     <string name="brutal_track_row_description">%1$s, %2$s, %3$s</string>
-    <!-- Brutal UI (English placeholders until translated) -->
-    <string name="brutal_nav_hide">Hide navigation</string>
-    <string name="brutal_nav_show">Show navigation</string>
-    <string name="brutal_nav_collapsed">Collapsed</string>
-    <string name="brutal_nav_search">Search</string>
-    <string name="brutal_playing">Playing</string>
-    <string name="brutal_paused">Paused</string>
-    <string name="brutal_action_play">Play</string>
-    <string name="brutal_action_pause">Pause</string>
-    <string name="brutal_open_player">Open player</string>
-    <string name="brutal_hub_open">All pages</string>
-    <string name="brutal_hub_close">Close</string>
-    <string name="brutal_hub_title">All pages</string>
-    <string name="brutal_hub_settings">Settings</string>
-    <string name="brutal_hub_downloads">Downloads</string>
-    <string name="brutal_hub_history">History</string>
-    <string name="brutal_hub_recent">Recently played</string>
-    <string name="brutal_hub_replay">Replay</string>
-    <string name="brutal_hub_moods">Moods and genres</string>
-    <string name="brutal_hub_equalizer">Equalizer</string>
-    <string name="brutal_hub_sources">Sources</string>
-    <string name="brutal_hub_listen_together">Listen together</string>
-    <string name="brutal_hub_friends">Friends</string>
-    <string name="brutal_hub_profile">Profile</string>
-    <string name="brutal_library_new_playlist">New playlist</string>
-    <string name="brutal_library_signed_out_title">Sign in for your library</string>
-    <string name="brutal_library_signed_out_body">Your playlists and saved albums live in your account.</string>
-    <string name="brutal_sign_in">Sign in</string>
 </resources>

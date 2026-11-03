@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.runtime.Composable
@@ -61,8 +60,6 @@ fun <T> MasonryColumns(
     spacing: Dp = BrutalDimens.MasonryGap,
     overlap: Dp = 6.dp,
     columnLead: Dp = 24.dp,
-    /** An optional full-width block above the first tile (a page heading); it scrolls with the grid. */
-    header: (@Composable () -> Unit)? = null,
     itemContent: @Composable (item: T, modifier: Modifier) -> Unit,
 ) {
     LazyVerticalStaggeredGrid(
@@ -73,9 +70,6 @@ fun <T> MasonryColumns(
         verticalItemSpacing = spacing,
         horizontalArrangement = Arrangement.spacedBy(spacing),
     ) {
-        if (header != null) {
-            item(key = "masonry-header", span = StaggeredGridItemSpan.FullLine) { header() }
-        }
         items(items = items, key = { key(it) }) { item ->
             val k = key(item)
             val jitter = remember(k) { masonryJitter(k.hashCode(), overlap.value) }
