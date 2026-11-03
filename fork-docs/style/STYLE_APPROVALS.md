@@ -4,7 +4,7 @@ Change `[ ]` to `[x]` yourself. An agent never ticks a box. A stage refuses to s
 
 | Stage | Approved | OFF-parity verified on device |
 |---|---|---|
-| S0 Audit, spec, plan, font specimen | [ ] S0 approved | not applicable (documents only) |
+| S0 Audit, spec, plan, font specimen | [X] S0 approved | not applicable (documents only) |
 | S1 Foundation | [ ] S1 approved | [ ] S1 OFF-parity verified on device |
 | S2 Live background | [ ] S2 approved | [ ] S2 OFF-parity verified on device |
 | S3 Typography, headings, cards, rows, top bar | [ ] S3 approved | [ ] S3 OFF-parity verified on device |

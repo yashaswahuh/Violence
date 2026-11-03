@@ -4,6 +4,18 @@ Violence Style is a **skin** on top of the existing UI, switched by one toggle. 
 
 Phone app only. TV, web, Wear OS and desktop are out of scope (Wear OS and desktop: dormant, not touched).
 
+## Owner decisions applied (confirmed 2026-11-03; they override the spec and the settings table below)
+
+- **Heading font:** a Settings toggle between **Bodoni Moda** and **Cormorant Garamond**, both Regular 400; both bundled. Body: Inter.
+- **Backgrounds:** **Corner glow, Aurora, Haze** (plus Off). **Arcs is dropped** for now (its construction stays in the spec for later); the ref1 streak terminator goes with it, so the hero heading always uses the dot. Default: **Aurora**, selectable in Settings.
+- **Defaults** (all changeable in Settings): intensity Medium, accent From song, motion Normal, custom accent Blue, heading style Mixed, card labels sentence case.
+- **Light theme:** a light version is for later. Until then the skin shows its dark look in any theme (spec section 9, option A).
+- **Toggle location:** "Advanced & experimental options".
+- **Top-left mark:** the existing "VIOLENCE" wordmark (`HomeTitle`) restyled; no new V asset.
+- **Album, artist and playlist pages:** the glow shows above the artwork, with its own on/off toggle (and the master toggle).
+- **Reduce transparency:** follows the in-app "Reduce dynamic blur".
+- **MUST match:** glow colours and placement, heading look, italic "for You", card corner radius, first-card rim, row thumbnail, mini player, nav pill and capsule, top-right pill, heading and gutter margins. **FLEX:** hairline terminator, hero card width.
+
 ## Global rules for every stage
 
 - Branch `violence-nk` only (CLAUDE.md wins over the brief's "or main"). `git branch --show-current` before starting and before every push; `git pull` (merge, no rebase) first; stop on uncommitted changes you did not make. Never force-push, never push to `main`, `violence-main` or `upstream`.
