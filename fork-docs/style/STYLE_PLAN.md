@@ -112,3 +112,30 @@ At the start of `MainActivity.onCreate`, before any skin code: if the skin is on
 ## Approval gates
 
 `STYLE_APPROVALS.md`: one unchecked line per stage S0 to S6 and one "OFF-parity verified on device" line per stage. The agent never ticks a box. The next stage refuses to start until both lines of the previous stage are ticked. The owner may also write "rollback S<n>" there; the agent then reverts to tag `pre-skin-s<n>` with a new revert commit (never a force-push).
+
+## S1 built (2026-11-03)
+
+**What exists.** New package `app/src/main/java/com/music/bitchord/ui/violencestyle/`:
+- `StyleModel.kt`: `StyleState` (enabled, background, motion, intensity, accent source, custom colour, heading font, reduce transparency, detail glow, capability FULL/LITE, lite reason, reduce motion, high contrast), `LocalViolenceStyle` (default `StyleState.DISABLED`), the owner's defaults. Arcs is not an option (owner decision).
+- `AccentMath.kt`, `AccentEngine.kt`: pure colour maths (WCAG contrast, HSL clamp 0.55-0.90 / 0.45-0.65, neutral and dull detection, picker guard `makeUsable`), `AccentTokens` (accent, accentSoft, glowColor, onAccent, textAccent, neutral), nine presets, source resolution with fallbacks (song, held previous song, device, custom, fixed Blue).
+- `StyleCapability.kt`: FULL versus LITE rules (API below 31, low RAM, battery saver, thermal severe, Reduce dynamic blur, forced reduce transparency), reduce-motion rule, background-clock rule (used from S2).
+- `StyleSafeMode.kt`, `StyleSettings.kt`: safe-mode logic and boot hooks (counter written with `commit()`, cleared after the first drawn frame), settings in the existing `bitchord_settings` file under `violence_style.*` keys, no `AppSettings.kt` edit.
+- `StyleTypography.kt`: Inter body typography (only while on; `violenceTypography(base, false)` returns `base` itself), heading tokens (`ViolenceHeadingStyles`) for Bodoni Moda and Cormorant Garamond.
+- `StyleHost.kt`: `ViolenceStyledTheme` (drop-in for `BitChordTheme`; with the style off it is exactly that call), system signals, accent crossfade (800 ms, 400 ms song debounce, cut under reduce motion).
+- `StyleSettingsUi.kt`: the settings block (master toggle, options, picker, Mode line) and the preview card.
+- Edited upstream files: `MainActivity.kt`, `SettingsSheet.kt` (listed in `UPSTREAM_SYNC.md`).
+
+**Owner decisions implemented:** dark look while on (light version later); toggle in "Advanced & experimental options"; heading font toggle Bodoni Moda / Cormorant Garamond; Aurora, Corner glow, Haze, Off; defaults Aurora, Medium, From song, Normal, Blue.
+
+**Differences from the S1 brief:** Arcs omitted (owner); the settings live in the existing settings file but in a new object, not in `AppSettings.kt`; the new strings are in `values/strings_violence_style.xml` (English; the other 17 languages fall back to English; `LocaleStringsTest` reads `values/strings.xml` only); the backup tag is `pre-skin-s1` (lower case, created in S0); Reduce transparency follows the in-app Reduce dynamic blur plus a forced switch (no public system switch found); the high-contrast signal reads the undocumented `high_text_contrast_enabled` secure setting (UNCLEAR, harmless if absent); no Compose or Robolectric test infrastructure exists in `:app`, so the "toggle changes the state" and "local defaults to DISABLED" checks are pure-logic unit tests (UNCLEAR: not run under a Compose runtime).
+
+**Licences recorded (S1):**
+
+| Item | Licence | Where |
+|---|---|---|
+| Inter (variable, `vs_inter.ttf`) | SIL OFL 1.1 | `fork-docs/style/licenses/OFL-Inter.txt`, `NOTICE` |
+| Bodoni Moda (variable, regular and italic) | SIL OFL 1.1 | `OFL-BodoniModa.txt`, `NOTICE` |
+| Cormorant Garamond (variable, regular and italic) | SIL OFL 1.1 | `OFL-CormorantGaramond.txt`, `NOTICE` |
+| Libraries | none added (Compose, AndroidX Core already in the app) | |
+
+Font files were fetched from the Google Fonts repository (`github.com/google/fonts`, `ofl/` folders) at build time of this stage and are bundled; nothing is downloaded at runtime. They add about 3.1 MB to the APK.

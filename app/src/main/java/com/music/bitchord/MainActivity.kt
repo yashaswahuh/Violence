@@ -381,6 +381,10 @@ import com.music.bitchord.ui.replay.ReplayStories
 import com.music.bitchord.ui.replay.ReplayStoryPage
 import com.music.bitchord.ui.replay.rememberReplayState
 import com.music.bitchord.ui.theme.BitChordTheme
+import com.music.bitchord.ui.violencestyle.ViolenceStyleBoot
+import com.music.bitchord.ui.violencestyle.ViolenceStyleSettings
+import com.music.bitchord.ui.violencestyle.ViolenceStyleSong
+import com.music.bitchord.ui.violencestyle.ViolenceStyledTheme
 import com.music.bitchord.ui.theme.rememberArtworkPalette
 import com.music.bitchord.data.canvas.AppleArtistArtRepository
 import com.music.bitchord.data.canvas.keyColors
@@ -426,7 +430,10 @@ class MainActivity : AppCompatActivity() {
         com.music.bitchord.share.ReceiveDeepLink.consume(intent)
         // Debug builds only: frame times to logcat (tag VioFrames), tagged with the glass setting.
         FrameStats.attach(this) { "glass=" + (if (AppSettings.liquidGlass.value) "on" else "off") }
+        // Violence Style (experimental): load its settings and apply safe mode before anything composes.
+        ViolenceStyleBoot.start(this)
         setContent {
+            val vsEnabled by ViolenceStyleSettings.enabled.collectAsStateWithLifecycle()
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
             val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
@@ -437,12 +444,12 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(highPerformance, performanceRefreshRate, composeView) {
                 applyPerformanceMode(highPerformance, performanceRefreshRate, composeView)
             }
-            val darkTheme = when (theme) {
+            val darkTheme = ViolenceStyleSettings.forceDark(vsEnabled) ?: when (theme) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
-            BitChordTheme(darkTheme = darkTheme, font = appFont) {
+            ViolenceStyledTheme(darkTheme = darkTheme, font = appFont) {
                 // The glass surfaces sample this layer, and a layer records only
                 // what is drawn into it — which, for BitChord, is a page that
                 // paints no background of its own. Everywhere a page is not
@@ -1121,6 +1128,8 @@ private fun BitChordApp(
     }
     val controller = rememberMediaController()
     val player = rememberPlayerState(controller)
+    // Violence Style: tell the accent engine which artwork is playing (a plain value write).
+    androidx.compose.runtime.SideEffect { ViolenceStyleSong.report(player.song?.thumbnailUrl) }
     // A music video's picture follows this controller's clock — see [MusicVideoEngine].
     DisposableEffect(controller) {
         MusicVideoEngine.attach(controller)

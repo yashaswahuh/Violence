@@ -30,3 +30,10 @@ Keep OURS, re-apply on top of upstream if overwritten:
 
 ## After every merge, re-check
 `grep -r "BitChord"` in added user-visible text; new hosts in added lines; new presence/analytics/update/donation code; `Presence.kt` and `AppUpdateChecker.kt` still blank; exactly one `android:enabled="true"` launcher alias; Jam protocol files (`backend/protocol|party|hub`, `PartyModels.kt`, `ListenTogether.kt`, `web/app/src/party/*`) changed or not; build phone, TV, web with explicit tasks.
+
+## Violence Style touch points (stage S1, 2026-11-03)
+New code lives in `app/src/main/java/com/music/bitchord/ui/violencestyle/` and `app/src/test/.../violencestyle/`, strings in `app/src/main/res/values/strings_violence_style.xml`, fonts `app/src/main/res/font/vs_*.ttf`. Upstream files edited (re-apply after a sync if overwritten):
+- `app/src/main/java/com/music/bitchord/MainActivity.kt`: 4 import lines; `ViolenceStyleBoot.start(this)` and `val vsEnabled` before/in `setContent`; `darkTheme` is `ViolenceStyleSettings.forceDark(vsEnabled) ?: when (theme) {...}`; `BitChordTheme(...)` replaced by `ViolenceStyledTheme(...)`; one `SideEffect { ViolenceStyleSong.report(...) }` after `rememberPlayerState`.
+- `app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt`: one `row(...) { ViolenceStyleSettingsBlock() }` at the top of the `ADVANCED` group.
+- `NOTICE`: the font licence section. `.gitignore`: `/fork-docs/style-reference/`.
+Later stages add more touch points here (see `fork-docs/style/STYLE_MAPPING.md`).

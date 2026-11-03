@@ -1572,6 +1572,9 @@ fun SettingsScreen(
         }
 
         if (shows(SettingsCategory.ADVANCED)) SearchableSettingsGroup(search, header = stringResource(R.string.advanced_options)) {
+            row("violence", "style", "experimental", "skin", "glow", "font", "accent") {
+                com.music.bitchord.ui.violencestyle.ViolenceStyleSettingsBlock()
+            }
             val smartAlignmentTitle = stringResource(R.string.smart_version_alignment)
             row(smartAlignmentTitle, "alignment", "sync", "waveform", "video", "audio", "skit", "intro") {
                 SettingsRow(
