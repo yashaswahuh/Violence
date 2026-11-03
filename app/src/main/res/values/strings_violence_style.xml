@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Violence Style (experimental) strings. Kept in their own file so the 17 locale files stay untouched;
+  a missing translation falls back to English at runtime. (LocaleStringsTest reads values/strings.xml only.)
+-->
+<resources>
+    <string name="vs_title">Violence Style (experimental)</string>
+    <string name="vs_description">An experimental skin: new fonts, a glowing background and tinted glass. With this off the app looks exactly as it does today. While it is on, the app uses the dark theme.</string>
+    <string name="vs_background">Background</string>
+    <string name="vs_bg_aurora">Aurora</string>
+    <string name="vs_bg_corner">Corner</string>
+    <string name="vs_bg_haze">Haze</string>
+    <string name="vs_off">Off</string>
+    <string name="vs_motion">Motion</string>
+    <string name="vs_motion_subtle">Subtle</string>
+    <string name="vs_motion_normal">Normal</string>
+    <string name="vs_intensity">Glow intensity</string>
+    <string name="vs_low">Low</string>
+    <string name="vs_medium">Medium</string>
+    <string name="vs_high">High</string>
+    <string name="vs_accent_source">Accent colour</string>
+    <string name="vs_src_song">Song</string>
+    <string name="vs_src_device">Device</string>
+    <string name="vs_src_custom">Custom</string>
+    <string name="vs_custom_color">Custom colour</string>
+    <string name="vs_pick_color">Or pick any colour: hue, saturation, lightness</string>
+    <string name="vs_color_refused">That colour is too dark or too gray to use. Pick a brighter one.</string>
+    <string name="vs_preset_blue">Blue</string>
+    <string name="vs_preset_red">Red</string>
+    <string name="vs_preset_pink">Pink</string>
+    <string name="vs_preset_green">Green</string>
+    <string name="vs_preset_orange">Orange</string>
+    <string name="vs_preset_yellow">Yellow</string>
+    <string name="vs_preset_cyan">Cyan</string>
+    <string name="vs_preset_purple">Purple</string>
+    <string name="vs_preset_white">White</string>
+    <string name="vs_heading_font">Heading font</string>
+    <string name="vs_font_bodoni">Bodoni Moda</string>
+    <string name="vs_font_cormorant">Cormorant</string>
+    <string name="vs_reduce_transparency">Reduce transparency</string>
+    <string name="vs_reduce_transparency_subtitle">Use solid fills instead of glass. It also follows Reduce dynamic blur.</string>
+    <string name="vs_detail_glow">Glow on album and artist pages</string>
+    <string name="vs_detail_glow_subtitle">Takes effect in a later update.</string>
+    <string name="vs_mode_full">Mode: Full</string>
+    <string name="vs_mode_lite">Mode: Lite (%1$s)</string>
+    <string name="vs_lite_old_android">Android 11 or older</string>
+    <string name="vs_lite_low_ram">low-memory device</string>
+    <string name="vs_lite_battery">battery saver is on</string>
+    <string name="vs_lite_thermal">device is hot</string>
+    <string name="vs_lite_reduce_blur">Reduce dynamic blur is on</string>
+    <string name="vs_lite_reduce_transparency">Reduce transparency is on</string>
+    <string name="vs_preview_title">Preview</string>
+    <string name="vs_preview_heading_caps">TOP PICKS</string>
+    <string name="vs_preview_heading_italic">for You</string>
+    <string name="vs_preview_button">Play</string>
+    <string name="vs_safe_mode_notice">Violence Style was turned off because the app failed to start twice. You can turn it on again in Settings.</string>
+    <string name="vs_safe_mode_note">Violence Style was turned off automatically because the app failed to start twice in a row. You can turn it on again here.</string>
+</resources>
