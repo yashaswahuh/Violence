@@ -37,6 +37,7 @@
     <string name="vs_heading_font">Heading font</string>
     <string name="vs_font_bodoni">Bodoni Moda</string>
     <string name="vs_font_cormorant">Cormorant</string>
+    <string name="vs_font_anton">Anton</string>
     <string name="vs_reduce_transparency">Reduce transparency</string>
     <string name="vs_reduce_transparency_subtitle">Use solid fills instead of glass. It also follows Reduce dynamic blur.</string>
     <string name="vs_detail_glow">Glow on album and artist pages</string>

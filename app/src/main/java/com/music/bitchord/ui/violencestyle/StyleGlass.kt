@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -114,6 +115,15 @@ fun Modifier.violenceCapsuleGlowFor(style: StyleState, tokens: AccentTokens): Mo
     return drawWithCache {
         val inset = size.width * 0.14f
         val washTop = size.height * 0.55f
+        // Everything stays inside the capsule: a plain rectangle showed as a hard-edged box under the tab.
+        val capsule = androidx.compose.ui.graphics.Path().apply {
+            addRoundRect(
+                androidx.compose.ui.geometry.RoundRect(
+                    0f, 0f, size.width, size.height,
+                    androidx.compose.ui.geometry.CornerRadius(size.height / 2f, size.height / 2f),
+                ),
+            )
+        }
         val wash = Brush.verticalGradient(
             0f to accent.copy(alpha = 0f),
             1f to accent.copy(alpha = 0.28f * strength),
@@ -138,9 +148,11 @@ fun Modifier.violenceCapsuleGlowFor(style: StyleState, tokens: AccentTokens): Mo
         val wide = 6.dp.toPx()
         onDrawWithContent {
             drawContent()
-            drawRect(wash, topLeft = Offset(inset, washTop), size = Size(size.width - 2 * inset, size.height - washTop))
-            drawLine(soft, Offset(inset, size.height - wide / 2f), Offset(size.width - inset, size.height - wide / 2f), strokeWidth = wide, cap = StrokeCap.Round)
-            drawLine(lineBrush, Offset(inset, size.height - thin), Offset(size.width - inset, size.height - thin), strokeWidth = thin, cap = StrokeCap.Round)
+            clipPath(capsule) {
+                drawRect(wash, topLeft = Offset(0f, washTop), size = Size(size.width, size.height - washTop))
+                drawLine(soft, Offset(inset, size.height - wide / 2f), Offset(size.width - inset, size.height - wide / 2f), strokeWidth = wide, cap = StrokeCap.Butt)
+                drawLine(lineBrush, Offset(inset, size.height - thin), Offset(size.width - inset, size.height - thin), strokeWidth = thin, cap = StrokeCap.Butt)
+            }
         }
     }
 }

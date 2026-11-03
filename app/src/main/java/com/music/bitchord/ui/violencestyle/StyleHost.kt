@@ -249,12 +249,18 @@ private fun rememberAccentTokens(state: StyleState): AccentTokens {
     val palette = rememberArtworkPalette(imageUrl = if (fromSong) stableUrl else null)
     // With no artwork the palette hands back the theme's own primary: that is "no colour".
     val scheme = MaterialTheme.colorScheme
-    val songColor: Int? = if (!fromSong || palette.accent == scheme.primary) null else palette.accent.toArgb()
+    // No artwork at all means no change; a song WITH artwork always yields a colour, even gray or white.
+    val songColor: Int? = if (!fromSong || stableUrl == null) null else palette.accent.toArgb()
+    // The palette hands back the theme's primary (white) while it is still reading the picture, and for
+    // white artwork; only after a short wait is that taken as the artwork's own (neutral) colour.
+    val stillLoading = palette.accent == scheme.primary
 
     var held by remember { mutableStateOf<Int?>(null) }
-    val candidate = songColor?.takeIf { !AccentMath.isDull(it) }
-    LaunchedEffect(candidate) {
-        if (candidate != null && AccentEngine.shouldReplace(held, candidate)) held = candidate
+    LaunchedEffect(songColor, stillLoading) {
+        if (songColor == null) return@LaunchedEffect
+        if (stillLoading) delay(NEUTRAL_SETTLE_MS)
+        val colour = if (AccentMath.isDull(songColor)) AccentPreset.WHITE.argb else songColor
+        if (AccentEngine.shouldReplace(held, colour)) held = colour
     }
 
     val resolved = AccentEngine.resolve(
@@ -272,4 +278,5 @@ private fun rememberAccentTokens(state: StyleState): AccentTokens {
 }
 
 private const val SONG_DEBOUNCE_MS = 400L
+private const val NEUTRAL_SETTLE_MS = 700L
 private const val ACCENT_FADE_MS = 800

@@ -120,6 +120,11 @@ class ViolenceHeadingTokensTest {
         assertEquals(ViolenceInter, styles.labelCaps.fontFamily)
     }
 
+    @Test fun antonIsAvailableAndHeavy() {
+        assertSame(ViolenceAnton, StyleHeadingFont.ANTON.family())
+        assertEquals(3, StyleHeadingFont.entries.size)
+    }
+
     @Test fun cormorantAndBodoniAreBothAvailable() {
         assertSame(ViolenceCormorantGaramond, StyleHeadingFont.CORMORANT_GARAMOND.family())
         assertSame(ViolenceBodoniModa, StyleHeadingFont.BODONI_MODA.family())

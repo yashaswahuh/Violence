@@ -91,6 +91,21 @@ class BackgroundGeometryTest {
         assertEquals(1.15f, high[2] / (0.95f * w), 1e-4f)
     }
 
+    @Test fun highGlowDriftsFurtherAndTheBrightnessBreathNeverExceedsTheGuardedAlpha() {
+        assertEquals(1f, BackgroundGeometry.driftBoost(StyleIntensity.MEDIUM), 0f)
+        assertTrue(BackgroundGeometry.driftBoost(StyleIntensity.HIGH) > 1.4f)
+        var min = 10f
+        var max = 0f
+        var t = 0.0
+        while (t < 300.0) {
+            BackgroundGeometry.fill(StyleBackground.AURORA, 390f, 844f, t, StyleMotion.NORMAL, StyleIntensity.HIGH, null, buf)
+            min = minOf(min, buf[3]); max = maxOf(max, buf[3])
+            t += 0.37
+        }
+        assertTrue("max $max", max <= StyleIntensity.HIGH.peakAlpha + 1e-5f)
+        assertTrue("min $min", min < StyleIntensity.HIGH.peakAlpha * 0.85f) // visibly dips
+    }
+
     @Test fun subtleStretchesThePeriods() {
         assertEquals(1f, BackgroundGeometry.periodScale(StyleMotion.SUBTLE), 0f)
         assertEquals(0.6f, BackgroundGeometry.periodScale(StyleMotion.NORMAL), 0f)

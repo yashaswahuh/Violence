@@ -377,6 +377,7 @@ private fun StyleAccentSource.labelRes() = when (this) {
 private fun StyleHeadingFont.labelRes() = when (this) {
     StyleHeadingFont.BODONI_MODA -> R.string.vs_font_bodoni
     StyleHeadingFont.CORMORANT_GARAMOND -> R.string.vs_font_cormorant
+    StyleHeadingFont.ANTON -> R.string.vs_font_anton
 }
 
 private fun LiteReason?.labelRes() = when (this) {
