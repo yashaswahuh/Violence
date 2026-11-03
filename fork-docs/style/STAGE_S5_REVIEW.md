@@ -11,7 +11,8 @@ For each screen below take an OFF screenshot (`off-<screen>.png`) and an ON scre
 | What | Where | Expect |
 |---|---|---|
 | Dialog and sheet look | Any dialog (language, delete confirm, update, playlist picker, share sheet), bottom sheets | Dark translucent glass with a thin rim, a hint of the accent in the tint, accent-coloured text buttons. Reduce transparency makes them nearly solid. All text and buttons unchanged and readable |
-| Play control | Full player | An accent ring around the play/pause button; the icon stays white. Seek bar uses the accent |
+| Play control | Full player | **No ring** (it was removed after your review): the play/pause button looks as before. The seek bar uses the accent |
+| Rim light on Top Picks | Home | The accent rim light sits on the card at the front of the row and moves to the next card as you swipe past halfway |
 | Glow above the artwork | Album page, playlist page, (artist page: mostly hidden by the photo) | A soft accent glow at the top edge over the page colour, no clock. Turn the switch "Glow on album and artist pages" (Violence Style settings) off: the glow goes |
 | Search rows | Search results and Recent searches | No black bars (from the earlier fix); swiping a row right still shows Queue |
 
@@ -22,7 +23,7 @@ For each screen below take an OFF screenshot (`off-<screen>.png`) and an ON scre
 | Explore (+ a mood) | glow, "Find your mood" header and Show all | |
 | Library (+ Show all) | headers, tiles still work | |
 | Search (type, filters, results) | chips accent, rows see-through | |
-| Now Playing: artwork, controls, volume, lyrics, queue, output, Jam pill, ... menu | ring on play, seek accent, everything readable over bright and dark covers | |
+| Now Playing: artwork, controls, volume, lyrics, queue, output, Jam pill, ... menu | seek accent (no ring on play), everything readable over bright and dark covers | |
 | Album / playlist / artist page | glow at top, track list readable | |
 | Downloads, History, Equalizer + presets | readable, switches accent | |
 | Settings home + every category (Downloads, Playback, Appearance, Performance, Local music, Storage, Your data, Miscellaneous, Language, Advanced) | rows readable, the Violence Style block easy to find in Advanced | |

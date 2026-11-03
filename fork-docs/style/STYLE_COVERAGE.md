@@ -15,7 +15,8 @@ Written 2026-11-03. Source of the screen list: `UI_AUDIT.md` section 2 (re-check
 | `PillSegmentedControl` accent segment | S4 | Search tabs, settings segmented rows |
 | `ThinSlider` accent track | S4 | player seek and volume bars, any `ThinSlider` |
 | `GlassSurface` rim, accent panel tint, near-solid under Reduce transparency; `GlassAlertDialog` accent text buttons | S5 | every glass dialog and bottom sheet that goes through `GlassAlertDialog`, `GlassBottomSheet` or `GlassSurface` |
-| Accent ring around the play control | S5 | the full player's play/pause (`TransportRow`) |
+| ~~Accent ring around the play control~~ | S5, **removed** after the owner's review (2026-11-03) | nothing: the play button is back to its original look (the unused `accentRing` option stays in `TransportGlyph`) |
+| Accent rim light follows the front Top Picks card | S5 fix | the card at the front of the row carries the rim light and it moves as the row is swiped (`frontIndex` in `TopPicksShelf`) |
 | Glow above the artwork (own switch) | S5 | album, playlist and artist pages' base page (`DetailScreen`) |
 | Search rows see-through | S2 and a later fix | Search "Top result", recent-search rows, song rows with swipe-to-queue |
 
@@ -26,7 +27,7 @@ Written 2026-11-03. Source of the screen list: `UI_AUDIT.md` section 2 (re-check
 | Explore | background, `SectionHeader` (incl. Find your mood and its Show all), nav | mood tiles (`MoodTile`) keep the old look | polish |
 | Library | background, headers with Show all, nav | playlist/album tiles, "Library link" rows | polish |
 | Search | background, see-through rows, chips, top-bar field in glass | song/artist result cards' art corners | polish |
-| Now Playing (full player) | accent ring on play, accent seek bar, own artwork mesh background (follows the song already), glass chips as before | **Serif title treatment not applied** (the title lives inside the 4,000-line `NowPlayingScreen`); the player has its own window and mesh background, so the live S2 glow is not drawn there | title and lyrics typography as a later polish; left alone on purpose to avoid touching the player layout |
+| Now Playing (full player) | accent seek bar (no ring on play: removed), own artwork mesh background (follows the song already), glass chips as before | **Serif title treatment not applied** (the title lives inside the 4,000-line `NowPlayingScreen`); the player has its own window and mesh background, so the live S2 glow is not drawn there | title and lyrics typography as a later polish; left alone on purpose to avoid touching the player layout |
 | Queue, lyrics panels | typography (Inter) | panel chrome | polish |
 | Album, playlist pages | glow above the artwork (switch), typography, switches, chips | own artwork-tinted fills stay opaque by design | none |
 | Artist pages | base page glow; the photograph covers most of it | the hero photograph | none |

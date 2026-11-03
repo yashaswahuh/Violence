@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -167,6 +168,15 @@ internal fun TopPicksShelf(
         snapshotFlow { rowState.isScrollInProgress to clipOwner(rowState.layoutInfo, hasClip) }
             .collect { (scrolling, next) -> if (!scrolling) owner = next }
     }
+    // The card at the front of the row (the one the snap settles on): it carries the accent rim light under
+    // Violence Style, and the light moves with it as the row is swiped. Read only by the cards' `first` flag.
+    val frontIndex by remember(rowState) {
+        derivedStateOf {
+            val info = rowState.layoutInfo.visibleItemsInfo.firstOrNull()
+            val half = (info?.size ?: 0) / 2
+            rowState.firstVisibleItemIndex + if (rowState.firstVisibleItemScrollOffset > half) 1 else 0
+        }
+    }
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(stringResource(Res.string.top_picks_for_you), hero = true)
         BoxWithConstraints {
@@ -186,7 +196,7 @@ internal fun TopPicksShelf(
                         ) {
                             TopPickCard(
                                 pick = pick,
-                                first = index == 0,
+                                first = index == frontIndex,
                                 listenerName = listenerName,
                                 onClick = onClick,
                                 onLongPress = onLongPress?.takeIf { pick.kind == TopPickKind.LATEST_RELEASE },

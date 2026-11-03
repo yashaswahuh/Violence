@@ -65,3 +65,17 @@ Each is a swapped expression or an appended modifier; re-apply after a sync if o
 - `app/.../ui/screens/DetailScreen.kt`: 1 import; `.violenceDetailGlow()` after `.background(pageColor)` on the detail page root.
 - `sharedUi/.../ui/player/PlayerControls.kt` (shared with desktop): `TransportGlyph` gains `accentRing: Boolean = false` (the play call passes `true`), reads `LocalViolenceShared`, and draws the ring with `drawBehind`; one import.
 - `app/src/main/res/values/strings_violence_style.xml`: the `vs_detail_glow_subtitle` text.
+
+## Violence Style touch points: final list, conflict rules, re-check checklist (S6)
+
+**Files edited (see the S1 to S5 additions above for the exact lines):** `MainActivity.kt`, `SettingsSheet.kt`, `DetailScreen.kt`, `FrostedTopBar.kt`, `GlassNavBar.kt`, `FloatingBottomBar.kt`, `floatingtabbar/FloatingTabBar.kt`, `MiniPlayer.kt`, `IosSwitch.kt`, `AppGlass.kt`, `GlassPanels.kt` (phone); `HomeScreen.kt`, `TopPicksShelf.kt`, `SearchScreen.kt`, `Common.kt`, `PillSegmentedControl.kt`, `ThinSlider.kt`, `PlayerControls.kt` (shared). New files live only under `.../ui/violencestyle/`.
+
+**Resolving a conflict.** Keep the upstream change and re-apply the skin's line on top: every edit is one early branch or one swapped expression (grep the file for `violence` or `Violence`). Never resolve by dropping the guard: the else branch must stay the upstream code. If upstream renames a function the skin wraps (`SectionHeader`, `CompactTrackRow`, `TopPickCard`, `artworkPageSurface`, `GlassSurface`, `paintBackdrop`), move the call to the new name. If upstream replaces the vendored `floatingtabbar/`, re-add the three lines (two `.violenceCapsuleGlow()`, one `.violenceTabSemantics(isSelected)`). `app/.../ui/violencestyle/**` and the font and string files are ours and never conflict.
+
+**Re-verify after every sync (10 minutes):**
+1. `grep -rn "violence\|Violence" ` the files above: every touch point still present; `ViolenceStyledTheme` still replaces `BitChordTheme` in `setContent`.
+2. Build phone, TV and web with the scripts; run the phone tests (`StyleOffParityTest` and friends must pass).
+3. Style OFF: Home, nav bar, a dialog look as upstream's (no rim, no serif, no glow).
+4. Style ON: Home headings, first hero card rim, nav capsule with glow line, Search rows without black bars, a dialog, the Settings block.
+5. Toggle ON and OFF while music plays: playback continues.
+6. Check `FROZEN_TARGETS.md` for new shared edits, and that the dormant modules and `settings.gradle.kts` includes survived.

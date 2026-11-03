@@ -19,6 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -182,28 +185,40 @@ private fun CustomColorPicker() {
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 8.dp),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow(modifier = Modifier.fillMaxWidth()) {
             AccentPreset.entries.forEach { preset ->
                 val label = stringResource(preset.labelRes())
                 val picked = AccentMath.clampAccent(preset.argb) == AccentMath.clampAccent(custom)
+                // 48 dp touch target around the 28 dp swatch; announced as a selectable colour, not by colour alone.
                 Box(
                     Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(Color(preset.argb))
-                        .border(
-                            width = if (picked) 2.dp else 0.5.dp,
-                            color = if (picked) Color.White else Color.White.copy(alpha = 0.3f),
-                            shape = CircleShape,
-                        )
-                        .semantics { contentDescription = label }
+                        .minimumInteractiveComponentSize()
+                        .semantics {
+                            contentDescription = label
+                            role = androidx.compose.ui.semantics.Role.RadioButton
+                            selected = picked
+                        }
                         .clickable {
                             ViolenceStyleSettings.setCustomColor(preset.argb)
                             val h = AccentMath.toHsl(preset.argb)
                             hue = h.h; sat = h.s; light = h.l
                             refused = false
                         },
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color(preset.argb))
+                            .border(
+                                width = if (picked) 2.dp else 0.5.dp,
+                                color = if (picked) Color.White else Color.White.copy(alpha = 0.3f),
+                                shape = CircleShape,
+                            ),
+                    )
+                }
             }
         }
         Text(
@@ -221,9 +236,12 @@ private fun CustomColorPicker() {
                 refused = true
             }
         }
-        Slider(value = hue, onValueChange = { hue = it; apply() }, valueRange = 0f..360f)
-        Slider(value = sat, onValueChange = { sat = it; apply() }, valueRange = 0f..1f)
-        Slider(value = light, onValueChange = { light = it; apply() }, valueRange = 0f..1f)
+        val hueLabel = stringResource(R.string.vs_hue)
+        val satLabel = stringResource(R.string.vs_saturation)
+        val lightLabel = stringResource(R.string.vs_lightness)
+        Slider(value = hue, onValueChange = { hue = it; apply() }, valueRange = 0f..360f, modifier = Modifier.semantics { contentDescription = hueLabel })
+        Slider(value = sat, onValueChange = { sat = it; apply() }, valueRange = 0f..1f, modifier = Modifier.semantics { contentDescription = satLabel })
+        Slider(value = light, onValueChange = { light = it; apply() }, valueRange = 0f..1f, modifier = Modifier.semantics { contentDescription = lightLabel })
         if (refused) {
             Text(
                 text = stringResource(R.string.vs_color_refused),
