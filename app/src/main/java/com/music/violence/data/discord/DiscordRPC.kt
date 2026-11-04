@@ -67,6 +67,8 @@ class DiscordRPC(
         activityType: String = "listening",
         activityName: String = "",
         audioQuality: String? = null,
+        partyCode: String? = null,
+        partyServer: String? = null,
     ) = runCatching {
         val currentTime = System.currentTimeMillis()
 
@@ -83,14 +85,22 @@ class DiscordRPC(
         val adjustedRemainingDuration = (remainingDuration / playbackSpeed).toLong()
 
         val buttonsList = mutableListOf<Pair<String, String>>()
-        if (button1Visible) {
+        if (!partyCode.isNullOrBlank()) {
+            val jamUrl = if (!partyServer.isNullOrBlank()) {
+                "violence://party/$partyCode?server=" + java.net.URLEncoder.encode(partyServer, "UTF-8")
+            } else {
+                "violence://party/$partyCode"
+            }
+            buttonsList.add("Listen Together (Jam)" to jamUrl)
+        }
+        if (buttonsList.size < 2 && button1Visible) {
             val resolvedText = resolveVariables(
                 button1Text.ifEmpty { DEFAULT_BUTTON_1 },
                 song,
             )
             buttonsList.add(resolvedText.take(DiscordApplication.BUTTON_LABEL_MAX) to watchUrl(song))
         }
-        if (button2Visible) {
+        if (buttonsList.size < 2 && button2Visible) {
             val resolvedText = resolveVariables(
                 button2Text.ifEmpty { DEFAULT_BUTTON_2 },
                 song,

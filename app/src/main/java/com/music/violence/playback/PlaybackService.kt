@@ -7564,6 +7564,14 @@ class PlaybackService : MediaLibraryService() {
         val audioQuality = discordAudioQualityLine(NerdStats.current.value)
             .takeIf { AppSettings.discordShowAudioQuality.value }
 
+        val partyState = ListenTogether.state.value
+        val partyCode: String? = if (partyState.inParty) partyState.code else null
+        val partyServer: String? = if (partyCode != null) {
+            ListenTogether.customServerUrl.value.takeIf { it.isNotBlank() }
+        } else {
+            null
+        }
+
         discordUpdateJob?.cancel()
         discordPresenceUp = true
         discordUpdateJob = scope.launch(Dispatchers.IO) {
@@ -7581,6 +7589,8 @@ class PlaybackService : MediaLibraryService() {
                 activityType = AppSettings.discordActivityType.value,
                 activityName = AppSettings.discordActivityName.value,
                 audioQuality = audioQuality,
+                partyCode = partyCode,
+                partyServer = partyServer,
             ).onFailure {
                 TrackLog.d("Violence", "Discord presence failed: ${it.message}", about = song.videoId)
             }

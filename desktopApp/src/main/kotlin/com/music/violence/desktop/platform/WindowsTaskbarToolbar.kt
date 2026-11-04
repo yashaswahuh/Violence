@@ -338,7 +338,7 @@ internal object WindowsTaskbarToolbar {
         originalWndProc = orig
 
         val proc = object : SubclassWndProc {
-            fun callback(
+            override fun callback(
                 hWnd: WinDef.HWND,
                 uMsg: Int,
                 wParam: WinDef.WPARAM,

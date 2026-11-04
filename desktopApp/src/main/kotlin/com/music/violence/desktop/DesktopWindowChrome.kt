@@ -1,5 +1,8 @@
 package com.music.violence.desktop
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PictureInPictureAlt
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -56,6 +59,24 @@ internal fun DesktopTitleBar() {
     ) {
         Box(Modifier.fillMaxSize()) {
             DesktopWindowButtons(Modifier.align(Alignment.CenterStart))
+            Row(
+                Modifier.align(Alignment.CenterEnd).padding(end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .size(CAPTION_TOUCH_SIZE)
+                        .clickable(onClick = { DesktopMiniPlayerManager.toggle() }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PictureInPictureAlt,
+                        contentDescription = "Mini Player (Ctrl+M)",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
         }
     }
 }

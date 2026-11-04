@@ -31,16 +31,18 @@ class WindowsTaskbarToolbarTest {
             override fun onPrevious() { actions += "previous" }
         }
 
-        if (DesktopPlatform.isWindows) {
-            val dummyFrame = java.awt.Frame()
-            try {
-                WindowsTaskbarToolbar.start(dummyFrame, controller)
-                WindowsTaskbarToolbar.update(isPlaying = true, hasTrack = true)
-                WindowsTaskbarToolbar.update(isPlaying = false, hasTrack = true)
-            } finally {
-                WindowsTaskbarToolbar.stop()
-                dummyFrame.dispose()
-            }
+        if (!DesktopPlatform.isWindows || java.awt.GraphicsEnvironment.isHeadless()) {
+            assertTrue(true)
+            return
+        }
+        val dummyFrame = java.awt.Frame()
+        try {
+            WindowsTaskbarToolbar.start(dummyFrame, controller)
+            WindowsTaskbarToolbar.update(isPlaying = true, hasTrack = true)
+            WindowsTaskbarToolbar.update(isPlaying = false, hasTrack = true)
+        } finally {
+            WindowsTaskbarToolbar.stop()
+            dummyFrame.dispose()
         }
         assertTrue(true)
     }

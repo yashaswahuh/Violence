@@ -61,6 +61,8 @@ internal object DesktopDiscordRpc {
     private var ipc: DesktopDiscordIpc? = null
     private var lastKey: String? = null
     private var lastProbeAt = 0L
+    private var lastSentPosition = 0L
+    private var lastSentInstant = 0L
 
     private val _localClient = MutableStateFlow(false)
 
@@ -171,14 +173,24 @@ internal object DesktopDiscordRpc {
         // that fills that in runs after this one in the same frame, so it would
         // still hold the previous track's format.
         val quality = qualityLine(state)
-        val key = "${song.videoId}|${state.durationMs}|$speed|$quality"
+        val partyCode = DesktopListenTogether.state.value.code
+        val baseKey = "${song.videoId}|${state.durationMs}|$speed|$quality|$partyCode"
         val position = state.positionMs
         val duration = state.durationMs.takeIf { it > 0 } ?: 0L
+
+        val now = System.currentTimeMillis()
+        val expectedPosition = if (lastSentInstant > 0L) {
+            lastSentPosition + ((now - lastSentInstant) * speed).toLong()
+        } else {
+            position
+        }
+        val isSeek = kotlin.math.abs(position - expectedPosition) > 2500L
+        val key = "$baseKey|${if (isSeek) position else 0L}"
+
         scope.launch {
             // Only marked sent once a push lands, so a failed one is tried again
             // on the next change instead of being skipped as a duplicate.
-            if (key == lastKey) return@launch
-            val now = System.currentTimeMillis()
+            if (key == lastKey && !isSeek) return@launch
             val elapsed = (position / speed).toLong()
             val remaining = ((duration - position).coerceAtLeast(0L) / speed).toLong()
             val title = if (speed != 1.0f) {
@@ -194,6 +206,8 @@ internal object DesktopDiscordRpc {
             if (local != null) {
                 if (pushLocal(local, activity)) {
                     lastKey = key
+                    lastSentPosition = position
+                    lastSentInstant = now
                     return@launch
                 }
                 // A socket that had been working died under us: Discord may
@@ -202,6 +216,8 @@ internal object DesktopDiscordRpc {
                     val retry = reconnect("retry", force = true)
                     if (retry != null && pushLocal(retry, activity)) {
                         lastKey = key
+                        lastSentPosition = position
+                        lastSentInstant = now
                         return@launch
                     }
                 }
@@ -313,12 +329,24 @@ internal object DesktopDiscordRpc {
 
     /** The buttons as configured: text with its variables filled in, and hidden ones dropped. */
     private fun buttonLabels(song: Song): List<Pair<String, String>> = buildList {
+        val partyState = DesktopListenTogether.state.value
+        val partyCode = partyState.code
+        if (partyState.inParty && !partyCode.isNullOrBlank()) {
+            val invite = DesktopListenTogether.inviteUrl(partyCode)
+            val server = invite.substringBefore("/invite/").takeIf { it.startsWith("http") }
+            val jamUrl = if (server != null) {
+                "violence://party/$partyCode?server=" + java.net.URLEncoder.encode(server, "UTF-8")
+            } else {
+                "violence://party/$partyCode"
+            }
+            add("Listen Together (Jam)" to jamUrl)
+        }
         val settings = DesktopDiscordSettings
-        if (settings.button1Visible.value) {
+        if (size < 2 && settings.button1Visible.value) {
             val text = settings.button1Text.value.ifEmpty { DesktopDiscordSettings.DEFAULT_BUTTON_1 }
             add(settings.resolveVariables(text, song.title, song.artist, song.albumName).take(DiscordApplication.BUTTON_LABEL_MAX) to watchUrl(song))
         }
-        if (settings.button2Visible.value) {
+        if (size < 2 && settings.button2Visible.value) {
             val text = settings.button2Text.value.ifEmpty { DesktopDiscordSettings.DEFAULT_BUTTON_2 }
             add(settings.resolveVariables(text, song.title, song.artist, song.albumName).take(DiscordApplication.BUTTON_LABEL_MAX) to PROJECT_URL)
         }

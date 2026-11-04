@@ -57,6 +57,7 @@ The repository provides automated scripts in `.\scripts\` that configure your se
 #### Assemble Release APKs (Requires Keystore)
 ```powershell
 .\gradlew.bat :app:assembleDevRelease '-Pviolence.bundleWear=false'
+.\gradlew.bat :app:assembleProdRelease
 ```
 
 #### Clean Phone Build Cache Only

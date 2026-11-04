@@ -1,5 +1,8 @@
 package com.music.violence.desktop
 
+import androidx.compose.material.icons.rounded.PictureInPictureAlt
+import androidx.compose.material.icons.rounded.FileUpload
+import com.music.violence.desktop.platform.WindowsTaskbarToolbar
 import androidx.compose.foundation.lazy.LazyListState
 import com.music.violence.ui.components.LocalShelfRowChrome
 import com.music.violence.ui.components.ShelfRowChrome
@@ -1768,6 +1771,27 @@ fun ViolenceDesktopApp() {
         onDispose { DesktopWindowsMedia.stop() }
     }
 
+    LaunchedEffect(playbackEngine) {
+        DesktopMiniPlayerManager.onPlayPause = ::togglePlayPauseFromUser
+        DesktopMiniPlayerManager.onNext = ::playNext
+        DesktopMiniPlayerManager.onPrevious = ::playPrevious
+        DesktopMiniPlayerManager.onSeek = { positionMs ->
+            if (!DesktopListenTogether.state.value.controlsLocked) {
+                playbackEngine.seekTo(positionMs)
+                partySync.onLocalIntent()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        DesktopDropHandler.onSongsDropped = { droppedSongs ->
+            if (droppedSongs.isNotEmpty()) {
+                playSongs(droppedSongs, startIndex = 0)
+                DesktopPlayerHost.showMessage("Imported ${droppedSongs.size} local track(s)")
+            }
+        }
+    }
+
     LaunchedEffect(playbackSpeed) { playbackEngine.setPlaybackSpeed(playbackSpeed) }
     LaunchedEffect(volume) { playbackEngine.setVolume(volume) }
     LaunchedEffect(audioQuality) { playbackEngine.setAudioQuality(audioQuality.name) }
@@ -1879,6 +1903,8 @@ fun ViolenceDesktopApp() {
             playerPosition.report(it.positionMs, it.positionSampledAtNanos)
             playerPosition.seeks = it.seeks
             playerPosition.advancing = !it.awaitingAudio
+            DesktopMiniPlayerManager.updatePlayback(it.song, it.isPlaying, it.positionMs, it.durationMs)
+            WindowsTaskbarToolbar.update(it.isPlaying, it.song != null)
         }
     }
 
@@ -1888,6 +1914,9 @@ fun ViolenceDesktopApp() {
     // opens the player. Run from the player page instead, nothing was fetched until it was opened,
     // and a track half a minute in then showed a skeleton and arrived mid-song.
     var lyrics by remember { mutableStateOf<DesktopLyrics?>(null) }
+    LaunchedEffect(lyrics) {
+        DesktopMiniPlayerManager.setLyrics(lyrics?.lines.orEmpty(), playbackEngine.state.value.positionMs)
+    }
     // The provider picked for this track in the player's lyrics drawer, if any.
     var lyricsOnly by remember(selectedSong?.videoId) { mutableStateOf<String?>(null) }
     // A title and artist typed into the song menu's lyrics search, overriding the
@@ -3320,6 +3349,10 @@ fun ViolenceDesktopApp() {
                                 goBack()
                                 true
                             }
+                            isCommand && event.key == Key.M -> {
+                                DesktopMiniPlayerManager.toggle()
+                                true
+                            }
                             isCommand && event.key == Key.Comma -> {
                                 openSettings()
                                 true
@@ -3972,6 +4005,50 @@ fun ViolenceDesktopApp() {
                             pipeline = playbackEngine.pipeline(),
                             onDismiss = { overlays.pipeline = false },
                         )
+                    }
+                    val isDraggingByDrop by DesktopDropHandler.isDragging.collectAsState()
+                    if (isDraggingByDrop) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.72f))
+                                .padding(28.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(2.dp, Color(0xFFE22D4B), RoundedCornerShape(16.dp))
+                                    .background(Color(0xE6141416)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.FileUpload,
+                                        contentDescription = null,
+                                        tint = Color(0xFFE22D4B),
+                                        modifier = Modifier.size(54.dp),
+                                    )
+                                    Spacer(Modifier.height(14.dp))
+                                    Text(
+                                        text = "Drop Audio Files or Folders Here",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = "Supports FLAC, MP3, M4A, WAV, OPUS, OGG, AAC",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.65f),
+                                    )
+                                }
+                            }
+                        }
                     }
                 },
             ) { contentPadding ->
@@ -4885,6 +4962,17 @@ private fun DesktopTopBar(
                             ViolenceIcons.Queue,
                             DesktopStrings["queue", "Queue"],
                             tint = if (sidePanel == DesktopSidePanel.QUEUE) Color.White else DesktopSecondary,
+                            modifier = Modifier.size(19.dp),
+                        )
+                    }
+                    DesktopToolbarButton(
+                        onClick = { DesktopMiniPlayerManager.toggle() },
+                        size = 32.dp,
+                    ) {
+                        Icon(
+                            Icons.Rounded.PictureInPictureAlt,
+                            "Mini Player (Ctrl+M)",
+                            tint = DesktopSecondary,
                             modifier = Modifier.size(19.dp),
                         )
                     }
