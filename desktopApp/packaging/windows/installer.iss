@@ -21,10 +21,12 @@ OutputDir=..\..\dist
 OutputBaseFilename=Violence-Setup
 SetupIconFile=..\icons\AppIcon.ico
 
-; Modern styling & wizard visuals
-WizardStyle=modern
+; Modern Dark Theme with native Windows 11/10 dark mode support
+WizardStyle=modern dark
 WizardImageFile=wizard-large.bmp
-WizardSmallImageFile=wizard-small.bmp
+WizardSmallImageFile=wizard-small-dark.bmp
+WizardImageBackColor=$0012120E
+WizardSmallImageBackColor=$00161212
 
 ; Per-user install without needing UAC / Administrator prompt
 PrivilegesRequired=lowest
@@ -38,7 +40,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
 WelcomeLabel1=Welcome to [name]
-WelcomeLabel2=This wizard will install [name/ver] on your computer.%n%nExperience seamless high-fidelity music streaming.
+WelcomeLabel2=This wizard will install [name/ver] on your computer.%n%nExperience seamless high-fidelity music streaming with custom aesthetics.
 FinishedHeadingLabel=Setup Complete
 FinishedLabel=Violence has been installed on your computer. You can launch it using the created shortcuts.
 
@@ -57,3 +59,17 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
+[Code]
+// Custom Pascal Script styling for UI controls and accent touches
+procedure InitializeWizard;
+begin
+  // Set the main wizard and surface backgrounds to match the Violence dark palette (#0E0E12)
+  WizardForm.Color := $00120E0E;
+  WizardForm.InnerPage.Color := $00120E0E;
+  
+  // Style typography
+  WizardForm.WelcomeLabel1.Font.Size := 14;
+  WizardForm.WelcomeLabel1.Font.Style := [fsBold];
+  WizardForm.FinishedHeadingLabel.Font.Size := 14;
+  WizardForm.FinishedHeadingLabel.Font.Style := [fsBold];
+end;
