@@ -50,8 +50,8 @@ Every AI agent starting a new phase in this project **MUST** read and adhere str
 ## 6. Development Discipline & Build Verification
 - **Make small, atomic commits** with clear messages.
 - **Build verification uses explicit module paths only** (see `BUILD_COMMANDS.md`, or run `scripts/build-active.ps1` and `scripts/test-active.ps1`):
-  - Phone: `.\gradlew.bat :app:assembleDevDebug '-Pbitchord.bundleWear=false'`
-  - TV: `.\gradlew.bat :tv:assembleDevDebug '-Pbitchord.bundleWear=false'` (TV is ACTIVE; the old "never build TV" directive is cancelled)
+  - Phone: `.\gradlew.bat :app:assembleDevDebug '-Pviolence.bundleWear=false'`
+  - TV: `.\gradlew.bat :tv:assembleDevDebug '-Pviolence.bundleWear=false'` (TV is ACTIVE; the old "never build TV" directive is cancelled)
   - Web: `corepack pnpm --dir web build:site`
   - Backend: `go test -v ./...` inside `backend/`
 - **Never declare a phase or task complete without successful build/test output for the active targets.**

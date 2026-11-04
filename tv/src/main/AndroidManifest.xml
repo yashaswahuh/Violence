@@ -71,7 +71,7 @@
         android:required="false" />
 
     <application
-        android:name=".BitChordApplication"
+        android:name=".ViolenceApplication"
         android:allowBackup="true"
         android:appCategory="audio"
         android:banner="@drawable/tv_banner"
@@ -83,7 +83,7 @@
         android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.BitChord"
+        android:theme="@style/Theme.Violence"
         tools:targetApi="34">
 
         <!--
@@ -98,7 +98,7 @@
 
         <!-- The tap on a "new songs in this playlist" notification. See PlaylistSync. -->
         <receiver
-            android:name="com.music.bitchord.download.PlaylistSyncApproval"
+            android:name="com.music.violence.download.PlaylistSyncApproval"
             android:exported="false" />
 
         <!--
@@ -112,7 +112,7 @@
             android:exported="false"
             tools:node="merge">
             <meta-data
-                android:name="com.music.bitchord.data.TvStartup"
+                android:name="com.music.violence.data.TvStartup"
                 android:value="androidx.startup" />
             <meta-data
                 android:name="androidx.work.WorkManagerInitializer"
@@ -170,7 +170,7 @@
                   the assistant, Android Auto's media list and the OEM pickers
                   that put up "Complete action using" all ask for
                   MAIN/APP_MUSIC by name and list whoever answers — a launcher
-                  entry alone is not enough, which is why BitChord was missing
+                  entry alone is not enough, which is why Violence was missing
                   from that dialog while every other player on the device was in
                   it.
                 -->
@@ -204,10 +204,10 @@
               tapped anywhere on the device.
 
               Not autoVerify. Verification is a claim to *own* these domains,
-              which BitChord doesn't — and on Android 12+ an app that has
+              which Violence doesn't — and on Android 12+ an app that has
               verified them (the YouTube Music app itself) takes the link
               without a dialog either way. Declaring the filter is what puts
-              BitChord in the "Open with" list once the user turns YT Music's
+              Violence in the "Open with" list once the user turns YT Music's
               "Open supported links" off; the SEND filter below is the path
               that always works, because sharing asks rather than routing.
 
@@ -280,7 +280,7 @@
             </intent-filter>
 
             <!--
-              Share → BitChord, from YT Music's own share sheet or from
+              Share → Violence, from YT Music's own share sheet or from
               anywhere a link can be sent. The text is whatever the sending app
               wrote around the URL, so the URL is picked out of it rather than
               parsed whole.
@@ -306,7 +306,7 @@
             android:label="@string/app_name"
             android:launchMode="singleTask"
             android:screenOrientation="landscape"
-            android:theme="@style/Theme.BitChord.Tv" />
+            android:theme="@style/Theme.Violence.Tv" />
 
         <service
             android:name=".playback.PlaybackService"
@@ -416,7 +416,7 @@
         <!-- Where the Cast framework asks how this app wants to cast. -->
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
-            android:value="com.music.bitchord.playback.cast.CastOptionsProvider" />
+            android:value="com.music.violence.playback.cast.CastOptionsProvider" />
     </application>
 
 </manifest>

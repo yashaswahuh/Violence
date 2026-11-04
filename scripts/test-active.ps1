@@ -36,7 +36,7 @@ function Invoke-Step([string]$Name, [scriptblock]$Body) {
     else { Write-Host "OK: $Name" -ForegroundColor Green }
 }
 
-$noWear = '-Pbitchord.bundleWear=false'
+$noWear = '-Pviolence.bundleWear=false'
 
 if ($Target -in 'all', 'phone') {
     Use-AndroidToolchain

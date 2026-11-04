@@ -81,7 +81,7 @@ The repository is structured as a multi-target Kotlin Multiplatform and Compose 
 - **Target SDK (`targetSdk`):** `36` (Android 15 runtime behavior)
 - **Minimum SDK (`minSdk`):** `26` (Android 8.0 Oreo, ensuring wide device reach with hardware render effects on API 31+)
 - **Version Code:** `28` (app) / `26` (tv)
-- **Version Name:** `1.8.1` (with pre-release suffix `beta1` in `extra["bitchordBetaSuffix"]`)
+- **Version Name:** `1.8.1` (with pre-release suffix `beta1` in `extra["violenceBetaSuffix"]`)
 
 ### Key Frameworks & Dependencies
 - **Audio Playback Engine:**

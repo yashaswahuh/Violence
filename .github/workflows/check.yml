@@ -44,15 +44,15 @@ jobs:
       - run: chmod +x gradlew
 
       - name: Tests
-        run: ./gradlew :app:testDevDebugUnitTest '-Pbitchord.bundleWear=false'
+        run: ./gradlew :app:testDevDebugUnitTest '-Pviolence.bundleWear=false'
 
       - name: Build the dev APK
-        run: ./gradlew :app:assembleDevDebug '-Pbitchord.bundleWear=false'
+        run: ./gradlew :app:assembleDevDebug '-Pviolence.bundleWear=false'
 
       - name: Upload the dev APK
         uses: actions/upload-artifact@v4
         with:
-          name: bitchord-dev-debug
+          name: violence-dev-debug
           path: app/build/outputs/apk/dev/debug/*.apk
 
       - name: Upload test reports

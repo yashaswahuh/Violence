@@ -53,13 +53,13 @@ All upstream visual assets must be replaced with new fork-specific graphics.
 
 | Component / Target | Current Upstream ID | Target Fork Replacement |
 |---|---|---|
-| **Android Phone Prod ID** | `com.music.bitchord` | `com.yashaswahuh.violencemusic` (in `app/build.gradle.kts:65`) |
+| **Android Phone Prod ID** | `com.music.violence` | `com.yashaswahuh.violencemusic` (in `app/build.gradle.kts:65`) |
 | **Android Phone Dev ID** | `com.dev.bitchord` | `com.yashaswahuh.violencemusic.dev` (in `app/build.gradle.kts:118`) |
-| **Android TV Prod ID** | `com.music.bitchord.tv` | `com.yashaswahuh.violencemusic.tv` (in `tv/build.gradle.kts:80`) |
+| **Android TV Prod ID** | `com.music.violence.tv` | `com.yashaswahuh.violencemusic.tv` (in `tv/build.gradle.kts:80`) |
 | **Android TV Dev ID** | `com.dev.bitchord.tv` | `com.yashaswahuh.violencemusic.tv.dev` (in `tv/build.gradle.kts:150`) |
-| **Application Namespace** | `namespace = "com.music.bitchord"` | `namespace = "com.yashaswahuh.violencemusic"` (in `app`, `tv`) |
-| **Shared Namespace** | `namespace = "com.music.bitchord.shared"` | `namespace = "com.yashaswahuh.violencemusic.shared"` (in `shared`) |
-| **SharedUi Namespace** | `com.music.bitchord.sharedui` | `com.yashaswahuh.violencemusic.sharedui` (in `sharedUi`) |
+| **Application Namespace** | `namespace = "com.music.violence"` | `namespace = "com.yashaswahuh.violencemusic"` (in `app`, `tv`) |
+| **Shared Namespace** | `namespace = "com.music.violence.shared"` | `namespace = "com.yashaswahuh.violencemusic.shared"` (in `shared`) |
+| **SharedUi Namespace** | `com.music.violence.sharedui` | `com.yashaswahuh.violencemusic.sharedui` (in `sharedUi`) |
 | **Custom URI Scheme** | `bitchord://` | `violence://` (in `AndroidManifest.xml`, `backend/main.go`, `invite.ts`) |
 | **Intent Filter Host** | `bitchord.kushagrasingh.in` | `yashaswahuh.is-a.dev` |
 | **Web Extension ID** | `extension@bitchord.kushagrasingh.in` | `extension@yashaswahuh.is-a.dev` (in `web/extension/wxt.config.ts:61`) |
@@ -80,7 +80,7 @@ All upstream visual assets must be replaced with new fork-specific graphics.
   - Update `app_name` across all 30 localization resource folders (e.g. `values-es`, `values-de`, `values-fr`, `values-zh`, etc.) to `"Violence"`.
 - `tv/build.gradle.kts:151,155`:
   - `resValue("string", "app_name", "BitChord TV")` ➔ Change to `"Violence TV"`
-- `tv/src/main/java/com/music/bitchord/ui/tv/dialogs/TvDialogs.kt:1213`:
+- `tv/src/main/java/com/music/violence/ui/tv/dialogs/TvDialogs.kt:1213`:
   - `TvDialog(title = "BitChord", ...)` ➔ Change to `"Violence"`
 - `web/app/index.html`:
   - `<title>BitChord</title>` ➔ Change to `<title>Violence</title>`
@@ -90,16 +90,16 @@ All upstream visual assets must be replaced with new fork-specific graphics.
   - Log strings and title `"BitChord Listen Together"` ➔ Change to `"Violence Listen Together"`.
 
 ### 4.2 Application Code & Headers
-- `app/src/main/java/com/music/bitchord/BitChordApplication.kt`:
+- `app/src/main/java/com/music/violence/ViolenceApplication.kt`:
   - Rename class to `ViolenceApplication.kt` (update manifest `android:name`).
   - User-Agent header string: `"BitChord/${BuildConfig.VERSION_NAME}..."` ➔ `"Violence/${BuildConfig.VERSION_NAME}..."`.
-- `app/src/main/java/com/music/bitchord/data/scrobbling/LastFM.kt:89`:
+- `app/src/main/java/com/music/violence/data/scrobbling/LastFM.kt:89`:
   - `headers.append(HttpHeaders.UserAgent, "BitChord (...)")` ➔ `"Violence (https://github.com/yashaswahuh/Violence)"`.
-- `app/src/main/java/com/music/bitchord/data/scrobbling/ListenBrainzManager.kt:33,83`:
+- `app/src/main/java/com/music/violence/data/scrobbling/ListenBrainzManager.kt:33,83`:
   - `"submission_client":"BitChord"` ➔ `"submission_client":"Violence"`
-- `app/src/main/java/com/music/bitchord/data/discord/DiscordRPC.kt:24,67`:
+- `app/src/main/java/com/music/violence/data/discord/DiscordRPC.kt:24,67`:
   - Presence activity name `"Listening to BitChord"` ➔ `"Listening to Violence"`.
-- `app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt:1560-1585`:
+- `app/src/main/java/com/music/violence/ui/screens/SettingsSheet.kt:1560-1585`:
   - Remove personal colophon links:
     - GitHub: `https://github.com/kushagrasinghx/BitChord`
     - Developer: `https://github.com/kushagrasinghx`
@@ -139,6 +139,6 @@ To avoid compilation breakages, execute the rebranding in this strict order duri
    - Rename `applicationId` in `app/build.gradle.kts` to `com.yashaswahuh.violencemusic` and `tv/build.gradle.kts` to `com.yashaswahuh.violencemusic.tv`.
    - Update deep link schemes from `bitchord://` to `violence://`.
    - Update URI intent filters and host definitions to `yashaswahuh.is-a.dev`.
-   - Refactor package folders from `com/music/bitchord` to `com/yashaswahuh/violencemusic`.
+   - Refactor package folders from `com/music/violence` to `com/yashaswahuh/violencemusic`.
 5. **Phase E: Verification**
    - Run `./gradlew assembleDevDebug` and `./gradlew :tv:assembleDevDebug` to confirm clean builds.

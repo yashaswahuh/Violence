@@ -32,15 +32,15 @@ Keep OURS, re-apply on top of upstream if overwritten:
 `grep -r "BitChord"` in added user-visible text; new hosts in added lines; new presence/analytics/update/donation code; `Presence.kt` and `AppUpdateChecker.kt` still blank; exactly one `android:enabled="true"` launcher alias; Jam protocol files (`backend/protocol|party|hub`, `PartyModels.kt`, `ListenTogether.kt`, `web/app/src/party/*`) changed or not; build phone, TV, web with explicit tasks.
 
 ## Violence Style touch points (stage S1, 2026-11-03)
-New code lives in `app/src/main/java/com/music/bitchord/ui/violencestyle/` and `app/src/test/.../violencestyle/`, strings in `app/src/main/res/values/strings_violence_style.xml`, fonts `app/src/main/res/font/vs_*.ttf`. Upstream files edited (re-apply after a sync if overwritten):
-- `app/src/main/java/com/music/bitchord/MainActivity.kt`: 4 import lines; `ViolenceStyleBoot.start(this)` and `val vsEnabled` before/in `setContent`; `darkTheme` is `ViolenceStyleSettings.forceDark(vsEnabled) ?: when (theme) {...}`; `BitChordTheme(...)` replaced by `ViolenceStyledTheme(...)`; one `SideEffect { ViolenceStyleSong.report(...) }` after `rememberPlayerState`.
-- `app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt`: one `row(...) { ViolenceStyleSettingsBlock() }` at the top of the `ADVANCED` group.
+New code lives in `app/src/main/java/com/music/violence/ui/violencestyle/` and `app/src/test/.../violencestyle/`, strings in `app/src/main/res/values/strings_violence_style.xml`, fonts `app/src/main/res/font/vs_*.ttf`. Upstream files edited (re-apply after a sync if overwritten):
+- `app/src/main/java/com/music/violence/MainActivity.kt`: 4 import lines; `ViolenceStyleBoot.start(this)` and `val vsEnabled` before/in `setContent`; `darkTheme` is `ViolenceStyleSettings.forceDark(vsEnabled) ?: when (theme) {...}`; `ViolenceTheme(...)` replaced by `ViolenceStyledTheme(...)`; one `SideEffect { ViolenceStyleSong.report(...) }` after `rememberPlayerState`.
+- `app/src/main/java/com/music/violence/ui/screens/SettingsSheet.kt`: one `row(...) { ViolenceStyleSettingsBlock() }` at the top of the `ADVANCED` group.
 - `NOTICE`: the font licence section. `.gitignore`: `/fork-docs/style-reference/`.
 Later stages add more touch points here (see `fork-docs/style/STYLE_MAPPING.md`).
 
 ### S2 additions (2026-11-03)
-- `app/src/main/java/com/music/bitchord/MainActivity.kt`: 5 more import lines; in `setContent`, `violenceBackdrop = LocalViolenceBackground.current` and `violenceBackdrop?.drawInto(this)` inside `paintBackdrop`; `ViolenceBackground()` before `BitChordApp(...)` in the root box; in `BitChordApp` the page root `Box` uses `.violenceBackground(LocalViolenceStyle.current, MaterialTheme.colorScheme.background)` instead of `.background(MaterialTheme.colorScheme.background)`; the SideEffect passes `showNowPlaying`.
-- `sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/screens/SearchScreen.kt` (shared with desktop): the `TopResultCard` background is wrapped in `if (LocalViolenceSeeThrough.current)`, plus one import. New shared file `sharedUi/.../ui/violencestyle/StyleHooks.kt`.
+- `app/src/main/java/com/music/violence/MainActivity.kt`: 5 more import lines; in `setContent`, `violenceBackdrop = LocalViolenceBackground.current` and `violenceBackdrop?.drawInto(this)` inside `paintBackdrop`; `ViolenceBackground()` before `ViolenceApp(...)` in the root box; in `ViolenceApp` the page root `Box` uses `.violenceBackground(LocalViolenceStyle.current, MaterialTheme.colorScheme.background)` instead of `.background(MaterialTheme.colorScheme.background)`; the SideEffect passes `showNowPlaying`.
+- `sharedUi/src/jvmSharedMain/kotlin/com/music/violence/ui/screens/SearchScreen.kt` (shared with desktop): the `TopResultCard` background is wrapped in `if (LocalViolenceSeeThrough.current)`, plus one import. New shared file `sharedUi/.../ui/violencestyle/StyleHooks.kt`.
 
 ### S3 additions (2026-11-03)
 All edits are early branches on `LocalViolenceShared.current` (null when the style is off) or swapped expressions; re-apply after a sync if overwritten.
@@ -73,7 +73,7 @@ Each is a swapped expression or an appended modifier; re-apply after a sync if o
 **Resolving a conflict.** Keep the upstream change and re-apply the skin's line on top: every edit is one early branch or one swapped expression (grep the file for `violence` or `Violence`). Never resolve by dropping the guard: the else branch must stay the upstream code. If upstream renames a function the skin wraps (`SectionHeader`, `CompactTrackRow`, `TopPickCard`, `artworkPageSurface`, `GlassSurface`, `paintBackdrop`), move the call to the new name. If upstream replaces the vendored `floatingtabbar/`, re-add the three lines (two `.violenceCapsuleGlow()`, one `.violenceTabSemantics(isSelected)`). `app/.../ui/violencestyle/**` and the font and string files are ours and never conflict.
 
 **Re-verify after every sync (10 minutes):**
-1. `grep -rn "violence\|Violence" ` the files above: every touch point still present; `ViolenceStyledTheme` still replaces `BitChordTheme` in `setContent`.
+1. `grep -rn "violence\|Violence" ` the files above: every touch point still present; `ViolenceStyledTheme` still replaces `ViolenceTheme` in `setContent`.
 2. Build phone, TV and web with the scripts; run the phone tests (`StyleOffParityTest` and friends must pass).
 3. Style OFF: Home, nav bar, a dialog look as upstream's (no rim, no serif, no glow).
 4. Style ON: Home headings, first hero card rim, nav capsule with glow line, Search rows without black bars, a dialog, the Settings block.
@@ -88,3 +88,7 @@ Each is a swapped expression or an appended modifier; re-apply after a sync if o
 - `app/.../ui/components/AccountProfileSelector.kt`: style on: lighter wash plus accent tint, rim, opens on the left (82 percent width), lighter scrim; style off: the original code path.
 - `sharedUi/.../ui/replay/ReplayCard.kt` (`ReplayCreditCard`): style on: mesh colours from the app accent (`violenceReplayColors`) instead of the cover; off: the cover palette as before.
 - `AccountProfileSelector.kt`: also reads `ViolenceStyleSettings.accountLiquidGlass` and, when on with the style, draws via `accountLiquidGlass()` (private, same `drawBackdrop` pipeline as `IosMenu.kt` `menuGlass`).
+
+## 2026-11-04: the internal package is now `com.music.violence`
+Every file path in the notes above that says `com/music/bitchord` now lives under `com/music/violence`. A sync from upstream BitChord will conflict in nearly every file: apply upstream changes with a path and token mapping (`com.music.bitchord` to `com.music.violence`, `BitChord*` identifiers to `Violence*`, `bitchord_*` native libraries to `violence_*`), and keep the names listed in `REBRAND_LOG.md` ("Kept on purpose").
+

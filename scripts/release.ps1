@@ -82,9 +82,9 @@ Write-Host "Keystore: $storeFull (alias $($props['keyAlias']))"
 # ---- 2. Version: one place, root build.gradle.kts ---------------------------------------------------------------
 $gradleFile = Join-Path $root 'build.gradle.kts'
 $gradleRaw = [IO.File]::ReadAllText($gradleFile)
-if ($gradleRaw -notmatch 'extra\["bitchordVersionCode"\]\s*=\s*(\d+)') { Stop-Release 'bitchordVersionCode not found in build.gradle.kts.' }
+if ($gradleRaw -notmatch 'extra\["violenceVersionCode"\]\s*=\s*(\d+)') { Stop-Release 'violenceVersionCode not found in build.gradle.kts.' }
 $code = [int]$Matches[1]
-if ($gradleRaw -notmatch 'extra\["bitchordVersionName"\]\s*=\s*"([^"]+)"') { Stop-Release 'bitchordVersionName not found in build.gradle.kts.' }
+if ($gradleRaw -notmatch 'extra\["violenceVersionName"\]\s*=\s*"([^"]+)"') { Stop-Release 'violenceVersionName not found in build.gradle.kts.' }
 $name = $Matches[1]
 $versionChanged = $false
 if ($Bump -or $VersionName) {
@@ -93,8 +93,8 @@ if ($Bump -or $VersionName) {
     elseif ($name -match '^(.*-violence\.)(\d+)$') { $newName = $Matches[1] + ([int]$Matches[2] + 1) }
     else { Stop-Release "The version '$name' does not end in -violence.N. Use -VersionName to set it." }
     if ($newName -notmatch '^\d+\.\d+\.\d+(-violence\.\d+)?$') { Stop-Release "Version name '$newName' should look like 1.9.0-violence.2 (upstream version, then -violence.N)." }
-    $gradleRaw = $gradleRaw -replace 'extra\["bitchordVersionCode"\]\s*=\s*\d+', "extra[`"bitchordVersionCode`"] = $newCode"
-    $gradleRaw = $gradleRaw -replace 'extra\["bitchordVersionName"\]\s*=\s*"[^"]+"', "extra[`"bitchordVersionName`"] = `"$newName`""
+    $gradleRaw = $gradleRaw -replace 'extra\["violenceVersionCode"\]\s*=\s*\d+', "extra[`"violenceVersionCode`"] = $newCode"
+    $gradleRaw = $gradleRaw -replace 'extra\["violenceVersionName"\]\s*=\s*"[^"]+"', "extra[`"violenceVersionName`"] = `"$newName`""
     [IO.File]::WriteAllText($gradleFile, $gradleRaw, (New-Object Text.UTF8Encoding($false)))
     Write-Host "Version: $name ($code) -> $newName ($newCode)  [build.gradle.kts changed: commit it]" -ForegroundColor Green
     $code = $newCode; $name = $newName; $versionChanged = $true
@@ -119,7 +119,7 @@ if (-not $updateUrl) {
 $outDir = Join-Path $root "release-out\$name"
 if (-not $SkipBuild) {
     Use-AndroidToolchain
-    & .\gradlew.bat ':app:assembleProdRelease' ':tv:assembleProdRelease' '-Pbitchord.bundleWear=false' --console=plain
+    & .\gradlew.bat ':app:assembleProdRelease' ':tv:assembleProdRelease' '-Pviolence.bundleWear=false' --console=plain
     if ($LASTEXITCODE -ne 0) { Stop-Release "Gradle failed (exit $LASTEXITCODE). Nothing was published." }
 }
 

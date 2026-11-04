@@ -8,7 +8,7 @@ Companion documents: `UI_DESIGN.md` (three directions), `UI_PLAN.md` (phases UI-
 
 | Layer | Where | Notes |
 |---|---|---|
-| App shell | `app/.../MainActivity.kt` (6,499 lines). `onCreate` calls `setContent`, which builds `BitChordTheme`, the glass `LayerBackdrop`, then one `BitChordApp(...)` composable | `BitChordApp` is one very large function (it starts near line 547 and runs to about line 6,400). It owns the tab pages, routes, top bar, bottom bar, mini player, the player sheet, and nearly every dialog. There is no smaller "screen" seam around it |
+| App shell | `app/.../MainActivity.kt` (6,499 lines). `onCreate` calls `setContent`, which builds `ViolenceTheme`, the glass `LayerBackdrop`, then one `ViolenceApp(...)` composable | `ViolenceApp` is one very large function (it starts near line 547 and runs to about line 6,400). It owns the tab pages, routes, top bar, bottom bar, mini player, the player sheet, and nearly every dialog. There is no smaller "screen" seam around it |
 | State | `ui/MainViewModel.kt` (3,639 lines, about 44 observable properties), `AppSettings` (singleton of `MutableStateFlow`s), `ListenTogether`, `ProfileManager`, `Downloads`, `IncomingLinkHub`, `RecentShares`, the Media3 `controller` to `PlaybackService` | Screens read them with `collectAsStateWithLifecycle()`. Nothing is injected; state holders are objects or the activity-scoped view model |
 | Navigation | `ui/navigation/AppNavigator.kt` (one back stack of `AppRoute` entries) plus `MainViewModel.detailStack` (album, artist, playlist pages) interleaved by depth; the four tabs are plain indexes (`TAB_HOME=0`, `TAB_EXPLORE=1`, `TAB_LIBRARY=2`, `TAB_SEARCH=3`, private constants in `MainActivity.kt`) | Release pages deliberately are not routes (they load in place on the view model's stack) |
 | Shared pages | `sharedUi/.../ui/screens/` `HomeScreen`, `ExploreScreen`, `LibraryScreen`, `SearchScreen`, `TopPicksShelf` | Shared with the dormant desktop app. They reach the platform through `AppUiHost` (`AndroidAppUiHost` on the phone) |
@@ -114,7 +114,7 @@ All in `data/settings/AppSettings.kt`, edited in `ui/screens/SettingsSheet.kt`.
 - `Theme.kt`: `DarkColors`/`LightColors` (near-black `#000000` background in dark, `#0D0D0F` surface; white/black primary; greys from the iOS set: `#8E8E93`, `#6E6E73`, `#1C1C1E`, `#2C2C2E`). `AccentRed #FA2D48` is kept for a few spots only (Replay rank badge). There is **no brand accent in the colour scheme**: primary is white/black.
 - Typography: `SFProDisplay` (five bundled `.otf` files in `res/font`: regular, medium, semibold, bold, heavy) drawn one weight lighter than requested, or a "legacy" scale. Sizes are in `sp` (34/30/22/20/16/16/14/12/11).
 - Shapes: `ContinuousCornerShape`, `SquirclePillShape`; sizes are inline `dp` literals scattered across files (for example `TopBarContentHeight = 52.dp`, `TOP_CONTROL_SIZE = 44.dp`, avatar 28 dp). There is no token file.
-- Icons: `ui/icons/SfIcons.kt` imports `com.composables.sfsymbols` (dependency `com.github.cosmictaserdev-creator.Jetpack_SF_Symbols:sfsymbols-android:1.1.1`); `BitChordIcons` are hand-drawn strokes; some Material icons remain.
+- Icons: `ui/icons/SfIcons.kt` imports `com.composables.sfsymbols` (dependency `com.github.cosmictaserdev-creator.Jetpack_SF_Symbols:sfsymbols-android:1.1.1`); `ViolenceIcons` are hand-drawn strokes; some Material icons remain.
 - Artwork colour: `ui/theme/ArtworkPalette.kt` (in `:sharedUi`), `MeshGradient.kt`, `ArtworkMeshBackdrop.kt`.
 
 **Public-release licence flags (found while reading; not legal advice):**

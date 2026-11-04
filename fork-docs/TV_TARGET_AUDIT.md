@@ -2,7 +2,7 @@
 
 **Audit Date:** 2026-10-29  
 **Module Directory:** `/tv`  
-**Application ID:** `com.music.bitchord.tv` (prod) / `com.dev.bitchord.tv` (dev)  
+**Application ID:** `com.music.violence.tv` (prod) / `com.dev.bitchord.tv` (dev)  
 **SDK Versions:** `compileSdk = 37`, `targetSdk = 36`, `minSdk = 26`  
 **Primary Configuration:** `tv/build.gradle.kts` (497 lines) and `tv/src/main/AndroidManifest.xml`
 
@@ -24,7 +24,7 @@ tv/
     └── main/
         ├── AndroidManifest.xml   # Android TV manifest (LEANBACK_LAUNCHER, TvActivity)
         ├── java/
-        │   └── com/music/bitchord/
+        │   └── com/music/violence/
         │       ├── TvActivity.kt # Main Android TV Leanback activity
         │       ├── data/         # TV-specific startup, USB scanning, PIN throttling
         │       ├── ui/
@@ -91,10 +91,10 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 ```
 
 #### Files Currently Patched by TV:
-1. `com/music/bitchord/wear/WatchInstaller.kt`:
+1. `com/music/violence/wear/WatchInstaller.kt`:
    - In `:app`: Implements an in-app wireless ADB client (`libadb-android`) to sideload the Wear OS APK onto a watch.
    - In `:tv`: A 33-line no-op stub object. TVs have no connected watches, and bundling the ADB engine into TV would waste binary size.
-2. `com/music/bitchord/wear/WearBridge.kt`:
+2. `com/music/violence/wear/WearBridge.kt`:
    - In `:app`: Connects to Google Play Services Wearable Data Layer.
    - In `:tv`: A no-op stub object preventing wearable sync routines from initializing on Android TV.
 
@@ -113,21 +113,21 @@ Because of the tight coupling between `:tv` and `:app`, maintenance in the priva
 ### 1. Maintain Interface Compatibility in `:app`
 - Any refactoring, renaming, or deleting of classes under `app/src/main/java` will directly affect `:tv`.
 - Specifically, `TvActivity` and TV screens rely on:
-  - `com.music.bitchord.playback.PlaybackService`
-  - `com.music.bitchord.ui.MainViewModel`
-  - `com.music.bitchord.data.YtMusicRepository`
-  - `com.music.bitchord.data.settings.AppSettings`
-  - `com.music.bitchord.data.sources.SourceRegistry`
+  - `com.music.violence.playback.PlaybackService`
+  - `com.music.violence.ui.MainViewModel`
+  - `com.music.violence.data.YtMusicRepository`
+  - `com.music.violence.data.settings.AppSettings`
+  - `com.music.violence.data.sources.SourceRegistry`
   If public methods or constructors in these classes are altered during phone app updates, the TV screens calling them must be updated simultaneously.
 
 ### 2. Synchronization During Rebranding
-- When renaming the application ID (`com.music.bitchord` ➔ `com.music.<newname>`) and namespace, `tv/build.gradle.kts` and `tv/src/main/AndroidManifest.xml` must be renamed to match (`com.music.<newname>.tv`).
+- When renaming the application ID (`com.music.violence` ➔ `com.music.<newname>`) and namespace, `tv/build.gradle.kts` and `tv/src/main/AndroidManifest.xml` must be renamed to match (`com.music.<newname>.tv`).
 - All package statements in `tv/src/main/java/...` must be updated to the new namespace.
 - Deep link intent filters in `tv/src/main/AndroidManifest.xml:246` must be updated to the new domain.
 
 ### 3. Impact of Wear OS Pruning (Phase 3)
 - When `:wearos` is pruned from the project, `WatchInstaller.kt` and `WearBridge.kt` will be removed from `:app`.
-- Once removed from `:app`, the stubs in `tv/src/main/java/com/music/bitchord/wear/` will no longer be "replacements" for anything in `:app`.
+- Once removed from `:app`, the stubs in `tv/src/main/java/com/music/violence/wear/` will no longer be "replacements" for anything in `:app`.
 - **Action:** Both stub files in `tv` should be cleanly deleted alongside the Wear OS pruning phase, and any lingering references in `:tv` removed.
 
 ### 4. Dependency Stripping: NewPipeExtractor

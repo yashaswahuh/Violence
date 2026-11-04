@@ -29,10 +29,10 @@ Phone app only. TV, web, Wear OS and desktop are out of scope (Wear OS and deskt
 
 ## Architecture
 
-1. **One style state.** `ViolenceStyleState` (immutable data class: `enabled`, `background`, `motion`, `intensity`, `accentSource`, `accent: Color`, `lite: Boolean`, `headingStyle`) read through `LocalViolenceStyle` (a `staticCompositionLocalOf` whose default is the OFF state). Built in one place from `AppSettings` flows plus `StylePerformance` (battery saver, low RAM, thermal, foreground, reduce motion) and the accent engine, and provided once in `MainActivity.setContent` around `BitChordApp`. Components never read settings directly.
+1. **One style state.** `ViolenceStyleState` (immutable data class: `enabled`, `background`, `motion`, `intensity`, `accentSource`, `accent: Color`, `lite: Boolean`, `headingStyle`) read through `LocalViolenceStyle` (a `staticCompositionLocalOf` whose default is the OFF state). Built in one place from `AppSettings` flows plus `StylePerformance` (battery saver, low RAM, thermal, foreground, reduce motion) and the accent engine, and provided once in `MainActivity.setContent` around `ViolenceApp`. Components never read settings directly.
 2. **Style extensions return their input unchanged when off.** The family is `Modifier.violenceGlassRim(style, ...)`, `violenceCardRim`, `violenceGlassPill`, `violenceHairline`... Each takes the state as an argument (`fun Modifier.violenceX(style: ViolenceStyleState, ...): Modifier = if (!style.enabled) this else ...`), so it is a plain function and unit-testable on the JVM without Compose. Composable wrappers (`ViolenceSectionHeader`, `ViolenceBackground`, `ViolenceCapsule`) are only reached through an `if (style.enabled)` at the call site; the `else` branch is the untouched original code.
 3. **Shared-UI hooks.** `:sharedUi` cannot import `:app`. It gets one new file, `ViolenceStyleHooks` (an interface with a default OFF implementation in a `staticCompositionLocalOf`), that `:app` implements. The three shared screens call it under an `if`.
-4. **New code in new files.** Package `com.music.bitchord.ui.violencestyle` in `:app` (state, accent engine, background, fonts, settings UI, safe mode, performance); `:sharedUi` gets the one hooks file. Tests in `app/src/test/.../violencestyle/`.
+4. **New code in new files.** Package `com.music.violence.ui.violencestyle` in `:app` (state, accent engine, background, fonts, settings UI, safe mode, performance); `:sharedUi` gets the one hooks file. Tests in `app/src/test/.../violencestyle/`.
 5. **Minimal edited upstream files** (target): `MainActivity.kt` (provider + background layer + safe-mode hook, about 20 lines in three places), `AppSettings.kt` (append-only keys), `SettingsSheet.kt` (one call), `HomeScreen.kt`, `TopPicksShelf.kt`, `SearchScreen.kt` (guards), `GlassNavBar.kt` and `MiniPlayer.kt` and `FrostedTopBar.kt` (modifier and tint call sites), 18 `strings.xml`. Nothing else.
 
 ## Settings (new, all under one group "Violence Style")
@@ -115,13 +115,13 @@ At the start of `MainActivity.onCreate`, before any skin code: if the skin is on
 
 ## S1 built (2026-11-03)
 
-**What exists.** New package `app/src/main/java/com/music/bitchord/ui/violencestyle/`:
+**What exists.** New package `app/src/main/java/com/music/violence/ui/violencestyle/`:
 - `StyleModel.kt`: `StyleState` (enabled, background, motion, intensity, accent source, custom colour, heading font, reduce transparency, detail glow, capability FULL/LITE, lite reason, reduce motion, high contrast), `LocalViolenceStyle` (default `StyleState.DISABLED`), the owner's defaults. Arcs is not an option (owner decision).
 - `AccentMath.kt`, `AccentEngine.kt`: pure colour maths (WCAG contrast, HSL clamp 0.55-0.90 / 0.45-0.65, neutral and dull detection, picker guard `makeUsable`), `AccentTokens` (accent, accentSoft, glowColor, onAccent, textAccent, neutral), nine presets, source resolution with fallbacks (song, held previous song, device, custom, fixed Blue).
 - `StyleCapability.kt`: FULL versus LITE rules (API below 31, low RAM, battery saver, thermal severe, Reduce dynamic blur, forced reduce transparency), reduce-motion rule, background-clock rule (used from S2).
 - `StyleSafeMode.kt`, `StyleSettings.kt`: safe-mode logic and boot hooks (counter written with `commit()`, cleared after the first drawn frame), settings in the existing `bitchord_settings` file under `violence_style.*` keys, no `AppSettings.kt` edit.
 - `StyleTypography.kt`: Inter body typography (only while on; `violenceTypography(base, false)` returns `base` itself), heading tokens (`ViolenceHeadingStyles`) for Bodoni Moda and Cormorant Garamond.
-- `StyleHost.kt`: `ViolenceStyledTheme` (drop-in for `BitChordTheme`; with the style off it is exactly that call), system signals, accent crossfade (800 ms, 400 ms song debounce, cut under reduce motion).
+- `StyleHost.kt`: `ViolenceStyledTheme` (drop-in for `ViolenceTheme`; with the style off it is exactly that call), system signals, accent crossfade (800 ms, 400 ms song debounce, cut under reduce motion).
 - `StyleSettingsUi.kt`: the settings block (master toggle, options, picker, Mode line) and the preview card.
 - Edited upstream files: `MainActivity.kt`, `SettingsSheet.kt` (listed in `UPSTREAM_SYNC.md`).
 
@@ -163,7 +163,7 @@ Font files were fetched from the Google Fonts repository (`github.com/google/fon
 **Legibility:** `GlowGuard` samples a 12 x 24 grid at the base pose and at the four extremes of the drift. Upper 30 percent of the height: white text at least 3:1. Below it: the app's secondary text colour `#8E8E93` at least 4.5:1 (which also covers white). A blob causing a violation is dimmed in 10 percent steps down to 5 percent. Unit tests run it for every preset and for extreme colours (pure blue, red, yellow, cyan, near-white, near-black, gray) x 3 styles x 3 intensities x 3 motions. A Python replica of the same maths shows Medium untouched for Blue, Red and Pink in every style, and only High on Aurora (mid-right blob x0.73) and Haze (x0.73 and x0.9) held back. A 200 percent font scale does not change colours, so contrast holds; fit and wrapping at 200 percent are S3.
 
 **Screens made see-through (only when the style shows a background; one helper, `violenceBackground`):**
-1. The page root in `BitChordApp` (`MainActivity.kt`): a full-screen `Box` filled with `colorScheme.background`. This was the one fill that covered everything.
+1. The page root in `ViolenceApp` (`MainActivity.kt`): a full-screen `Box` filled with `colorScheme.background`. This was the one fill that covered everything.
 2. The Search "Top result" card (`SearchScreen.kt`, a shared file, through `LocalViolenceSeeThrough`).
 
 Left opaque on purpose: Search song rows (their fill hides the swipe-to-queue reveal; the guard keeps the glow under them near black), album, artist and playlist pages (own artwork colours, S5), Replay and onboarding (own full-screen backdrops), full-screen sign-in surfaces, dialogs and sheets (separate windows), the Jam activity-log card (a card, not a page). A solid floor (`windowBackground`, then the base tint of the layer) stays behind everything, so nothing flashes. The top-bar fade and the bottom fade (`BottomFadeScrim`) still fade to plain black; the top one is invisible on Home at rest and the glow is near black at the bottom. Polishing them is S4.
@@ -243,7 +243,7 @@ Left opaque on purpose: Search song rows (their fill hides the swipe-to-queue re
 
 ### How the OFF path is guaranteed
 1. **Defaults:** `LocalViolenceStyle` defaults to `StyleState.DISABLED`; `LocalViolenceShared` and `LocalViolenceBackground` default to null; `LocalViolenceSeeThrough` to false; every setting key defaults to off or its documented default; the master toggle is `false` on a fresh install and survives updates unchanged.
-2. **Theme host:** `ViolenceStyledTheme` is `BitChordTheme { slot() }` while off (the app content sits in a `movableContentOf` slot so a toggle keeps its UI state); `ViolenceBackground()` returns before composing anything when there is no holder; `forceDark(false)` returns null so the app's own theme choice is used.
+2. **Theme host:** `ViolenceStyledTheme` is `ViolenceTheme { slot() }` while off (the app content sits in a `movableContentOf` slot so a toggle keeps its UI state); `ViolenceBackground()` returns before composing anything when there is no holder; `forceDark(false)` returns null so the app's own theme choice is used.
 3. **Guards at every call site:** each edited upstream line is an early branch on a local that is off, or a swapped expression whose else path is the original code (`violenceBackground(DISABLED, c) == background(c)`, `violenceGlassEdge` off is `border(width, color, shape)`, `violenceGlassTint()` null is the glass default, `violenceCardRim(null, ...)` and `violenceCapsuleGlowFor(DISABLED, ...)` return the receiver, `violenceTypography(base, false)` returns `base`).
 4. **Tests:** `StyleOffParityTest`, `ViolenceS3OffParityTest`, `ViolenceS4OffParityTest`, `StyleBackgroundRulesTest`, the settings default and unknown-value tests, the safe-mode tests. Whole phone suite at S6: see `PHASES.md`.
 5. **Not covered by automation:** the project has no Compose or Robolectric UI tests, so "the screens look identical off" rests on these guards and on the owner's OFF screenshots for S1 to S5.

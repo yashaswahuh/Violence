@@ -52,8 +52,8 @@ YT Music and Spotify login code (`auth/`, `data/canvas/SpotifyToken.kt`, `Innert
 ### Verification (explicit tasks, JDK 17.0.20, SDK platform 37.0 + 36, NDK 27, CMake 3.22.1)
 | Check | Result |
 |---|---|
-| `:app:assembleDevDebug -Pbitchord.bundleWear=false` | BUILD SUCCESSFUL (15 min) |
-| `:tv:assembleDevDebug -Pbitchord.bundleWear=false` | BUILD SUCCESSFUL (6.5 min) |
+| `:app:assembleDevDebug -Pviolence.bundleWear=false` | BUILD SUCCESSFUL (15 min) |
+| `:tv:assembleDevDebug -Pviolence.bundleWear=false` | BUILD SUCCESSFUL (6.5 min) |
 | `:app:testDevDebugUnitTest` | 1209 tests, 0 failures |
 | `:shared:jvmTest` | 122 tests, 0 failures |
 | web `typecheck`, `build:site`, `test` | pass; 159 tests, 0 failures |
@@ -61,11 +61,11 @@ Not built or tested (by rule): wearos, desktopApp, desktopUi.
 
 ### Frozen targets impact
 - **Desktop:** kept as-is, but upstream changed `shared`/`sharedUi` (37 + 70 files) after deleting desktop, so nothing there was adapted. Desktop may not compile against v1.9 shared code. UNCLEAR, not built. Fix only if the owner asks.
-- **Wear OS:** no upstream changes, no conflicts. `:wearos` still included in settings (builds are skipped with `-Pbitchord.bundleWear=false`).
+- **Wear OS:** no upstream changes, no conflicts. `:wearos` still included in settings (builds are skipped with `-Pviolence.bundleWear=false`).
 - `release.yml` (desktop release on `v*.*.*` tags) kept; do not tag.
 
 ### Environment notes (machine, not repo)
-Installed: Temurin JDK 17 (`C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`), Android cmdline-tools, CMake 3.22.1, platform 36. Platform `android-37.0` builds fine with this AGP. In PowerShell, quote `'-Pbitchord.bundleWear=false'`. Web scripts need `pnpm` on PATH (corepack shim). Downloads from dl.google.com need `curl.exe -4`.
+Installed: Temurin JDK 17 (`C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`), Android cmdline-tools, CMake 3.22.1, platform 36. Platform `android-37.0` builds fine with this AGP. In PowerShell, quote `'-Pviolence.bundleWear=false'`. Web scripts need `pnpm` on PATH (corepack shim). Downloads from dl.google.com need `curl.exe -4`.
 
 ### UNCLEAR / owner follow-ups
 - Neon/Monochrome icons are now Violence-branded (V); review them on a device.
