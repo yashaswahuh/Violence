@@ -42,7 +42,7 @@ import kotlin.math.abs
  */
 internal class DesktopPartySync(
     private val scope: CoroutineScope,
-    private val engine: DesktopPlaybackEngine,
+    private val engine: DesktopPlaybackEngine? = null,
     /**
      * Puts the party's track on this device, resolving a stream for it: the party's running order
      * and the index of the track within it, as the phone's `PartySync.load` takes them.
@@ -80,6 +80,28 @@ internal class DesktopPartySync(
     private var appliedAutoplay: Boolean? = null
     /** A track selection whose decoder is still resolving. */
     private var pendingIntentVideoId: String? = null
+
+    @Volatile
+    internal var unplayableVideoId: String? = null
+
+    fun onTrackUnplayable(videoId: String): PartyTrack? {
+        unplayableVideoId = videoId
+        val party = DesktopListenTogether.state.value
+        if (!party.inParty) return null
+        val track = party.playback.track ?: return null
+        if (track.videoId != videoId) return null
+        DesktopTrackLog.log("cannot play party track $videoId here; staying quiet until party moves on")
+        publishJob?.cancel()
+        DesktopListenTogether.setStalledTrack(track.title.ifBlank { track.videoId })
+        return track
+    }
+
+    private fun clearUnplayable() {
+        if (unplayableVideoId != null) {
+            unplayableVideoId = null
+            DesktopListenTogether.setStalledTrack(null)
+        }
+    }
 
     /**
      * Until when inbound reconciliation is held off.
@@ -141,16 +163,18 @@ internal class DesktopPartySync(
         lastPartyCode = null
         appliedAutoplay = null
         pendingIntentVideoId = null
+        clearUnplayable()
     }
 
     /** Something the listener asked for here, which the party should be told about. */
     fun onLocalIntent(expectedVideoId: String? = null) {
+        clearUnplayable()
         val party = DesktopListenTogether.state.value
         if (!party.inParty || party.controlsLocked) return
         // Queue/transport gestures can arrive while a preceding song selection is still loading.
         // Keep waiting for that selection rather than letting the later gesture cancel its guard.
         val waitForVideoId = expectedVideoId
-            ?: engine.state.value.takeIf { it.isLoading }?.song?.videoId
+            ?: (engine?.state?.value ?: DesktopPlaybackState()).takeIf { it.isLoading }?.song?.videoId
         pendingIntentVideoId = waitForVideoId
         // Nothing has gone out yet, so there is nothing to wait for and somebody else's control
         // must not end the window protecting this one.
@@ -165,7 +189,7 @@ internal class DesktopPartySync(
             delay(PUBLISH_DEBOUNCE_MS)
             if (waitForVideoId != null) {
                 repeat(PUBLISH_WAIT_ATTEMPTS) {
-                    val playback = engine.state.value
+                    val playback = (engine?.state?.value ?: DesktopPlaybackState())
                     if (playback.song?.videoId == waitForVideoId && !playback.isLoading) {
                         pendingIntentVideoId = null
                         quietUntilMs = nowMs() + INTENT_QUIET_MS
@@ -188,13 +212,13 @@ internal class DesktopPartySync(
     fun handleLockedPlayPause(): Boolean {
         val party = DesktopListenTogether.state.value
         if (!party.controlsLocked) return false
-        if (engine.state.value.isPlaying) {
+        if ((engine?.state?.value ?: DesktopPlaybackState()).isPlaying) {
             locallyPaused = true
-            engine.pause()
+            engine?.pause()
         } else {
             locallyPaused = false
-            DesktopListenTogether.partyPositionMs()?.let(engine::seekTo)
-            engine.play()
+            DesktopListenTogether.partyPositionMs()?.let { engine?.seekTo(it) }
+            engine?.play()
         }
         return true
     }
@@ -217,12 +241,20 @@ internal class DesktopPartySync(
         }
         val track = target.track
         if (track == null) {
+            clearUnplayable()
             // A newly created party is empty. Its host seeds it with the music already playing;
             // listeners never race the host for that first state.
             if (party.you?.isHost == true && party.connection == DesktopListenTogether.Connection.LIVE) publish()
             return
         }
-        val playback = engine.state.value
+        if (unplayableVideoId != null) {
+            if (track.videoId != unplayableVideoId) {
+                clearUnplayable()
+            } else {
+                return
+            }
+        }
+        val playback = (engine?.state?.value ?: DesktopPlaybackState())
 
         // A local file is this device's own business; the party has no copy of it to agree on.
         if (playback.song?.localPath != null || playback.song?.localUri != null) return
@@ -248,9 +280,9 @@ internal class DesktopPartySync(
 
         if (!target.isPlaying) {
             locallyPaused = false
-            if (playback.isPlaying) engine.pause()
+            if (playback.isPlaying) engine?.pause()
             if (abs(playback.positionMs - target.positionMs) > PAUSED_TOLERANCE_MS) {
-                engine.seekTo(target.positionMs)
+                engine?.seekTo(target.positionMs)
             }
             return
         }
@@ -267,9 +299,9 @@ internal class DesktopPartySync(
                 }
                 return
             }
-            if (want != null) engine.seekTo(want)
+            if (want != null) engine?.seekTo(want)
             startJob?.cancel()
-            engine.play()
+            engine?.play()
             return
         }
 
@@ -289,7 +321,7 @@ internal class DesktopPartySync(
         if (decision.cooldownUntilMs > 0) driftCooldownUntilMs = decision.cooldownUntilMs
         if (decision.seek) {
             DesktopTrackLog.log("party: ${decision.reason} ${drift}ms")
-            engine.seekTo(want)
+            engine?.seekTo(want)
         }
     }
 
@@ -313,7 +345,7 @@ internal class DesktopPartySync(
     private fun publish() {
         val party = DesktopListenTogether.state.value
         if (!party.inParty) return
-        val playback = engine.state.value
+        val playback = (engine?.state?.value ?: DesktopPlaybackState())
         // Unlike ExoPlayer, the desktop state cannot represent "play when ready" while a stream
         // is still resolving: it temporarily reads as paused. Wait for the decoder so creating a
         // party during a load cannot seed a false pause or an incomplete current track.

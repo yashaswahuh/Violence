@@ -303,6 +303,57 @@
     U+2100-214F, U+2190-21FF, U+2212, U+FEFF, U+FFFD;
 }
 
+/*
+ * Violence Style Fonts (SIL Open Font License 1.1)
+ * Inter (body face), Bodoni Moda (Didone display serif), Cormorant Garamond (light display serif), Anton (grotesque)
+ */
+@font-face {
+  font-family: 'Violence Inter';
+  src: url('../assets/fonts/vs-inter.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Violence Bodoni Moda';
+  src: url('../assets/fonts/vs-bodoni-moda.ttf') format('truetype');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Violence Bodoni Moda';
+  src: url('../assets/fonts/vs-bodoni-moda-italic.ttf') format('truetype');
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Violence Cormorant Garamond';
+  src: url('../assets/fonts/vs-cormorant-garamond.ttf') format('truetype');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Violence Cormorant Garamond';
+  src: url('../assets/fonts/vs-cormorant-garamond-italic.ttf') format('truetype');
+  font-weight: 300 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Violence Anton';
+  src: url('../assets/fonts/vs-anton.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   *,
   *::before,
@@ -402,3 +453,63 @@
     }
   }
 }
+
+/*
+ * Violence Style (Experimental, DW-4)
+ * Hardware-accelerated CSS radial drifting, accent rim glow and capsule indicators.
+ */
+@keyframes violence-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(3%, -2%) scale(1.04);
+  }
+  66% {
+    transform: translate(-2%, 3%) scale(0.97);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.animate-violence-drift {
+  animation: violence-drift 32s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.violence-blob {
+  transition: background 800ms cubic-bezier(0.4, 0, 0.2, 1), opacity 800ms ease;
+}
+
+[data-violence-style='true'] .glass-pill::before {
+  box-shadow: 0 10px 40px var(--glassMaterialShadowColor), 0 0 25px color-mix(in srgb, var(--vs-accent, #3f7bff) 24%, transparent);
+}
+
+[data-violence-style='true'] .glass-pill::after {
+  box-shadow:
+    inset 0.75px 0.75px 0 rgba(255, 255, 255, 0.28),
+    inset -0.75px -0.75px 0 color-mix(in srgb, var(--vs-accent, #3f7bff) 35%, transparent);
+  opacity: 0.85;
+}
+
+[data-violence-style='true'] nav[aria-label="Main"] {
+  border-right: 1px solid color-mix(in srgb, var(--vs-accent, #3f7bff) 18%, rgba(255, 255, 255, 0.12));
+}
+
+[data-violence-style='true'] [aria-current="page"] {
+  position: relative;
+  background-color: var(--vs-accent-soft, rgba(63, 123, 255, 0.22)) !important;
+}
+
+[data-violence-style='true'] [aria-current="page"]::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(to right, transparent, var(--vs-accent, #3f7bff), transparent);
+}
+

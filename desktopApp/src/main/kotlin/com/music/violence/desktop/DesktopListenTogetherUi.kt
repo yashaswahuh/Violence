@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.RemoveCircleOutline
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,15 +68,26 @@ import java.util.Locale
 
 /** Desktop counterpart of Android's complete Listen Together page. */
 @Composable
-internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: () -> Unit) {
+internal fun DesktopListenTogetherDialog(
+    autoplayEnabled: Boolean,
+    onDismiss: () -> Unit,
+    onShareJam: ((String) -> Unit)? = null,
+) {
     val state by DesktopListenTogether.state.collectAsState()
     val activity by DesktopListenTogether.activity.collectAsState()
     val server by DesktopListenTogether.customServerUrl.collectAsState()
     val serverStatus by DesktopListenTogether.serverStatus.collectAsState()
+    val serverWaking by DesktopListenTogether.serverWaking.collectAsState()
+    val stalledTrack by DesktopListenTogether.stalledTrack.collectAsState()
     val scope = rememberCoroutineScope()
     var code by remember { mutableStateOf("") }
-    var nickname by remember { mutableStateOf(DesktopListenTogether.nickname()) }
-    var maxMembers by remember { mutableStateOf(5) }
+    val initialNickname = remember {
+        DesktopListenTogether.nickname().ifBlank {
+            DesktopProfileManager.current()?.displayName.orEmpty()
+        }
+    }
+    var nickname by remember { mutableStateOf(initialNickname) }
+    var maxMembers by remember { mutableStateOf(15) }
     var serverDraft by remember { mutableStateOf(server) }
     var preview by remember { mutableStateOf<PartyPreview?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -123,6 +135,7 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
                             busy = false
                         }
                     },
+                    onShareJam = onShareJam,
                 )
                 preview != null -> JoinConfirmation(
                     preview = preview!!,
@@ -154,13 +167,18 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
                         DesktopListenTogether.setNickname(nickname)
                     },
                     maxMembers = maxMembers,
-                    onMaxMembersChange = { maxMembers = it.coerceIn(2, 10) },
+                    onMaxMembersChange = { maxMembers = it.coerceIn(2, 15) },
                     code = code,
                     onCodeChange = {
-                        code = JamInvite.parse(it)
-                            ?: it.filter(Char::isLetterOrDigit).uppercase().take(DesktopListenTogether.CODE_LENGTH)
+                        val trimmed = it.trim()
+                        val parsed = com.music.violence.data.share.PartyLinks.parse(trimmed)?.code
+                            ?: JamInvite.parse(trimmed)
+                            ?: trimmed.filter(Char::isLetterOrDigit).uppercase().take(DesktopListenTogether.CODE_LENGTH)
+                        code = parsed
                         localError = null
                     },
+                    serverWaking = serverWaking,
+                    stalledTrack = stalledTrack,
                     server = serverDraft,
                     serverStatus = serverStatus,
                     onServerChange = { serverDraft = it },
@@ -222,6 +240,8 @@ private fun PartyLanding(
     error: String?,
     onCreate: () -> Unit,
     onPreview: () -> Unit,
+    serverWaking: Boolean = false,
+    stalledTrack: String? = null,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -250,11 +270,11 @@ private fun PartyLanding(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Party size", fontWeight = FontWeight.Medium)
-                            Text("2–10 people", color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
+                            Text("2–15 people", color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
                         }
                         Stepper("−", enabled && maxMembers > 2) { onMaxMembersChange(maxMembers - 1) }
                         Text("$maxMembers", modifier = Modifier.width(34.dp), textAlign = TextAlign.Center)
-                        Stepper("+", enabled && maxMembers < 10) { onMaxMembersChange(maxMembers + 1) }
+                        Stepper("+", enabled && maxMembers < 15) { onMaxMembersChange(maxMembers + 1) }
                     }
                     Spacer(Modifier.height(16.dp))
                     PrimaryButton("Start party", busy, enabled, onCreate)
@@ -284,7 +304,9 @@ private fun PartyLanding(
                 }
             }
         }
-        if (!signedIn) item { Notice("Sign in to YouTube Music before creating or joining a party.", true) }
+        if (serverWaking) item { Notice("Waking up the Jam server... this can take up to a minute.", false) }
+        stalledTrack?.let { item { Notice("\"$it\" won't play on this computer. You'll rejoin the party on the next song.", false) } }
+        if (!signedIn) item { Notice("Create an in-app profile or sign in to YouTube Music before creating or joining a party.", true) }
         error?.takeIf(String::isNotBlank)?.let { item { Notice(it, true) } }
         item {
             Column(Modifier.desktopCardInset(RoundedCornerShape(14.dp)).padding(18.dp)) {
@@ -382,10 +404,16 @@ private fun JoinConfirmation(
 }
 
 @Composable
-private fun PartyRoom(state: DesktopListenTogether.State, activity: List<PartyActivity>, busy: Boolean, onLeave: () -> Unit) {
+private fun PartyRoom(
+    state: DesktopListenTogether.State,
+    activity: List<PartyActivity>,
+    busy: Boolean,
+    onLeave: () -> Unit,
+    onShareJam: ((String) -> Unit)? = null,
+) {
     Row(Modifier.fillMaxSize().padding(horizontal = panelInset(24.dp), vertical = 24.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
         LazyColumn(Modifier.weight(1.15f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            item { RoomHero(state) }
+            item { RoomHero(state, onShareJam) }
             item { NowPlayingCard(state) }
             item { QueueCard(state) }
         }
@@ -404,7 +432,7 @@ private fun PartyRoom(state: DesktopListenTogether.State, activity: List<PartyAc
 }
 
 @Composable
-private fun RoomHero(state: DesktopListenTogether.State) {
+private fun RoomHero(state: DesktopListenTogether.State, onShareJam: ((String) -> Unit)? = null) {
     val invite = DesktopListenTogether.inviteUrl(state.code.orEmpty())
     Row(Modifier.fillMaxWidth().desktopCardInset(RoundedCornerShape(16.dp)).padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
@@ -421,6 +449,13 @@ private fun RoomHero(state: DesktopListenTogether.State) {
                 Icon(Icons.Rounded.ContentCopy, null, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(7.dp))
                 Text("Copy invite")
+            }
+            if (onShareJam != null) {
+                TextButton(onClick = { onShareJam(state.code.orEmpty()) }) {
+                    Icon(Icons.Rounded.Share, null, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(7.dp))
+                    Text("Share QR")
+                }
             }
         }
     }
@@ -512,7 +547,7 @@ private fun HostControls(state: DesktopListenTogether.State) {
             }
             Stepper("−", state.maxMembers > maxOf(2, state.members.size)) { DesktopListenTogether.setMaxMembers(state.maxMembers - 1) }
             Text("${state.maxMembers}", modifier = Modifier.width(30.dp), textAlign = TextAlign.Center)
-            Stepper("+", state.maxMembers < 10) { DesktopListenTogether.setMaxMembers(state.maxMembers + 1) }
+            Stepper("+", state.maxMembers < 15) { DesktopListenTogether.setMaxMembers(state.maxMembers + 1) }
         }
     }
 }
@@ -556,15 +591,35 @@ private fun MemberRow(member: PartyMember, isYou: Boolean, canKick: Boolean, onK
 
 @Composable
 private fun PartyAvatar(url: String?, size: Int, fallback: String = "") {
-    if (url != null) {
+    if (url?.startsWith("avatar:") == true) {
+        val parts = url.split(":")
+        val avatarId = parts.getOrNull(1)
+        val color = parts.getOrNull(2)
+        com.music.violence.ui.profile.ProfileAvatar(
+            avatarId = avatarId,
+            color = color,
+            name = fallback,
+            size = size.dp,
+        )
+    } else if (url != null) {
         DesktopArtwork(url, Modifier.size(size.dp).clip(CircleShape), px = size * 3)
     } else {
-        Box(
-            Modifier.size(size.dp).clip(CircleShape).background(DesktopCardInsetFill).border(0.5.dp, DesktopCardEdge, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (fallback.isNotBlank()) Text(fallback.take(1).uppercase(), fontWeight = FontWeight.Bold)
-            else Icon(Icons.Rounded.Person, null, tint = DesktopSecondary, modifier = Modifier.size((size * .55f).dp))
+        val localProfile = DesktopProfileManager.current()
+        if (localProfile != null && fallback.isBlank()) {
+            com.music.violence.ui.profile.ProfileAvatar(
+                avatarId = localProfile.avatarId,
+                color = localProfile.color,
+                name = localProfile.displayName,
+                size = size.dp,
+            )
+        } else {
+            Box(
+                Modifier.size(size.dp).clip(CircleShape).background(DesktopCardInsetFill).border(0.5.dp, DesktopCardEdge, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (fallback.isNotBlank()) Text(fallback.take(1).uppercase(), fontWeight = FontWeight.Bold)
+                else Icon(Icons.Rounded.Person, null, tint = DesktopSecondary, modifier = Modifier.size((size * .55f).dp))
+            }
         }
     }
 }

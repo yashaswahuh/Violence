@@ -197,4 +197,26 @@ class DesktopPartySyncTest {
         )
         assertTrue(behind.seek, "running behind the party is as wrong as running ahead")
     }
+
+
+    @Test
+    fun `unplayable track isolation prevents loop-desync and clears on local intent`() {
+        val sync = DesktopPartySync(
+            scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+            engine = null,
+            playTrack = { _, _ -> },
+            localQueue = { emptyList<Song>() to 0 },
+            applyPartyUpcoming = {},
+            applyPartyAutoplay = {},
+        )
+        kotlin.test.assertNull(sync.unplayableVideoId)
+
+        // Mark track unplayable
+        sync.onTrackUnplayable("failed123")
+        assertEquals("failed123", sync.unplayableVideoId)
+
+        // Calling onLocalIntent clears the unplayable flag
+        sync.onLocalIntent("newTrack456")
+        kotlin.test.assertNull(sync.unplayableVideoId)
+    }
 }

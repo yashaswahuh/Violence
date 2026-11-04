@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentPaste
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.ManageAccounts
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
@@ -112,6 +113,8 @@ internal fun DesktopAccountSelector(
     onAddAccount: () -> Unit,
     onRemoveAccount: (DesktopGoogleAccount) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenProfile: (() -> Unit)? = null,
+    onOpenFriends: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     var managing by remember { mutableStateOf(false) }
@@ -197,6 +200,12 @@ internal fun DesktopAccountSelector(
                     }
                 }
                 item { DesktopSelectorAction(Icons.Rounded.Settings, "Settings", onOpenSettings) }
+                if (onOpenProfile != null) {
+                    item { DesktopSelectorAction(Icons.Rounded.Person, "Violence Profile", onOpenProfile) }
+                }
+                if (onOpenFriends != null) {
+                    item { DesktopSelectorAction(Icons.Rounded.Groups, "Friends", onOpenFriends) }
+                }
                 item { Spacer(Modifier.height(10.dp)) }
             }
         }

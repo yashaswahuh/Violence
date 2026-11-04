@@ -91,7 +91,7 @@ internal object DesktopListenTogether {
         val code: String? = null,
         val you: PartyMember? = null,
         val members: List<PartyMember> = emptyList(),
-        val maxMembers: Int = 5,
+        val maxMembers: Int = 15,
         val hostOnlyControl: Boolean = false,
         val playback: PartyPlayback = PartyPlayback(),
         /** Held apart from [playback]: the state frame carries only a sequence number for it. */
@@ -122,7 +122,12 @@ internal object DesktopListenTogether {
 
     /** Where the party server lives, injected at build time like the other endpoints. */
     private val DEFAULT_SERVER: String by lazy {
-        normalizeServerUrl(System.getProperty("violence.listentogether.server").orEmpty())
+        val configured = System.getProperty("violence.jam.server")
+            ?: System.getProperty("violence.listentogether.server")
+            ?: System.getenv("JAM_BACKEND_URL")
+            ?: System.getenv("LISTEN_TOGETHER_SERVER")
+            ?: ""
+        normalizeServerUrl(configured)
             .getOrNull()
             .orEmpty()
     }
@@ -154,6 +159,39 @@ internal object DesktopListenTogether {
 
     /** Whether there is an address to talk to at all. */
     val hasServer: Boolean get() = DEFAULT_SERVER.isNotBlank() || _customServer.value.isNotBlank()
+
+    private const val ASLEEP_MESSAGE = "The Jam server didn't wake up. Give it a minute and try again."
+    private const val WAKE_PROBE_TIMEOUT_MS = 10_000L
+    private const val WAKE_WINDOW_MS = 85_000L
+
+    private val _serverWaking = MutableStateFlow(false)
+    val serverWaking: StateFlow<Boolean> = _serverWaking.asStateFlow()
+
+    private val _stalledTrack = MutableStateFlow<String?>(null)
+    val stalledTrack: StateFlow<String?> = _stalledTrack.asStateFlow()
+
+    fun setStalledTrack(title: String?) {
+        _stalledTrack.value = title
+    }
+
+    private suspend fun wakeServerIfAsleep(server: String): Boolean {
+        if (server.isBlank() || server != DEFAULT_SERVER) return true
+        if (probeHealth(server, WAKE_PROBE_TIMEOUT_MS).first) return true
+        _serverWaking.value = true
+        try {
+            val awake = kotlinx.coroutines.withTimeoutOrNull(WAKE_WINDOW_MS) {
+                var pause = 2_000L
+                while (!probeHealth(server, WAKE_PROBE_TIMEOUT_MS).first) {
+                    delay(pause)
+                    pause = (pause * 3 / 2).coerceAtMost(10_000L)
+                }
+                true
+            }
+            return awake == true
+        } finally {
+            _serverWaking.value = false
+        }
+    }
 
     private var socketJob: Job? = null
     private var healthJob: Job? = null
@@ -253,11 +291,11 @@ internal object DesktopListenTogether {
     }
 
     /** Whether this device can join at all — a party is joined as an account, not anonymously. */
-    fun canJoin(): Boolean = identity() != null
+    fun canJoin(): Boolean = identity() != null || DesktopProfileManager.current() != null || DesktopYouTubeAuth.isSignedIn
 
     suspend fun createParty(
         nickname: String = nickname(),
-        maxMembers: Int = 5,
+        maxMembers: Int = 15,
         autoplayEnabled: Boolean = false,
     ): Result<String> = enter(nickname) { who, server ->
         post(
@@ -267,7 +305,7 @@ internal object DesktopListenTogether {
                 who.deviceId,
                 who.name,
                 who.avatar,
-                maxMembers.coerceIn(2, 10),
+                maxMembers.coerceIn(2, 15),
                 autoplayEnabled,
             ),
         )
@@ -305,6 +343,11 @@ internal object DesktopListenTogether {
             )
         }
         val primary = resolveIdleServer()
+        if (primary.isNotBlank() && !wakeServerIfAsleep(primary)) {
+            val asleep = PartyException("server_asleep", ASLEEP_MESSAGE)
+            _state.update { it.copy(error = asleep.message) }
+            return@withContext Result.failure(asleep)
+        }
         val first = runCatching { request(who, primary) }
         val attempt = if (
             first.isFailure &&
@@ -407,7 +450,7 @@ internal object DesktopListenTogether {
         videoId?.let { put("videoId", it) }
     }
 
-    fun setMaxMembers(value: Int) = control("setMaxMembers") { put("maxMembers", value.coerceIn(2, 10)) }
+    fun setMaxMembers(value: Int) = control("setMaxMembers") { put("maxMembers", value.coerceIn(2, 15)) }
 
     fun kick(memberId: String) = control("kick") { put("memberId", memberId) }
 
@@ -651,6 +694,16 @@ internal object DesktopListenTogether {
      * the server never sees either, and a device with no session has nothing to identify itself by.
      */
     private fun identity(nickname: String = nickname()): Identity? {
+        val inApp = DesktopProfileManager.current()
+        if (inApp != null) {
+            val fields = com.music.violence.data.profile.JamProfileIdentity.of(inApp, nickname)
+            return Identity(
+                userId = sha256(fields.userIdSeed).take(32),
+                deviceId = deviceId(),
+                name = fields.name,
+                avatar = "avatar:${fields.avatarId}:${fields.avatarColor}",
+            )
+        }
         if (!DesktopYouTubeAuth.isSignedIn) return null
         val accountId = DesktopAccounts.activeAccountId() ?: return null
         val account = DesktopAccounts.accounts().firstOrNull { it.accountId == accountId } ?: return null
@@ -696,6 +749,7 @@ internal object DesktopListenTogether {
             refuseIfRecentlyKicked(cleaned)
             val base = resolveIdleServer()
             if (base.isBlank()) throw PartyException("no_server", "Set the party server address first.")
+            if (!wakeServerIfAsleep(base)) throw PartyException("server_asleep", ASLEEP_MESSAGE)
             val response = http.get("$base/api/parties/$cleaned/preview")
             if (!response.status.isSuccess()) {
                 val problem = response.toPartyException()

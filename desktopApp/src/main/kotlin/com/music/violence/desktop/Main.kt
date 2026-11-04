@@ -26,7 +26,13 @@ import java.awt.Toolkit
 import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
 
-fun main() {
+fun main(args: Array<String> = emptyArray()) {
+    if (args.isNotEmpty()) {
+        val linkCandidate = args[0].trim()
+        if (linkCandidate.startsWith("violence://") || linkCandidate.startsWith("http://") || linkCandidate.startsWith("https://")) {
+            DesktopIncomingLinkHub.offer(linkCandidate, DesktopLinkSource.ARGUMENT)
+        }
+    }
     // Before any WebView exists, so the sign-in window can start over with an empty jar.
     DesktopWebCookies.install()
     DesktopWindowVisibility.install()

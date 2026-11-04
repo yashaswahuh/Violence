@@ -51,7 +51,8 @@ val desktopModuleIndexUrl = localProperty("MODULE_INDEX_URL")
 
 // Last.fm signs every request with these, so signing in from inside the app
 // needs them at hand. Supplied locally and never committed, as on Android.
-val listenTogetherServer = localProperty("LISTEN_TOGETHER_SERVER")
+val listenTogetherServer = localProperty("JAM_BACKEND_URL")
+    .ifBlank { localProperty("LISTEN_TOGETHER_SERVER") }
 val lastfmApiKey = localProperty("LASTFM_API_KEY")
 val lastfmSecret = localProperty("LASTFM_SECRET")
 
@@ -512,6 +513,7 @@ compose.desktop {
             )
         }
         if (listenTogetherServer.isNotBlank()) {
+            jvmArgs("-Dviolence.jam.server=$listenTogetherServer")
             jvmArgs(
                 "-Dviolence.listentogether.server=$listenTogetherServer",
                 "-Dviolence.listentogether.server=$listenTogetherServer",

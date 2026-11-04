@@ -2,6 +2,11 @@ package com.music.violence.ui.screens
 
 import com.music.violence.ui.components.contextClick
 import com.music.violence.ui.AppUi
+import com.music.violence.ui.violencestyle.LocalViolenceShared
+import com.music.violence.ui.violencestyle.ViolenceCardScrim
+import com.music.violence.ui.violencestyle.ViolenceHeroCornerDp
+import com.music.violence.ui.violencestyle.ViolenceSectionHeader
+import com.music.violence.ui.violencestyle.violenceCardRim
 import com.music.violence.sharedui.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.DrawableResource
@@ -358,6 +363,21 @@ private fun RecentSectionHeader(
     viewType: LibraryViewType,
     onViewTypeToggle: () -> Unit,
 ) {
+    val violence = LocalViolenceShared.current
+    if (violence != null) {
+        ViolenceSectionHeader(
+            title = title,
+            subtitle = subtitle,
+            onShowAll = onViewTypeToggle,
+            showAllLabel = stringResource(
+                if (viewType == LibraryViewType.LIST) Res.string.switch_to_grid_view
+                else Res.string.switch_to_list_view,
+            ),
+            hero = true,
+            style = violence,
+        )
+        return
+    }
     Row(
         modifier = Modifier
             .padding(horizontal = PAGE_GUTTER, vertical = 10.dp)
@@ -535,6 +555,18 @@ private const val LOGO_ASPECT = 730f / 484f
 internal fun SectionHeader(title: String, subtitle: String = "", onShowAll: (() -> Unit)? = null) {
     val displayTitle = localizeShelfTitle(title)
     val displaySubtitle = localizeShelfSubtitle(subtitle)
+    val violence = LocalViolenceShared.current
+    if (violence != null) {
+        ViolenceSectionHeader(
+            title = displayTitle,
+            subtitle = displaySubtitle,
+            onShowAll = onShowAll,
+            showAllLabel = stringResource(Res.string.show_all),
+            hero = false,
+            style = violence,
+        )
+        return
+    }
     Row(
         modifier = Modifier
             .padding(horizontal = PAGE_GUTTER, vertical = 10.dp)
@@ -789,11 +821,17 @@ private fun HeroCard(
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
 ) {
+    val violence = LocalViolenceShared.current
+    val shape = if (violence != null) RoundedCornerShape(ViolenceHeroCornerDp) else RoundedCornerShape(18.dp)
+    val scrim = if (violence != null) ViolenceCardScrim else Brush.verticalGradient(
+        listOf(Color.Transparent, Color.Black.copy(alpha = 0.78f)),
+    )
     Box(
         modifier = modifier
             .aspectRatio(HERO_CARD_RATIO)
-            .clip(RoundedCornerShape(18.dp))
-            .thumbnailBorder(RoundedCornerShape(18.dp))
+            .clip(shape)
+            .then(if (violence == null) Modifier.thumbnailBorder(shape) else Modifier)
+            .violenceCardRim(violence, first = false, shape = shape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .contextClick(onLongPress),
@@ -809,16 +847,12 @@ private fun HeroCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomStart)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.78f)),
-                    ),
-                )
+                .background(scrim)
                 .padding(start = 16.dp, end = 16.dp, top = 34.dp, bottom = 14.dp),
         ) {
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.titleLarge,
+                style = if (violence != null) violence.cardTitleCaps else MaterialTheme.typography.titleLarge,
                 color = if (isCurrent) PlayingAccent else Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -827,7 +861,7 @@ private fun HeroCard(
                 val displaySubtitle = localizeCardSubtitle(item.subtitle)
                 Text(
                     text = displaySubtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (violence != null) violence.label else MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.72f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,

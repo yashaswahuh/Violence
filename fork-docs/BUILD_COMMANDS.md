@@ -41,10 +41,10 @@ Measured (cold, this PC): phone ~15 min, TV ~6.5 min, tests ~2 min, web ~1 min.
 Verified during DW-0 audit (2026-11-04):
 - Desktop UI compile: `.\gradlew.bat :desktopUi:compileKotlinJvm` (verified PASS)
 - Desktop UI tests: `.\gradlew.bat :desktopUi:jvmTest` (verified PASS, 42 tests)
-- Desktop App compile: `.\gradlew.bat :desktopApp:compileKotlin` (verified fails at `DesktopApp.kt:4223:33` exhaustive `when`; to be resolved in DW-1)
-- Desktop App tests: `.\gradlew.bat :desktopApp:test`
+- Desktop App compile: `.\gradlew.bat :desktopApp:compileKotlin` (verified PASS in DW-1)
+- Desktop App tests: `.\gradlew.bat :desktopApp:test` (verified PASS in DW-1, 58 test suites, 349 tests, 0 failures)
 - Desktop App run: `.\gradlew.bat :desktopApp:run`
-- Desktop App distributable: `.\gradlew.bat :desktopApp:createDistributable`
+- Desktop App distributable: `.\gradlew.bat :desktopApp:createDistributable` (verified PASS in DW-1, binary generated at `desktopApp\build\compose\binaries\main\app\Violence\Violence.exe`)
 - Windows portable bundle: `.\gradlew.bat :desktopApp:windowsPortable`
 - Windows installer packaging: `.\gradlew.bat :desktopApp:packageMsi` (or `packageExe`)
 - Packaging invariant: `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"` must NEVER change. Never run root-level Gradle tasks. Do not add desktop jobs to automatic push CI.

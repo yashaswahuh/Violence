@@ -43,6 +43,12 @@ internal class DesktopOverlays {
     var discordToken by mutableStateOf(false)
     var accounts by mutableStateOf(false)
     var signIn by mutableStateOf(false)
+    var profileEdit by mutableStateOf(false)
+    var friends by mutableStateOf(false)
+    var addFriend by mutableStateOf(false)
+    var shareItem by mutableStateOf<ShareItem?>(null)
+    var receiveLink by mutableStateOf(false)
+
 
     /** The column beside the page with the lyrics or the queue in it, or none. */
     var sidePanel by mutableStateOf<DesktopSidePanel?>(null)

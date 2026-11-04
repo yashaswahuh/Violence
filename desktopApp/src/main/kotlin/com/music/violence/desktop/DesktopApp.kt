@@ -50,8 +50,12 @@ import com.music.violence.ui.player.RepeatModes
 import com.music.violence.ui.player.rememberMixPulse
 import androidx.compose.runtime.SideEffect
 import com.music.violence.data.model.QueueTier
+import com.music.violence.data.share.IncomingLink
+import com.music.violence.ui.profile.ProfileAvatar
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -59,6 +63,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -130,6 +135,7 @@ import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.DragHandle
@@ -338,6 +344,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import org.jetbrains.compose.resources.Font as composeFont
 import org.jetbrains.compose.resources.painterResource
+import com.music.violence.ui.violencestyle.*
 
 /**
  * The margin every page keeps from the window's edge.
@@ -432,50 +439,47 @@ private const val PARTY_AUTOPLAY_ECHO_TIMEOUT_MS = 5_000L
 private const val AUTOPLAY_EMPTY_REFRESH_DELAY_MS = 2_000L
 
 /** The phone's dark scheme, which the shared pages are drawn against. */
-internal fun desktopColorScheme() = darkColorScheme(
-    primary = DesktopAccent,
-    // Black on the accent, now that the accent is white.
-    onPrimary = Color.Black,
-    primaryContainer = Color.White.copy(alpha = 0.16f),
-    onPrimaryContainer = Color.White,
-    background = DesktopBackground,
-    onBackground = Color.White,
-    surface = DesktopSurface,
-    onSurface = Color.White,
-    surfaceVariant = DesktopSurfaceRaised,
-    onSurfaceVariant = DesktopSecondary,
-    outline = Color(0xFF2C2C2E),
-    outlineVariant = DesktopDivider,
-    surfaceTint = DesktopAccent,
-)
+internal fun desktopColorScheme(styleState: StyleState? = null, tokens: AccentTokens? = null) =
+    if (styleState?.enabled == true && tokens != null) {
+        val accent = Color(tokens.accent)
+        darkColorScheme(
+            primary = accent,
+            onPrimary = if (tokens.onAccent == -1) Color.White else Color.Black,
+            primaryContainer = Color(tokens.accentSoft),
+            onPrimaryContainer = Color.White,
+            background = Color(0xFF05050A),
+            onBackground = Color.White,
+            surface = Color(0xFF101018),
+            onSurface = Color.White,
+            surfaceVariant = Color(0xFF181822),
+            onSurfaceVariant = Color(0xFF9E9EA8),
+            outline = accent.copy(alpha = 0.25f),
+            outlineVariant = Color(0xFF2C2C36),
+            surfaceTint = accent,
+        )
+    } else {
+        darkColorScheme(
+            primary = DesktopAccent,
+            // Black on the accent, now that the accent is white.
+            onPrimary = Color.Black,
+            primaryContainer = Color.White.copy(alpha = 0.16f),
+            onPrimaryContainer = Color.White,
+            background = DesktopBackground,
+            onBackground = Color.White,
+            surface = DesktopSurface,
+            onSurface = Color.White,
+            surfaceVariant = DesktopSurfaceRaised,
+            onSurfaceVariant = DesktopSecondary,
+            outline = Color(0xFF2C2C2E),
+            outlineVariant = DesktopDivider,
+            surfaceTint = DesktopAccent,
+        )
+    }
 
 @Composable
 internal fun desktopTypography(): Typography {
-    val sfProDisplay = FontFamily(
-        composeFont(Res.font.sf_pro_display_regular, FontWeight.W400),
-        composeFont(Res.font.sf_pro_display_medium, FontWeight.W500),
-        composeFont(Res.font.sf_pro_display_semibold, FontWeight.W600),
-        composeFont(Res.font.sf_pro_display_bold, FontWeight.W700),
-        composeFont(Res.font.sf_pro_display_heavy, FontWeight.W800),
-    )
-    val defaults = Typography()
-    return defaults.copy(
-        displayLarge = defaults.displayLarge.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W800, fontSize = 34.sp, letterSpacing = (-0.8).sp),
-        displayMedium = defaults.displayMedium.copy(fontFamily = sfProDisplay),
-        displaySmall = defaults.displaySmall.copy(fontFamily = sfProDisplay),
-        headlineLarge = defaults.headlineLarge.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W800, fontSize = 30.sp, letterSpacing = (-0.7).sp),
-        headlineMedium = defaults.headlineMedium.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W700, fontSize = 22.sp, letterSpacing = (-0.4).sp),
-        headlineSmall = defaults.headlineSmall.copy(fontFamily = sfProDisplay),
-        titleLarge = defaults.titleLarge.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W700, fontSize = 20.sp, letterSpacing = (-0.3).sp),
-        titleMedium = defaults.titleMedium.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W600, fontSize = 16.sp, letterSpacing = (-0.2).sp),
-        titleSmall = defaults.titleSmall.copy(fontFamily = sfProDisplay),
-        bodyLarge = defaults.bodyLarge.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W400, fontSize = 16.sp),
-        bodyMedium = defaults.bodyMedium.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W400, fontSize = 14.sp),
-        bodySmall = defaults.bodySmall.copy(fontFamily = sfProDisplay),
-        labelLarge = defaults.labelLarge.copy(fontFamily = sfProDisplay),
-        labelMedium = defaults.labelMedium.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W600, fontSize = 12.sp),
-        labelSmall = defaults.labelSmall.copy(fontFamily = sfProDisplay, fontWeight = FontWeight.W600, fontSize = 11.sp),
-    )
+    val enabled by DesktopAppearanceSettings.violenceStyleEnabled.collectAsState()
+    return desktopTypography(enabled)
 }
 
 private enum class DesktopDestination(val id: String, val label: String) {
@@ -623,6 +627,10 @@ fun ViolenceDesktopApp() {
     var likedSyncJob by remember { mutableStateOf<Job?>(null) }
     var dislikedIds by remember { mutableStateOf(persistence.dislikedIds()) }
     val overlays = remember { DesktopOverlays() }
+    val pendingIncomingLink by DesktopIncomingLinkHub.pending.collectAsState()
+    LaunchedEffect(pendingIncomingLink) {
+        if (pendingIncomingLink != null) overlays.receiveLink = true
+    }
     var downloads by remember { mutableStateOf(persistence.downloads()) }
     var localSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
     val downloadQueue by DesktopDownloadQueue.active.collectAsState()
@@ -1166,7 +1174,12 @@ fun ViolenceDesktopApp() {
 
     /** Copies the track's YouTube Music link. */
     fun shareSong(song: Song) {
-        DesktopExternalLinks.copy("https://music.youtube.com/watch?v=${song.videoId}")
+        val share = ShareItem.of(song)
+        if (share != null) {
+            overlays.shareItem = share
+        } else {
+            DesktopExternalLinks.copy("https://music.youtube.com/watch?v=${song.videoId}")
+        }
         DesktopTrackLog.log("copied a link to '${song.title}'")
     }
 
@@ -1178,7 +1191,15 @@ fun ViolenceDesktopApp() {
     fun shareCollection(collection: DesktopCollection) {
         val id = collection.browseId
         val url = when (collection.type) {
-            BrowseType.PLAYLIST -> "https://music.youtube.com/playlist?list=${id.removePrefix("VL")}"
+            BrowseType.PLAYLIST -> {
+                val share = ShareItem.ofPlaylist(id.removePrefix("VL"), collection.title)
+                if (share != null) {
+                    overlays.shareItem = share
+                    DesktopTrackLog.log("shared '${collection.title}'")
+                    return
+                }
+                "https://music.youtube.com/playlist?list=${id.removePrefix("VL")}"
+            }
             BrowseType.ALBUM -> "https://music.youtube.com/browse/$id"
             else -> return
         }
@@ -1974,6 +1995,14 @@ fun ViolenceDesktopApp() {
         canvas = withContext(Dispatchers.IO) { DesktopCanvasClient.lookup(current) }
     }
 
+    LaunchedEffect(playback.error, playback.song?.videoId) {
+        val err = playback.error
+        val song = playback.song
+        if (err != null && song != null && DesktopListenTogether.state.value.inParty) {
+            partySyncHolder[0]?.onTrackUnplayable(song.videoId)
+        }
+    }
+
     LaunchedEffect(
         playback.song?.videoId,
         playback.isPlaying,
@@ -2214,7 +2243,7 @@ fun ViolenceDesktopApp() {
                 BrowseType.ALBUM -> EntityType.ALBUM
                 BrowseType.ARTIST -> EntityType.ARTIST
                 BrowseType.PLAYLIST -> EntityType.PLAYLIST
-                else -> EntityType.TRACK
+                BrowseType.OTHER -> EntityType.OTHER
             },
         ),
     )
@@ -2593,6 +2622,9 @@ fun ViolenceDesktopApp() {
         // Unpacks the analyser and its models on first run.
         DesktopAnalysisRuntime.ensureStarted()
         DesktopHorizontalScroll.install()
+        withContext(Dispatchers.IO) {
+            DesktopWindowsProtocol.registerProtocolIfNeeded()
+        }
         localSongs = withContext(Dispatchers.IO) { DesktopLocalMusic.scan() }
         // A download record is a claim about a folder this app does not own, so it can outlive the
         // file it names. Checked once at startup rather than trusted: a stale entry showed the
@@ -3140,28 +3172,115 @@ fun ViolenceDesktopApp() {
         partySyncHolder[0]?.onLocalIntent()
     }
 
+    val violenceStyleEnabled by DesktopAppearanceSettings.violenceStyleEnabled.collectAsState()
+    val styleState = DesktopAppearanceSettings.currentStyleState()
+
+    val songArtworkUrl = selectedSong?.thumbnailUrl
+    var stableArtworkUrl by remember { mutableStateOf(songArtworkUrl) }
+    LaunchedEffect(songArtworkUrl) {
+        if (songArtworkUrl != stableArtworkUrl) {
+            delay(400L) // SONG_DEBOUNCE_MS
+            stableArtworkUrl = songArtworkUrl
+        }
+    }
+
+    val fromSong = styleState.accentSource == StyleAccentSource.FROM_SONG
+    val nowPlayingPalette = rememberDesktopArtworkPalette(if (fromSong) stableArtworkUrl else null)
+
+    var heldSongAccent by remember { mutableStateOf<Int?>(null) }
+    val songColorArgb = remember(selectedSong?.videoId, nowPlayingPalette, fromSong) {
+        if (selectedSong != null && fromSong) {
+            val c = nowPlayingPalette.primary
+            val a = (c.alpha * 255).toInt() and 0xFF
+            val r = (c.red * 255).toInt() and 0xFF
+            val g = (c.green * 255).toInt() and 0xFF
+            val b = (c.blue * 255).toInt() and 0xFF
+            (a shl 24) or (r shl 16) or (g shl 8) or b
+        } else null
+    }
+
+    LaunchedEffect(songColorArgb) {
+        if (songColorArgb == null) return@LaunchedEffect
+        val colour = if (AccentMath.isDull(songColorArgb)) AccentPreset.WHITE.argb else songColorArgb
+        if (AccentEngine.shouldReplace(heldSongAccent, colour)) {
+            heldSongAccent = colour
+        }
+    }
+
+    val resolvedAccent = remember(styleState.accentSource, heldSongAccent, styleState.customColor) {
+        AccentEngine.resolve(
+            source = styleState.accentSource,
+            songColor = heldSongAccent,
+            deviceAccent = null,
+            custom = styleState.customColor,
+            previousSongAccent = heldSongAccent,
+        )
+    }
+
+    val animatedAccentColor by animateColorAsState(
+        targetValue = Color(resolvedAccent.argb),
+        animationSpec = if (styleState.effectiveMotion == StyleMotion.OFF) snap() else tween(800, easing = FastOutSlowInEasing),
+        label = "desktopViolenceStyleAccent",
+    )
+    val tokens = remember(animatedAccentColor) {
+        val a = (animatedAccentColor.alpha * 255).toInt() and 0xFF
+        val r = (animatedAccentColor.red * 255).toInt() and 0xFF
+        val g = (animatedAccentColor.green * 255).toInt() and 0xFF
+        val b = (animatedAccentColor.blue * 255).toInt() and 0xFF
+        val argb = (a shl 24) or (r shl 16) or (g shl 8) or b
+        AccentTokens.from(argb)
+    }
+    val typography = desktopTypography(violenceStyleEnabled)
+    val sharedStyle = remember(violenceStyleEnabled, tokens, styleState, typography) {
+        if (!violenceStyleEnabled) null else {
+            ViolenceSharedStyle(
+                accent = Color(tokens.accent),
+                accentSoft = Color(tokens.accentSoft),
+                textAccent = Color(tokens.textAccent),
+                neutral = tokens.neutral,
+                strength = styleState.intensity.peakAlpha,
+                displayCaps = typography.displayLarge,
+                displayItalic = typography.displayMedium,
+                sectionCaps = typography.headlineSmall,
+                cardTitleCaps = typography.titleMedium,
+                label = typography.bodyMedium,
+                motion = styleState.effectiveMotion != StyleMotion.OFF,
+            )
+        }
+    }
+
     MaterialTheme(
-        colorScheme = desktopColorScheme(),
-        typography = desktopTypography(),
+        colorScheme = desktopColorScheme(styleState, tokens),
+        typography = typography,
     ) {
         val ambientBackdrop by DesktopAppearanceSettings.ambientBackdrop.collectAsState()
         val windowActions = LocalDesktopWindowActions.current
         CompositionLocalProvider(
             LocalContentColor provides Color.White,
             LocalNowPlaying provides selectedSong,
+            LocalViolenceStyle provides styleState,
+            LocalViolenceAccent provides tokens,
+            LocalViolenceShared provides sharedStyle,
+            LocalViolenceSeeThrough provides (styleState.enabled && styleState.background != StyleBackground.OFF),
         ) {
             DesktopFrame(
-                // The phone's page is black, not the near-black of its cards.
-                containerColor = DesktopBackground,
-                // Only Replay dresses itself unless ambient backdrop is on; everywhere else the chrome sits on the plain surface.
+                // Forced to Dark Canvas when Violence Style is enabled (PARITY_DECISIONS Option A)
+                containerColor = if (styleState.enabled) Color(0xFF05050A) else DesktopBackground,
                 backdrop = { transparentBase ->
-                    val ambientArtworkUrl = replaySummary.songs.firstOrNull()?.song?.thumbnailUrl
-                        .takeIf { overlays.replay }
-                        ?: selectedSong?.thumbnailUrl.takeIf { ambientBackdrop }
-                    DesktopPageBackdrop(
-                        artworkUrl = ambientArtworkUrl,
-                        transparentBase = transparentBase,
-                    )
+                    if (styleState.enabled && styleState.background != StyleBackground.OFF) {
+                        DesktopViolenceBackground(
+                            style = styleState,
+                            tokens = tokens,
+                        )
+                    } else {
+                        val ambientArtworkUrl = replaySummary.songs.firstOrNull()?.song?.thumbnailUrl
+                            .takeIf { overlays.replay }
+                            ?: selectedSong?.thumbnailUrl.takeIf { ambientBackdrop }
+                        DesktopPageBackdrop(
+                            artworkUrl = ambientArtworkUrl,
+                            transparentBase = transparentBase,
+                        )
+                    }
                 },
                 modifier = Modifier.onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
@@ -3268,6 +3387,8 @@ fun ViolenceDesktopApp() {
                         onOpenAccounts = { DesktopTrackLog.log("accounts: opening the switcher"); overlays.accounts = true },
                         canGoBack = navHistory.isNotEmpty(),
                         onBack = ::goBack,
+                        onOpenReceive = { overlays.receiveLink = true },
+                        onOpenProfile = { overlays.profileEdit = true },
                     )
                 },
                 sidebar = {
@@ -3582,6 +3703,8 @@ fun ViolenceDesktopApp() {
                                 }
                             },
                             onOpenSettings = { overlays.accounts = false; openSettings() },
+                            onOpenProfile = { overlays.accounts = false; overlays.profileEdit = true },
+                            onOpenFriends = { overlays.accounts = false; overlays.friends = true },
                             onDismiss = { overlays.accounts = false },
                         )
                     }
@@ -3715,12 +3838,85 @@ fun ViolenceDesktopApp() {
                     }
                     if (overlays.listenTogether) {
                         DesktopListenTogetherDialog(
+                            onShareJam = { code -> overlays.shareItem = ShareItem.JamItem(code) },
                             autoplayEnabled = autoplay,
                             onDismiss = { overlays.listenTogether = false },
                         )
                     }
                     if (overlays.audioOutput) {
                         DesktopAudioOutputDialog(onDismiss = { overlays.audioOutput = false })
+                    }
+                    if (overlays.profileEdit) {
+                        DesktopProfileDialog(
+                            onDismiss = { overlays.profileEdit = false },
+                            onShareProfile = { profile ->
+                                overlays.profileEdit = false
+                                overlays.shareItem = ShareItem.ProfileItem(profile)
+                            },
+                            onOpenFriends = {
+                                overlays.profileEdit = false
+                                overlays.friends = true
+                            },
+                        )
+                    }
+                    if (overlays.friends) {
+                        DesktopFriendsDialog(
+                            onDismiss = { overlays.friends = false },
+                            onAddFriendClicked = {
+                                overlays.friends = false
+                                overlays.addFriend = true
+                            },
+                        )
+                    }
+                    if (overlays.addFriend) {
+                        DesktopAddFriendDialog(
+                            onDismiss = { overlays.addFriend = false },
+                        )
+                    }
+                    overlays.shareItem?.let { item ->
+                        DesktopShareDialog(
+                            item = item,
+                            onDismiss = { overlays.shareItem = null },
+                        )
+                    }
+                    if (overlays.receiveLink) {
+                        DesktopReceiveDialog(
+                            initialLink = pendingIncomingLink,
+                            onDismiss = {
+                                overlays.receiveLink = false
+                                DesktopIncomingLinkHub.dismiss()
+                            },
+                            onOpenLink = { link ->
+                                DesktopIncomingLinkHub.handled()
+                                overlays.receiveLink = false
+                                when (link) {
+                                    is IncomingLink.Song -> {
+                                        playSong(
+                                            Song(
+                                                videoId = link.ref.id,
+                                                title = link.ref.title ?: "Song",
+                                                artist = link.ref.artist.orEmpty(),
+                                                thumbnailUrl = null,
+                                            ),
+                                        )
+                                    }
+                                    is IncomingLink.Playlist -> {
+                                        link.ref.id?.let { openCollection(it) }
+                                    }
+                                    is IncomingLink.Profile -> {
+                                        DesktopProfileManager.addFriend(link.card)
+                                        overlays.friends = true
+                                    }
+                                    is IncomingLink.Party -> {
+                                        scope.launch {
+                                            DesktopListenTogether.joinParty(link.invite.code)
+                                            overlays.listenTogether = true
+                                        }
+                                    }
+                                    else -> Unit
+                                }
+                            },
+                        )
                     }
                     if (overlays.pipeline) {
                         DesktopAudioPipelineDialog(
@@ -3988,6 +4184,7 @@ fun ViolenceDesktopApp() {
                                 DesktopSettingsPage.EQUALIZER -> DesktopEqualizerDialog(onDismiss = ::goBack)
                                 DesktopSettingsPage.AUDIO_OUTPUT -> DesktopAudioOutputDialog(onDismiss = ::goBack)
                                 DesktopSettingsPage.LISTEN_TOGETHER -> DesktopListenTogetherDialog(
+                                    onShareJam = { code -> overlays.shareItem = ShareItem.JamItem(code) },
                                     autoplayEnabled = autoplay,
                                     onDismiss = ::goBack,
                                 )
@@ -4231,13 +4428,17 @@ fun ViolenceDesktopApp() {
                                         source = DesktopQueueSource(entity.title, PlaybackSourceType.SEARCH),
                                     )
                                     EntityType.ARTIST -> openArtist(entity.id, entity.title)
-                                    EntityType.ALBUM, EntityType.PLAYLIST -> openBrowseItem(
+                                    EntityType.ALBUM, EntityType.PLAYLIST, EntityType.OTHER -> openBrowseItem(
                                         BrowseItem(
                                             browseId = entity.id,
                                             title = entity.title,
                                             subtitle = entity.subtitle,
                                             thumbnailUrl = entity.artworkUrl,
-                                            type = if (entity.entityType == EntityType.ALBUM) BrowseType.ALBUM else BrowseType.PLAYLIST,
+                                            type = when (entity.entityType) {
+                                                EntityType.ALBUM -> BrowseType.ALBUM
+                                                EntityType.PLAYLIST -> BrowseType.PLAYLIST
+                                                else -> BrowseType.OTHER
+                                            },
                                         ),
                                     )
                                 }
@@ -4396,6 +4597,8 @@ private fun DesktopTopBar(
     /** The app's one way back — every page's own arrow was folded into this. */
     canGoBack: Boolean,
     onBack: () -> Unit,
+    onOpenReceive: (() -> Unit)? = null,
+    onOpenProfile: (() -> Unit)? = null,
 ) {
     val titleBarEnabled by DesktopTitleBarSetting.enabled.collectAsState()
     val inlineCaption = DesktopPlatform.drawsOwnWindowFrame && !titleBarEnabled
@@ -4640,6 +4843,34 @@ private fun DesktopTopBar(
                             modifier = Modifier.size(19.dp),
                         )
                     }
+                    if (onOpenReceive != null) {
+                        DesktopToolbarButton(onClick = onOpenReceive, size = 32.dp) {
+                            Icon(
+                                Icons.Rounded.ContentPaste,
+                                "Receive link",
+                                tint = DesktopSecondary,
+                                modifier = Modifier.size(17.dp),
+                            )
+                        }
+                    }
+                    val userProfile by DesktopProfileManager.profile.collectAsState()
+                    if (userProfile != null && onOpenProfile != null) {
+                        Box(
+                            Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .desktopHoverWash(restAlpha = 0.12f, hoverAlpha = 0.2f)
+                                .clickable(onClick = onOpenProfile),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ProfileAvatar(
+                                avatarId = userProfile!!.avatarId,
+                                color = userProfile!!.color,
+                                name = userProfile!!.displayName,
+                                size = 26.dp,
+                            )
+                        }
+                    }
                     DesktopAccountButton(avatar = accountAvatar, onClick = onOpenAccounts)
                 }
             }
@@ -4864,14 +5095,24 @@ private fun DesktopSidebarItem(
     onHide: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    val style = LocalViolenceStyle.current
+    val tokens = LocalViolenceAccent.current
     var menuOpen by remember { mutableStateOf(false) }
+    val itemBg = if (selected) {
+        if (style.enabled) Color(tokens.accentSoft)
+        else Color.White.copy(alpha = 0.12f)
+    } else Color.Transparent
+    val iconTint = if (selected) {
+        if (style.enabled) Color(tokens.accent) else DesktopAccent
+    } else DesktopSecondary
     Box {
         Row(
             Modifier
                 .fillMaxWidth()
                 .desktopHoverFill()
                 .clip(RoundedCornerShape(7.dp))
-                .background(if (selected) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+                .background(itemBg)
+                .then(if (selected && style.enabled) Modifier.violenceCapsuleGlowFor(style, tokens) else Modifier)
                 .clickable(onClick = onClick)
                 .then(
                     if (onHide == null) Modifier
@@ -4890,7 +5131,7 @@ private fun DesktopSidebarItem(
                 .padding(horizontal = 9.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, label, tint = if (selected) DesktopAccent else DesktopSecondary, modifier = Modifier.size(18.dp))
+            Icon(icon, label, tint = iconTint, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
             Text(
                 label,
@@ -5035,18 +5276,28 @@ private fun DesktopFloatingNavigation(
                 .padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            val style = LocalViolenceStyle.current
+            val tokens = LocalViolenceAccent.current
             tabs.forEach { (item, iconAndLabel) ->
                 val isSelected = item == selected
+                val navBg = if (isSelected) {
+                    if (style.enabled) Color(tokens.accentSoft)
+                    else DesktopAccent.copy(alpha = 0.18f)
+                } else Color.Transparent
+                val navTint = if (isSelected) {
+                    if (style.enabled) Color(tokens.accent) else DesktopAccent
+                } else DesktopSecondary
                 Column(
                     Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(percent = 50))
-                        .background(if (isSelected) DesktopAccent.copy(alpha = 0.18f) else Color.Transparent)
+                        .background(navBg)
+                        .then(if (isSelected && style.enabled) Modifier.violenceCapsuleGlowFor(style, tokens) else Modifier)
                         .clickable { onDestinationSelected(item) }
                         .padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(iconAndLabel.first, iconAndLabel.second, tint = if (isSelected) DesktopAccent else DesktopSecondary, modifier = Modifier.size(20.dp))
+                    Icon(iconAndLabel.first, iconAndLabel.second, tint = navTint, modifier = Modifier.size(20.dp))
                     Text(iconAndLabel.second, color = if (isSelected) Color.White else DesktopSecondary, style = MaterialTheme.typography.labelSmall)
                 }
             }
@@ -6300,6 +6551,124 @@ private fun DesktopSettingsScreen(
             }
             if (section == DesktopSettingsSection.APPEARANCE) item {
                 SettingsGroup(DesktopStrings["appearance", "Appearance"]) {
+                    val violenceStyleOn by DesktopAppearanceSettings.violenceStyleEnabled.collectAsState()
+                    SettingsToggle(
+                        DesktopStrings["violence_style", "Violence Style"],
+                        DesktopStrings["violence_style_subtitle", "Luminous dark skin with accent glow, typography and glass surfaces"],
+                        violenceStyleOn,
+                        DesktopAppearanceSettings::setViolenceStyleEnabled,
+                    )
+                    if (violenceStyleOn) {
+                        val backgroundChoice by DesktopAppearanceSettings.styleBackground.collectAsState()
+                        val motionChoice by DesktopAppearanceSettings.styleMotion.collectAsState()
+                        val intensityChoice by DesktopAppearanceSettings.styleIntensity.collectAsState()
+                        val accentSourceChoice by DesktopAppearanceSettings.styleAccentSource.collectAsState()
+                        val headingFontChoice by DesktopAppearanceSettings.styleHeadingFont.collectAsState()
+                        val reduceTransparency by DesktopAppearanceSettings.styleReduceTransparency.collectAsState()
+
+                        Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+                            Text("Background Glow", fontWeight = FontWeight.Medium)
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    StyleBackground.AURORA to "Aurora",
+                                    StyleBackground.CORNER_GLOW to "Corner Glow",
+                                    StyleBackground.HAZE to "Haze",
+                                    StyleBackground.OFF to "Off",
+                                ).forEach { (bg, label) ->
+                                    FilterChip(
+                                        colors = desktopChipColors(),
+                                        selected = backgroundChoice == bg,
+                                        onClick = { DesktopAppearanceSettings.setStyleBackground(bg) },
+                                        label = { Text(label) },
+                                    )
+                                }
+                            }
+                        }
+
+                        Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+                            Text("Accent Source", fontWeight = FontWeight.Medium)
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    StyleAccentSource.FROM_SONG to "Song Artwork",
+                                    StyleAccentSource.FROM_DEVICE to "Device Accent",
+                                    StyleAccentSource.CUSTOM to "Custom Color",
+                                ).forEach { (source, label) ->
+                                    FilterChip(
+                                        colors = desktopChipColors(),
+                                        selected = accentSourceChoice == source,
+                                        onClick = { DesktopAppearanceSettings.setStyleAccentSource(source) },
+                                        label = { Text(label) },
+                                    )
+                                }
+                            }
+                        }
+
+                        Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+                            Text("Heading Serif", fontWeight = FontWeight.Medium)
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    StyleHeadingFont.BODONI_MODA to "Bodoni Moda",
+                                    StyleHeadingFont.CORMORANT_GARAMOND to "Cormorant",
+                                    StyleHeadingFont.ANTON to "Anton",
+                                ).forEach { (font, label) ->
+                                    FilterChip(
+                                        colors = desktopChipColors(),
+                                        selected = headingFontChoice == font,
+                                        onClick = { DesktopAppearanceSettings.setStyleHeadingFont(font) },
+                                        label = { Text(label) },
+                                    )
+                                }
+                            }
+                        }
+
+                        Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+                            Text("Glow Intensity", fontWeight = FontWeight.Medium)
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    StyleIntensity.LOW to "Low",
+                                    StyleIntensity.MEDIUM to "Medium",
+                                    StyleIntensity.HIGH to "High",
+                                ).forEach { (intensity, label) ->
+                                    FilterChip(
+                                        colors = desktopChipColors(),
+                                        selected = intensityChoice == intensity,
+                                        onClick = { DesktopAppearanceSettings.setStyleIntensity(intensity) },
+                                        label = { Text(label) },
+                                    )
+                                }
+                            }
+                        }
+
+                        Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+                            Text("Motion", fontWeight = FontWeight.Medium)
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    StyleMotion.OFF to "Off",
+                                    StyleMotion.SUBTLE to "Subtle",
+                                    StyleMotion.NORMAL to "Normal",
+                                ).forEach { (motion, label) ->
+                                    FilterChip(
+                                        colors = desktopChipColors(),
+                                        selected = motionChoice == motion,
+                                        onClick = { DesktopAppearanceSettings.setStyleMotion(motion) },
+                                        label = { Text(label) },
+                                    )
+                                }
+                            }
+                        }
+
+                        SettingsToggle(
+                            "Reduce transparency",
+                            "Solid fills instead of translucent glass surfaces",
+                            reduceTransparency,
+                            DesktopAppearanceSettings::setStyleReduceTransparency,
+                        )
+                    }
                     val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
                     SettingsToggle(
                         DesktopStrings["reduce_dynamic_blur", "Reduce dynamic blur"],
@@ -7355,8 +7724,21 @@ private fun rememberPlayingRowMatcher(rows: List<Song>): (Song) -> Boolean {
 
 /** The frosted pane the floating bars are made of. */
 @Composable
-internal fun Modifier.desktopBarGlass(shape: Shape): Modifier =
-    desktopFrosted(DesktopBarGlass, tintAlpha = 0.55f).border(0.5.dp, DesktopBarEdge, shape)
+internal fun Modifier.desktopBarGlass(shape: Shape): Modifier {
+    val style = LocalViolenceStyle.current
+    val tokens = LocalViolenceAccent.current
+    if (style.enabled) {
+        val rimBrush = Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.28f),
+                if (tokens.neutral) Color.White.copy(alpha = 0.14f) else Color(tokens.accent).copy(alpha = 0.32f),
+            ),
+        )
+        val glassBg = Color(ViolenceChromeColors.tint(tokens.accent, if (style.reduceTransparency) ViolenceGlassColors.SOLID_TINT_ALPHA else 0.52f))
+        return desktopFrosted(glassBg, tintAlpha = 0.52f).border(0.75.dp, rimBrush, shape)
+    }
+    return desktopFrosted(DesktopBarGlass, tintAlpha = 0.55f).border(0.5.dp, DesktopBarEdge, shape)
+}
 
 /** The edge of a chrome pane that meets the page, and so has to dissolve into it. */
 internal enum class DesktopChromeEdge { NONE, BOTTOM, END }
@@ -7372,12 +7754,51 @@ internal enum class DesktopChromeEdge { NONE, BOTTOM, END }
 internal fun Modifier.desktopChromeGlass(
     edge: DesktopChromeEdge = DesktopChromeEdge.NONE,
     fade: Float = 0.2f,
-): Modifier = desktopFrosted(
-    opaque = DesktopSurface.copy(alpha = 0.88f),
-    tintAlpha = 0.46f,
-    edge = edge,
-    fade = fade,
-)
+): Modifier {
+    val style = LocalViolenceStyle.current
+    val tokens = LocalViolenceAccent.current
+    if (style.enabled) {
+        val glassBg = Color(ViolenceChromeColors.tint(tokens.accent, if (style.reduceTransparency) ViolenceGlassColors.SOLID_TINT_ALPHA else 0.46f))
+        val rimBrush = Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.22f),
+                if (tokens.neutral) Color.White.copy(alpha = 0.14f) else Color(tokens.accent).copy(alpha = 0.22f),
+            ),
+        )
+        return desktopFrosted(
+            opaque = glassBg,
+            tintAlpha = 0.46f,
+            edge = edge,
+            fade = fade,
+        ).then(
+            if (edge == DesktopChromeEdge.END) {
+                drawBehind {
+                    drawLine(
+                        brush = rimBrush,
+                        start = Offset(size.width, 0f),
+                        end = Offset(size.width, size.height),
+                        strokeWidth = 1f,
+                    )
+                }
+            } else if (edge == DesktopChromeEdge.BOTTOM) {
+                drawBehind {
+                    drawLine(
+                        brush = rimBrush,
+                        start = Offset(0f, size.height),
+                        end = Offset(size.width, size.height),
+                        strokeWidth = 1f,
+                    )
+                }
+            } else Modifier
+        )
+    }
+    return desktopFrosted(
+        opaque = DesktopSurface.copy(alpha = 0.88f),
+        tintAlpha = 0.46f,
+        edge = edge,
+        fade = fade,
+    )
+}
 
 /**
  * The window's own chrome — title bar, top bar, sidebar. Over Windows 11's Mica or Acrylic
@@ -7393,7 +7814,8 @@ internal fun Modifier.desktopWindowGlass(
     fade: Float = 0.2f,
 ): Modifier {
     val backdrop by DesktopWindowBackdrop.active.collectAsState()
-    return if (backdrop == DesktopBackdrop.OFF) {
+    val style = LocalViolenceStyle.current
+    return if (backdrop == DesktopBackdrop.OFF || style.enabled) {
         desktopChromeGlass(edge, fade)
     } else {
         val base = background(Color.Black.copy(alpha = WINDOW_GLASS_TINT))

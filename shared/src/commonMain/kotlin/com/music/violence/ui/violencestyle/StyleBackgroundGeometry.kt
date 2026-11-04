@@ -335,3 +335,4 @@ object StyleFrameThrottle {
         return if (averageTickNanos > intended * OVERRUN_FACTOR) level + 1 else level
     }
 }
+

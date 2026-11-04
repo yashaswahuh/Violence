@@ -276,3 +276,62 @@
   --systemQuaternary: #ffffff2e;
   --systemQuinary: #ffffff1a;
 }
+
+/*
+ * Violence Style (Experimental, DW-3 & DW-4)
+ * Luminous dark skin, accent-tinted glass surfaces and typography.
+ * Strict OFF-parity: when data-violence-style is absent, none of these rules apply.
+ */
+[data-violence-style='true'] {
+  color-scheme: dark;
+
+  /* Force dark canvas (PARITY_DECISIONS Option A) */
+  --pageBG: #05050a;
+  --pageBG-rgb: 5, 5, 10;
+
+  --keyColor: var(--vs-accent, #3f7bff);
+  --keyColor-rgb: var(--vs-accent-rgb, 63, 123, 255);
+  --keyColorBG: var(--vs-accent, #3f7bff);
+  --selectionColor: var(--vs-accent, #3f7bff);
+
+  --systemPrimary: #ffffffeb;
+  --systemSecondary: #ffffffa3;
+  --systemTertiary: #ffffff66;
+  --systemQuaternary: #ffffff1a;
+  --systemQuinary: #ffffff0d;
+
+  --glassMaterialBackground: color-mix(in srgb, #101018 88%, var(--vs-accent, #3f7bff) 12%);
+  --glassMaterialBackdropFilter: saturate(2.2) blur(16px);
+  --glassMaterialShadowColor: rgba(0, 0, 0, 0.45);
+  --glassMaterialInnerStroke: rgba(255, 255, 255, 0.22);
+  --glassMaterialInnerStrokeAlpha: 0.35;
+
+  --navSidebarSelectedState: var(--vs-accent-soft, rgba(63, 123, 255, 0.22));
+}
+
+[data-violence-style='true'][data-vs-font='bodoni-moda'] {
+  --header-emphasized: 700 34px / 40px 'Bodoni Moda', serif;
+  --large-title-emphasized: 700 26px / 32px 'Bodoni Moda', serif;
+}
+
+[data-violence-style='true'][data-vs-font='cormorant-garamond'] {
+  --header-emphasized: 700 34px / 40px 'Cormorant Garamond', serif;
+  --large-title-emphasized: 700 26px / 32px 'Cormorant Garamond', serif;
+}
+
+[data-violence-style='true'][data-vs-font='anton'] {
+  --header-emphasized: 700 34px / 40px 'Anton', sans-serif;
+  --large-title-emphasized: 700 26px / 32px 'Anton', sans-serif;
+}
+
+@property --vs-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #3f7bff;
+}
+
+@property --vs-glow {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #3f7bff;
+}

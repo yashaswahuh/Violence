@@ -105,3 +105,4 @@ object AccentEngine {
     fun shouldReplace(current: Int?, next: Int): Boolean =
         current == null || !AccentMath.isNegligibleChange(current, next)
 }
+

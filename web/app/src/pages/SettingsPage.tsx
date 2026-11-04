@@ -10,6 +10,7 @@ import { useYtAuth } from '@/extension/useYtAuth';
 import { useParty } from '@/party/useParty';
 import { ProfileAvatar } from '@/profile/ProfileAvatar';
 import { useProfile } from '@/profile/store';
+import { useViolenceStyle } from '@/state/violenceStyle';
 import { useHistorySettings } from '@/playback/historyReporting';
 import { Select } from '@/components/Select';
 import { AUTOMIX_BARS } from '@/playback/automix/choices';
@@ -70,6 +71,16 @@ export default function SettingsPage() {
   const shareHistory = useHistorySettings((s) => s.share);
   const setShareHistory = useHistorySettings((s) => s.setShare);
   const { setAutoplay, setCrossfade, setAutomix, setAutomixBars, setShowNerdStats } = usePlayer.getState();
+  const violenceStyle = useViolenceStyle((s) => s.style);
+  const {
+    setEnabled: setViolenceStyleEnabled,
+    setBackground: setViolenceStyleBackground,
+    setMotion: setViolenceStyleMotion,
+    setIntensity: setViolenceStyleIntensity,
+    setAccentSource: setViolenceStyleAccentSource,
+    setHeadingFont: setViolenceStyleHeadingFont,
+    setReduceTransparency: setViolenceStyleReduceTransparency,
+  } = useViolenceStyle.getState();
   const [lyrics, setLyrics] = useState(false);
   const present = extension.state === 'present';
   const discordText =
@@ -85,6 +96,93 @@ export default function SettingsPage() {
     <div className={settingsUi.centered}>
       <PageHeader title="Settings" />
       <div className={settingsUi.body}>
+        <h2 className={settingsUi.sectionHeader}>Appearance</h2>
+        <section className={settingsUi.group}>
+          <Toggle
+            label="Violence Style"
+            detail="Luminous dark skin with accent glow, typography and glass surfaces."
+            checked={violenceStyle.enabled}
+            onChange={setViolenceStyleEnabled}
+          />
+          {violenceStyle.enabled && (
+            <>
+              <label className={settingsUi.controlRow}>
+                <span>Background Glow</span>
+                <Select
+                  label="Background Glow"
+                  value={violenceStyle.background}
+                  options={[
+                    { value: 'AURORA', label: 'Aurora' },
+                    { value: 'CORNER_GLOW', label: 'Corner Glow' },
+                    { value: 'HAZE', label: 'Haze' },
+                    { value: 'OFF', label: 'Off' },
+                  ]}
+                  onChange={setViolenceStyleBackground}
+                />
+              </label>
+              <label className={settingsUi.controlRow}>
+                <span>Accent Source</span>
+                <Select
+                  label="Accent Source"
+                  value={violenceStyle.accentSource}
+                  options={[
+                    { value: 'FROM_SONG', label: 'Song Artwork' },
+                    { value: 'FROM_DEVICE', label: 'Device Accent' },
+                    { value: 'CUSTOM', label: 'Custom Preset' },
+                  ]}
+                  onChange={setViolenceStyleAccentSource}
+                />
+              </label>
+              <label className={settingsUi.controlRow}>
+                <span>Heading Serif</span>
+                <Select
+                  label="Heading Serif"
+                  value={violenceStyle.headingFont}
+                  options={[
+                    { value: 'BODONI_MODA', label: 'Bodoni Moda' },
+                    { value: 'CORMORANT_GARAMOND', label: 'Cormorant' },
+                    { value: 'ANTON', label: 'Anton' },
+                  ]}
+                  onChange={setViolenceStyleHeadingFont}
+                />
+              </label>
+              <label className={settingsUi.controlRow}>
+                <span>Motion</span>
+                <Select
+                  label="Motion"
+                  value={violenceStyle.motion}
+                  options={[
+                    { value: 'OFF', label: 'Off' },
+                    { value: 'SUBTLE', label: 'Subtle' },
+                    { value: 'NORMAL', label: 'Normal' },
+                  ]}
+                  onChange={setViolenceStyleMotion}
+                />
+              </label>
+              <label className={settingsUi.controlRow}>
+                <span>Glow Intensity</span>
+                <Select
+                  label="Glow Intensity"
+                  value={violenceStyle.intensity}
+                  options={[
+                    { value: 'LOW', label: 'Low' },
+                    { value: 'MEDIUM', label: 'Medium' },
+                    { value: 'HIGH', label: 'High' },
+                  ]}
+                  onChange={setViolenceStyleIntensity}
+                />
+              </label>
+              <Toggle
+                label="Reduce Transparency"
+                detail="Solid fills instead of translucent glass surfaces."
+                checked={violenceStyle.reduceTransparency}
+                onChange={setViolenceStyleReduceTransparency}
+              />
+            </>
+          )}
+        </section>
+        <p className={settingsUi.footer}>An experimental aesthetic skin for Violence Music. When off, standard styling is preserved.</p>
+
         <h2 className={settingsUi.sectionHeader}>Profile</h2>
         <section className={settingsUi.group}>
           <LinkRow

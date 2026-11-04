@@ -1,59 +1,63 @@
 package com.music.violence.desktop
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import com.music.violence.ui.graphics.ColorUtils
+import com.music.violence.ui.graphics.paletteSwatches
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.sqrt
 
 data class DesktopArtworkPalette(
     val primary: Color,
     val secondary: Color,
 ) {
     companion object {
-        val Default = DesktopArtworkPalette(Color(0xFFFF375F), Color(0xFF4E6DFF))
+        val Default = DesktopArtworkPalette(Color(0xFF3F7BFF), Color(0xFF4E6DFF))
     }
 }
 
 @Composable
 fun rememberDesktopArtworkPalette(url: String?): DesktopArtworkPalette {
-    val palette by produceState(DesktopArtworkPalette.Default, key1 = url) {
-        value = DesktopArtworkPalette.Default
-        value = withContext(Dispatchers.IO) { DesktopArtworkPalette.from(DesktopArtworkCache.load(url)) }
+    var palette by remember { mutableStateOf(DesktopArtworkPalette.Default) }
+    LaunchedEffect(url) {
+        if (url.isNullOrBlank()) return@LaunchedEffect
+        val loaded = withContext(Dispatchers.IO) {
+            val bitmap = DesktopArtworkCache.load(url)
+            bitmap?.let { DesktopArtworkPalette.from(it) }
+        }
+        if (loaded != null) {
+            palette = loaded
+        }
     }
     return palette
 }
 
 private fun DesktopArtworkPalette.Companion.from(bitmap: ImageBitmap?): DesktopArtworkPalette {
     if (bitmap == null || bitmap.width == 0 || bitmap.height == 0) return DesktopArtworkPalette.Default
-    val pixels = IntArray(bitmap.width * bitmap.height)
-    bitmap.readPixels(pixels)
-    var red = 0L
-    var green = 0L
-    var blue = 0L
-    var count = 0L
-    pixels.forEachIndexed { index, pixel ->
-        if (index % 16 == 0) {
-            red += pixel shr 16 and 0xFF
-            green += pixel shr 8 and 0xFF
-            blue += pixel and 0xFF
-            count++
-        }
-    }
-    if (count == 0L) return DesktopArtworkPalette.Default
-    val average = Color(
-        red = (red / count).toFloat() / 255f,
-        green = (green / count).toFloat() / 255f,
-        blue = (blue / count).toFloat() / 255f,
-    )
-    return DesktopArtworkPalette(
-        primary = average.copy(alpha = 1f),
-        secondary = Color(
-            red = (average.red * 0.55f + 0.22f).coerceAtMost(1f),
-            green = (average.green * 0.45f + 0.18f).coerceAtMost(1f),
-            blue = (average.blue * 0.70f + 0.24f).coerceAtMost(1f),
-        ),
-    )
+    return runCatching {
+        val all = paletteSwatches(bitmap, maxColors = 24, clearFilters = true)
+        if (all.isEmpty()) return DesktopArtworkPalette.Default
+        val accentCandidates = paletteSwatches(bitmap, maxColors = 24, clearFilters = false).ifEmpty { all }
+        val vibrant = accentCandidates.maxByOrNull { swatch ->
+            val hsl = FloatArray(3).also { ColorUtils.colorToHSL(swatch.rgb, it) }
+            hsl[1] * sqrt(swatch.population.toFloat())
+        } ?: all.first()
+
+        val vibrantColor = Color(vibrant.rgb)
+        DesktopArtworkPalette(
+            primary = vibrantColor.copy(alpha = 1f),
+            secondary = Color(
+                red = (vibrantColor.red * 0.55f + 0.22f).coerceAtMost(1f),
+                green = (vibrantColor.green * 0.45f + 0.18f).coerceAtMost(1f),
+                blue = (vibrantColor.blue * 0.70f + 0.24f).coerceAtMost(1f),
+            ),
+        )
+    }.getOrDefault(DesktopArtworkPalette.Default)
 }
