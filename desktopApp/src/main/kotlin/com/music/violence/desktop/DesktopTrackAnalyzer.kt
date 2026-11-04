@@ -281,7 +281,7 @@ internal class DesktopTrackAnalyzer(
         const val MAX_SAMPLES = 20 * 60 * 11_025
 
         /** Stack for the analysis thread. */
-        const val ANALYSIS_STACK_BYTES = 64L * 1024 * 1024
+        const val ANALYSIS_STACK_BYTES = 4L * 1024 * 1024
     }
 }
 
