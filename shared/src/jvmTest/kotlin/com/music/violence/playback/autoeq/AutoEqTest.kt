@@ -65,6 +65,19 @@ class AutoEqTest {
         val airPodsResults = AutoEqDatabase.search("AirPods Pro")
         assertTrue(airPodsResults.isNotEmpty(), "Should find AirPods Pro")
 
+        // Search for Tangzu Waner (without apostrophe)
+        val wanerResults = AutoEqDatabase.search("Tangzu Waner")
+        assertTrue(wanerResults.isNotEmpty(), "Should find Tangzu Wan'er without apostrophe")
+        assertTrue(wanerResults.any { it.model.contains("Wan'er", ignoreCase = true) })
+
+        // Search for hd600 (without space)
+        val hd600Compact = AutoEqDatabase.search("hd600")
+        assertTrue(hd600Compact.isNotEmpty(), "Should find HD 600 from compact query")
+
+        // Search for xm4 (short compact query)
+        val xm4Results = AutoEqDatabase.search("xm4")
+        assertTrue(xm4Results.isNotEmpty(), "Should find 1000XM4 from xm4 query")
+
         // Test popular summaries
         val popular = AutoEqDatabase.popularSummaries()
         assertTrue(popular.isNotEmpty())

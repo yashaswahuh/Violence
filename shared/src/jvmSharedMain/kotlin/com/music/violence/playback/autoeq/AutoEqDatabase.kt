@@ -14,6 +14,9 @@ import java.util.zip.GZIPInputStream
  */
 object AutoEqDatabase {
 
+    @Volatile
+    var streamProvider: (() -> InputStream?)? = null
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -36,25 +39,41 @@ object AutoEqDatabase {
         @SerialName("q") val q: Float,
     )
 
+    private class NormalizedSummary(
+        val summary: AutoEqProfileSummary,
+        val cleanModel: String,
+        val cleanSource: String,
+        val compactModel: String,
+    )
+
     private var entries: List<AutoEqProfile>? = null
     private var summaries: List<AutoEqProfileSummary>? = null
+    private var normalizedSummaries: List<NormalizedSummary>? = null
 
     val isLoaded: Boolean
-        get() = entries != null
+        get() {
+            val list = entries
+            return list != null && list.isNotEmpty()
+        }
 
     val totalCount: Int
         get() = summaries?.size ?: 0
 
     @Synchronized
-    fun ensureLoaded() {
-        if (entries != null) return
+    fun ensureLoaded(customStream: InputStream? = null) {
+        if (entries != null && entries!!.isNotEmpty()) return
 
-        val stream: InputStream? = AutoEqDatabase::class.java.getResourceAsStream("/autoeq/autoeq_database.json.gz")
+        val stream: InputStream? = customStream
+            ?: streamProvider?.invoke()
+            ?: AutoEqDatabase::class.java.getResourceAsStream("/autoeq/autoeq_database.json.gz")
             ?: AutoEqDatabase::class.java.classLoader?.getResourceAsStream("autoeq/autoeq_database.json.gz")
+            ?: Thread.currentThread().contextClassLoader?.getResourceAsStream("autoeq/autoeq_database.json.gz")
+            ?: AutoEqDatabase::class.java.getResourceAsStream("/assets/autoeq/autoeq_database.json.gz")
 
         if (stream == null) {
             entries = emptyList()
             summaries = emptyList()
+            normalizedSummaries = emptyList()
             return
         }
 
@@ -64,6 +83,7 @@ object AutoEqDatabase {
 
             val parsedEntries = ArrayList<AutoEqProfile>(rawList.size)
             val parsedSummaries = ArrayList<AutoEqProfileSummary>(rawList.size)
+            val parsedNorm = ArrayList<NormalizedSummary>(rawList.size)
 
             rawList.forEachIndexed { index, raw ->
                 val profile = AutoEqProfile(
@@ -80,55 +100,100 @@ object AutoEqDatabase {
                         )
                     },
                 )
+                val summary = AutoEqProfileSummary(
+                    id = index,
+                    model = raw.model,
+                    source = raw.source,
+                    category = raw.category,
+                )
                 parsedEntries.add(profile)
-                parsedSummaries.add(
-                    AutoEqProfileSummary(
-                        id = index,
-                        model = raw.model,
-                        source = raw.source,
-                        category = raw.category,
+                parsedSummaries.add(summary)
+                parsedNorm.add(
+                    NormalizedSummary(
+                        summary = summary,
+                        cleanModel = cleanForSearch(raw.model),
+                        cleanSource = cleanForSearch(raw.source),
+                        compactModel = raw.model.lowercase().replace("[^a-z0-9]".toRegex(), ""),
                     ),
                 )
             }
 
             entries = parsedEntries
             summaries = parsedSummaries
+            normalizedSummaries = parsedNorm
         } catch (_: Throwable) {
             entries = emptyList()
             summaries = emptyList()
+            normalizedSummaries = emptyList()
         }
+    }
+
+    private fun cleanForSearch(s: String): String {
+        return s.lowercase().replace("['’`-]".toRegex(), " ").replace("\\s+".toRegex(), " ").trim()
     }
 
     /**
      * Searches profiles by headphone model name, brand, or measurement source.
+     * Uses fuzzy token and punctuation-insensitive matching.
      */
-    fun search(query: String, limit: Int = 60): List<AutoEqProfileSummary> {
+    fun search(query: String, limit: Int = 80): List<AutoEqProfileSummary> {
         ensureLoaded()
-        val all = summaries ?: return emptyList()
+        val allNorm = normalizedSummaries ?: return emptyList()
         val q = query.trim()
         if (q.isEmpty()) {
-            return all.take(limit)
+            return allNorm.take(limit).map { it.summary }
         }
 
-        val terms = q.split("\\s+".toRegex()).filter { it.isNotEmpty() }
-        val matches = ArrayList<AutoEqProfileSummary>()
+        val qLower = q.lowercase()
+        val qClean = cleanForSearch(q)
+        val qCompact = qLower.replace("[^a-z0-9]".toRegex(), "")
+        val terms = qClean.split("\\s+".toRegex()).filter { it.isNotEmpty() }
 
-        for (item in all) {
-            var allMatch = true
+        val exactMatches = ArrayList<AutoEqProfileSummary>()
+        val fuzzyMatches = ArrayList<AutoEqProfileSummary>()
+
+        for (item in allNorm) {
+            val model = item.summary.model
+            val source = item.summary.source
+
+            // 1. Exact substring match on original text
+            if (model.contains(q, ignoreCase = true) || source.contains(q, ignoreCase = true)) {
+                exactMatches.add(item.summary)
+                if (exactMatches.size >= limit) return exactMatches
+                continue
+            }
+
+            // 2. Multi-term punctuation-insensitive matching
+            // e.g. "Tangzu Waner" matches "TANGZU Wan'er S.G"
+            var allTermsMatch = true
             for (term in terms) {
-                if (!item.model.contains(term, ignoreCase = true) &&
-                    !item.source.contains(term, ignoreCase = true)
-                ) {
-                    allMatch = false
+                val termCompact = term.replace("[^a-z0-9]".toRegex(), "")
+                val matchesTerm = item.cleanModel.contains(term) ||
+                    item.cleanSource.contains(term) ||
+                    (termCompact.isNotEmpty() && item.compactModel.contains(termCompact))
+                if (!matchesTerm) {
+                    allTermsMatch = false
                     break
                 }
             }
-            if (allMatch) {
-                matches.add(item)
-                if (matches.size >= limit) break
+
+            if (allTermsMatch) {
+                fuzzyMatches.add(item.summary)
+                if (exactMatches.size + fuzzyMatches.size >= limit) break
+                continue
+            }
+
+            // 3. Compact matching (e.g. "hd600" matches "Sennheiser HD 600", "xm4" matches "WH-1000XM4")
+            if (qCompact.length >= 3 && item.compactModel.contains(qCompact)) {
+                fuzzyMatches.add(item.summary)
+                if (exactMatches.size + fuzzyMatches.size >= limit) break
             }
         }
-        return matches
+
+        val combined = ArrayList<AutoEqProfileSummary>(exactMatches.size + fuzzyMatches.size)
+        combined.addAll(exactMatches)
+        combined.addAll(fuzzyMatches)
+        return combined.take(limit)
     }
 
     /**
@@ -180,6 +245,7 @@ object AutoEqDatabase {
             "DT 1990 Pro",
             "ATH-M50x",
             "Sundara",
+            "Wan'er",
         )
 
         val result = LinkedHashSet<AutoEqProfileSummary>()
@@ -189,4 +255,3 @@ object AutoEqDatabase {
         return result.toList()
     }
 }
-

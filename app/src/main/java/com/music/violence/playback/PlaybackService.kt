@@ -7207,6 +7207,15 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun applyAutoEq() {
+        if (com.music.violence.playback.autoeq.AutoEqDatabase.streamProvider == null) {
+            com.music.violence.playback.autoeq.AutoEqDatabase.streamProvider = {
+                try {
+                    assets.open("autoeq/autoeq_database.json.gz")
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+        }
         val enabled = AppSettings.autoEqEnabled.value
         val model = AppSettings.autoEqSelectedModel.value
         val source = AppSettings.autoEqSelectedSource.value

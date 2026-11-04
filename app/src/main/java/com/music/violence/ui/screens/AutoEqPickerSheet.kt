@@ -51,6 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.violence.data.settings.AppSettings
 import com.music.violence.playback.autoeq.AutoEqDatabase
@@ -75,13 +79,30 @@ fun AutoEqPickerSheet(
     var showImportDialog by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+    var isLoaded by remember { mutableStateOf(AutoEqDatabase.isLoaded) }
 
-    // Ensure database is indexed in background
+    // Ensure database is indexed in background using assets
     LaunchedEffect(Unit) {
-        AutoEqDatabase.ensureLoaded()
+        if (!AutoEqDatabase.isLoaded) {
+            if (AutoEqDatabase.streamProvider == null) {
+                AutoEqDatabase.streamProvider = {
+                    try {
+                        context.assets.open("autoeq/autoeq_database.json.gz")
+                    } catch (_: Throwable) {
+                        null
+                    }
+                }
+            }
+            withContext(Dispatchers.IO) {
+                AutoEqDatabase.ensureLoaded()
+            }
+            isLoaded = true
+        }
     }
 
-    val searchResults = remember(searchQuery, selectedCategoryFilter) {
+    val searchResults = remember(searchQuery, selectedCategoryFilter, isLoaded) {
+        if (!isLoaded) return@remember emptyList()
         val query = searchQuery.trim()
         val baseList = if (query.isEmpty()) {
             AutoEqDatabase.popularSummaries()
@@ -280,65 +301,103 @@ fun AutoEqPickerSheet(
                 Spacer(Modifier.height(10.dp))
             }
 
-            Text(
-                text = if (searchQuery.isEmpty()) "POPULAR HEADPHONES & IEMS" else "RESULTS (${searchResults.size})",
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            )
+            if (!isLoaded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = "Loading 8,850+ headphone profiles...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = if (searchQuery.isEmpty()) "POPULAR HEADPHONES & IEMS" else "RESULTS (${searchResults.size})",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
 
-            Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(6.dp))
 
-            // Results List
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 420.dp),
-            ) {
-                items(searchResults, key = { "${it.id}_${it.model}_${it.source}" }) { item ->
-                    val isChecked = customCurve.isBlank() &&
-                        item.model.equals(selectedModel, ignoreCase = true) &&
-                        item.source.equals(selectedSource, ignoreCase = true)
-
-                    Row(
+                if (searchResults.isEmpty() && searchQuery.isNotEmpty()) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable {
-                                haptics.play(Haptic.Select)
-                                AppSettings.setAutoEqProfile(item.model, item.source, item.category)
-                                AppSettings.setAutoEqCustomCurve("")
-                                AppSettings.setAutoEqEnabled(true)
-                                onDismiss()
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                            .padding(vertical = 36.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = item.model,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Medium,
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = "${item.source} · ${item.category}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                            )
-                        }
+                        Text(
+                            text = "No headphones matching \"$searchQuery\"",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    // Results List
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 420.dp),
+                    ) {
+                        items(searchResults, key = { "${it.id}_${it.model}_${it.source}" }) { item ->
+                            val isChecked = customCurve.isBlank() &&
+                                item.model.equals(selectedModel, ignoreCase = true) &&
+                                item.source.equals(selectedSource, ignoreCase = true)
 
-                        if (isChecked) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = "Selected",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        haptics.play(Haptic.Select)
+                                        AppSettings.setAutoEqProfile(item.model, item.source, item.category)
+                                        AppSettings.setAutoEqCustomCurve("")
+                                        AppSettings.setAutoEqEnabled(true)
+                                        onDismiss()
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.model,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Medium,
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = "${item.source} · ${item.category}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                    )
+                                }
+
+                                if (isChecked) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                         }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 }
             }
         }
