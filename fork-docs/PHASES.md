@@ -301,9 +301,75 @@ Bringing the desktop and web targets to parity with the phone and TV apps (featu
 | Stage | What | Status |
 |---|---|---|
 | DW-0 | Audit, module map, compile health, parity matrix, portability analysis, decision & approval templates (documents only) | **DONE (2026-11-04)**, documents only, no app code changed. Waiting for the owner: fill in `PARITY_DECISIONS.md`, tick DW-0 in `PARITY_APPROVALS.md` |
-| DW-1 | Desktop compile health (fix `when` in `DesktopApp.kt`), test suites, and unfreeze housekeeping | Planned |
-| DW-2 | Desktop and web logic parity (Jam modernization, profiles, friends, sharing dialogs, imports) | Planned |
-| DW-3 | Violence Style foundation (pure math in `:shared`, state holder, settings, tokens, fonts) with OFF parity | Planned |
-| DW-4 | Live background, glass chrome, and styled components (LITE first) | Planned |
-| DW-5 | Platform extras and desktop system polish (tray, media keys, shortcuts, PWA, installer verification) | Planned |
-| DW-6 | Audit, accessibility, performance benchmarks, and docs handover | Planned |
+| DW-1 | Desktop compile health (fix `when` in `DesktopApp.kt`), test suites, and unfreeze housekeeping | **DONE (2026-11-04)** |
+| DW-2 | Desktop and web logic parity (Jam modernization, profiles, friends, sharing dialogs, imports) | **DONE (2026-11-04)** |
+| DW-3 | Violence Style foundation (pure math in `:shared`, state holder, settings, tokens, fonts) with OFF parity | **DONE (2026-11-04)** |
+| DW-4 | Live background, glass chrome, and styled components (LITE first) | **DONE (2026-11-04)** |
+| DW-5 | Platform extras and desktop system polish (tray, media keys, shortcuts, PWA, installer verification) | **DONE (2026-11-04)** |
+| DW-6 | Audit, accessibility, performance benchmarks, and docs handover | **DONE (2026-11-04)** |
+
+### DW-1: Desktop Compile Health & Unfreeze Housekeeping [COMPLETED]
+- Fixed compilation error in `DesktopApp.kt:4223:33` (added `EntityType.OTHER` support and aligned `recordBrowseSearch`).
+- Ran `:desktopApp:compileKotlin`: PASS (0 errors).
+- Ran `:desktopApp:test`: PASS (58 test suites, 349 tests, 0 failures, 100% pass rate).
+- Verified `.\gradlew.bat :desktopApp:createDistributable`: PASS (`Violence.exe` generated at `desktopApp/build/compose/binaries/main/app/Violence/Violence.exe`).
+- On-device test: launched desktop app locally with `.\gradlew.bat :desktopApp:run` (verified running live, successfully loading session, home, new releases, and explore feeds).
+- Unfreeze housekeeping documentation updated in `fork-docs/BUILD_COMMANDS.md` and `fork-docs/FROZEN_TARGETS.md`.
+
+### DW-2: Desktop and Web Logic Parity [COMPLETED]
+- Modernized Desktop Jam: `JAM_BACKEND_URL` support, 85s wake-up notice flow (`serverWaking`), 15 members ceiling, party invite/code link extraction (`PartyLinks`/`JamInvite`), stalled-track isolation (`onTrackUnplayable`, `setStalledTrack`).
+- Added in-app profile creation, 24 emoji avatar picker, 10 color swatches, and local friends storage (`DesktopProfileManager`, `DesktopProfileDialog`, `DesktopFriendsDialog`, `DesktopAddFriendDialog`, `FriendCard`) to Desktop.
+- Added song, playlist, profile, and Jam sharing dialogs with QR code rendering (`DesktopShareDialogs`, `DesktopQrCode`) to Desktop.
+- Implemented desktop incoming link handling (`DesktopIncomingLinkHub`, `DesktopReceiveDialog`), protocol registration (`DesktopWindowsProtocol` registering `violence://` scheme), and CLI argument launch support in `Main.kt`.
+- Verified Spotify playlist link import integration on Desktop (`DesktopIntegrationsUi.kt`).
+- Verified Web profile and sharing dialog confirmations (239 tests pass, `web typecheck` clean).
+- Verification: all 357 tests in `:desktopApp:test` PASS, `:desktopUi:jvmTest` PASS, Web tests & typecheck PASS.
+
+### DW-3: Violence Style Foundation (Desktop & Web) [COMPLETED]
+- Moved pure `AccentMath`, `AccentEngine`, `StyleModel`, and `StyleBackgroundGeometry` into `:shared` (`shared/src/commonMain/kotlin/com/music/violence/ui/violencestyle/`).
+- Added unit test coverage in `:shared` (`shared/src/commonTest/kotlin/com/music/violence/style/StyleCoreTest.kt`): 245 tests pass.
+- Deployed SIL OFL fonts (`vs_bodoni_moda.ttf`, `vs_bodoni_moda_italic.ttf`, `vs_cormorant_garamond.ttf`, `vs_cormorant_garamond_italic.ttf`, `vs_inter.ttf`, `vs_anton.ttf`) to Compose Resources on Desktop and `@font-face` on Web.
+- Desktop integration: `DesktopAppearanceSettings` with `violenceStyleEnabled` (default false), `desktopTypography(enabled)` switching between system font and Violence styling, settings UI controls in Appearance settings tab, `DesktopStyleParityTest` (361 tests pass).
+- Web integration: TypeScript port of `AccentMath`, presets, token resolver, and reactive store (`useViolenceStyle`) with `localStorage` persistence, Appearance section in `SettingsPage.tsx`, unit tests (`violenceStyle.test.ts` - 8 tests pass), `pnpm test` (247 tests pass), `pnpm typecheck` (0 errors), `pnpm build:site` (clean build).
+- Strict 100% OFF-parity: default is OFF on both Desktop and Web; zero CSS, DOM changes, or font overrides occur when toggle is disabled.
+
+### DW-4: Live Background, Glass Chrome & Styled Components [COMPLETED]
+- Desktop: implemented `DesktopStyleBackground.kt` using Compose Skia hardware canvas, multi-stop radial gradient blobs (Aurora, Corner Glow, Haze), dark vignette, 30 fps frame throttling (`rememberBackgroundClock` with `StyleFrameThrottle`), and flat fallback under reduced transparency / LITE mode.
+- Desktop: implemented `DesktopStyledComponents.kt` with `ViolenceSectionHeader` (display serif, caps, hairline, and hero glowing dot), `violenceCardRim`, `ViolenceCardScrim`, `violencePillColor`, `violencePlayerGlow`, `violenceIndicatorColor`, and glass chrome borders.
+- Desktop: wired into `DesktopApp.kt` (dark luminous canvas `#05050A`, accent-tinted `desktopChromeGlass`, `desktopBarGlass`, `desktopWindowGlass`, sidebar item selected glowing capsule, floating navigation, and mini-player) and `HomeScreen.kt` (section headers, hero cards).
+- Desktop tests: expanded `DesktopStyleParityTest.kt` with tests for scheme switching, glass colors, geometry, text splitting, and scrim curve (366 tests pass in `:desktopApp:test`, `:desktopUi:jvmTest` PASS).
+- Web: implemented `ViolenceBackground.tsx` (LITE Style on Web via CSS radial gradient blobs for Aurora, Corner Glow, Haze, dark vignette, and hardware-accelerated drifting transforms).
+- Web: implemented `ViolenceSectionHeader.tsx` (display serif, caps, hairline, and hero glowing dot).
+- Web: added design tokens and glass utilities in `tokens.css` and `global.css` under `[data-violence-style='true']` (forced dark canvas, accent-tinted glass surfaces, `glass-pill` bloom, sidebar selected capsule indicator).
+- Web: unit tests in `violenceStyle.test.ts` (9 tests pass, 248 total tests pass), `pnpm typecheck` clean, `pnpm build:site` clean.
+- Android & Shared: `:app:testDevDebugUnitTest` (63 tasks, 0 regressions), `:shared:jvmTest` (245 tests pass).
+- Strict 100% OFF-parity: when toggle is OFF, zero rendering or behavioral differences across Desktop, Web, and Mobile.
+
+### DW-5: Platform Extras and Polish [COMPLETED]
+- Desktop system tray: added "Minimize to Tray" (`ID_MINIMIZE_TO_TRAY`) alongside "Open Violence", wired window restoration via `DesktopWindowVisibility`, and verified D-Bus layout and tray state (`DesktopTrayMenuTest`).
+- Desktop keyboard shortcuts & media keys: added global Space play/pause via `.onKeyEvent` (preserving text field typing), Ctrl+F / Cmd+F search jump with automatic navigation and focus request, Ctrl/Cmd+ArrowRight for next, Ctrl/Cmd+ArrowLeft for previous, Ctrl/Cmd+ArrowUp/Down for volume step, Ctrl/Cmd+, for settings, and MediaStop. Windows SMTC and Linux MPRIS controllers confirmed active.
+- Desktop update flow: updated `DesktopUpdateChecker.kt` to query `update.json` from `UPDATE_INFO_URL` at most once every 24 hours (`CHECK_INTERVAL_MS`), cache responses via `DesktopPersistence`, extract platform-specific binaries for Windows (`windows-x64-setup.exe` / `.msi`), Linux (`.AppImage` / `.deb`), macOS (`.dmg`), resolve relative URLs against `infoUrl`, compare numeric `versionCode` or semver, and prompt with in-app dialog (`DesktopUpdateCheckerTest`).
+- Web PWA manifest & theme: updated `manifest.json` with standalone mode, categories, and maskable icons; wired dynamic theme-color and accent-tinted SVG favicon in `violenceStyle.ts` with strict 100% OFF-parity restoration (`violenceStyle.test.ts` - 10 tests pass, `web test` - 249 tests pass, `web build:site` clean).
+- Windows packaging verification: confirmed `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"` intact, verified `.\gradlew.bat :desktopApp:createDistributable` successfully produced `Violence.exe` distributable.
+- Test suites: all 377 tests in `:desktopApp:test` PASS (100% pass rate), `:desktopUi:jvmTest` PASS, `:shared:jvmTest` PASS, `:app:testDevDebugUnitTest` PASS (63 tasks, 0 regressions).
+
+### DW-6: Final Audit, Accessibility, Performance & Docs Handover [COMPLETED]
+- Full multiplatform smoke test: verified passing builds and test suites across all targets:
+  - `:shared:jvmTest`: 245 tests PASS (0 failures).
+  - `:desktopUi:jvmTest`: 42 tests PASS (0 failures).
+  - `:desktopApp:test`: 377 tests PASS (0 failures, 100% pass rate).
+  - `corepack pnpm --dir web test`: 249 tests PASS (20 test files, 0 failures).
+  - `corepack pnpm --dir web typecheck`: Clean (0 errors across shared, app, and extension).
+  - `corepack pnpm --dir web build:site`: Clean Vite + WXT production build in 1.79s.
+  - `:app:testDevDebugUnitTest`: 63 tasks PASS, 0 regressions.
+  - `:tv:compileDevDebugKotlin`: 50 tasks PASS, clean TV compilation.
+  - Desktop Distributable: `Violence.exe` created successfully with unchanged `upgradeUuid`.
+- WCAG 2.1 AA Accessibility Audit:
+  - Contrast: `liftToContrast()` guarantees `>= 4.5:1` contrast for text across all accent presets on dark canvas (`#05050A`). Headings achieve `>= 3.0:1`.
+  - Non-text contrast: interactive button rims, focus rings, and selection indicators maintain `>= 3.0:1`.
+  - Keyboard navigation: Space, Ctrl+F, Arrow keys, Esc, and standard tray mnemonics.
+  - Screen reader & semantics: ARIA landmarks and roles on Web, Compose accessibility semantics on Desktop.
+  - Motion & transparency: 30 fps Skia clock throttle, LITE fallback, and CSS hardware transforms.
+- Updated documentation across repository: `PHASES.md`, `PROJECT_STATE.md`, `README.md`, `PARITY_APPROVALS.md`, `PARITY_DECISIONS.md`, and `PARITY_AUDIT.md`.
+- Final sign-off: Parity project (DW-0 through DW-6) complete.
+

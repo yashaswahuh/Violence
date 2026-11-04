@@ -6,6 +6,7 @@ import com.music.violence.ui.components.ShelfRowChrome
 import com.music.violence.ui.components.ShelfRow
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.pointer.isBackPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
@@ -236,6 +237,7 @@ import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
@@ -524,7 +526,7 @@ fun ViolenceDesktopApp() {
     var personalPlayingStash by remember { mutableStateOf(false) }
     val persistence = remember { DesktopPersistence() }
     var availableUpdate by remember { mutableStateOf<DesktopUpdateChecker.UpdateInfo?>(null) }
-    LaunchedEffect(Unit) { availableUpdate = DesktopUpdateChecker.check() }
+    LaunchedEffect(Unit) { availableUpdate = DesktopUpdateChecker.check(persistence) }
     availableUpdate?.let { update ->
         AlertDialog(
             onDismissRequest = { availableUpdate = null },
@@ -3282,71 +3284,107 @@ fun ViolenceDesktopApp() {
                         )
                     }
                 },
-                modifier = Modifier.onPreviewKeyEvent { event ->
-                    if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
-                    when {
-                        event.key == Key.MediaPlayPause -> {
-                            if (selectedSong != null) togglePlayPauseFromUser()
-                            true
-                        }
-                        event.key == Key.MediaNext -> {
-                            playNext()
-                            true
-                        }
-                        event.key == Key.MediaPrevious -> {
-                            playPrevious()
-                            true
-                        }
-                        event.key == Key.F11 -> {
-                            DesktopWindowMode.toggle()
-                            true
-                        }
-                        event.key == Key.DirectionLeft && event.isAltPressed && !overlays.nowPlaying -> {
-                            goBack()
-                            true
-                        }
-                        DesktopPlatform.isMac && event.isMetaPressed && event.key == Key.Comma -> {
-                            openSettings()
-                            true
-                        }
-                        DesktopPlatform.isMac && event.isMetaPressed && event.key == Key.F -> {
-                            searchFocusRequested = true
-                            true
-                        }
-                        DesktopPlatform.isMac && event.isMetaPressed && event.key == Key.W -> {
-                            windowActions?.close?.invoke()
-                            true
-                        }
-                        DesktopPlatform.isMac && event.isMetaPressed && event.key == Key.M -> {
-                            windowActions?.minimize?.invoke()
-                            true
-                        }
-                        // One layer at a time, innermost first: the player's own side panel, then
-                        // the player.
-                        event.key == Key.Escape -> when {
-                            // The player's own layers first — the lyrics, the queue, a
-                            // drawer — in the order Android's back reaches them.
-                            overlays.nowPlaying && PlayerBack.dispatch() -> true
-                            overlays.nowPlaying -> {
-                                overlays.nowPlaying = false
+                modifier = Modifier
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                        val isCommand = if (DesktopPlatform.isMac) event.isMetaPressed else event.isCtrlPressed
+                        when {
+                            event.key == Key.MediaPlayPause -> {
+                                if (selectedSong != null) togglePlayPauseFromUser()
                                 true
                             }
-                            overlays.sidePanel != null -> {
-                                overlays.sidePanel = null
+                            event.key == Key.MediaNext -> {
+                                playNext()
                                 true
                             }
-                            // A page of Settings steps back the way the back button does, unless
-                            // one of its prompts is up over it.
-                            overlays.settingsPage != null &&
-                                !overlays.lastfmLogin && !overlays.listenBrainzToken && !overlays.discordToken -> {
+                            event.key == Key.MediaPrevious -> {
+                                playPrevious()
+                                true
+                            }
+                            event.key == Key.MediaStop -> {
+                                pauseFromUser()
+                                true
+                            }
+                            event.key == Key.F11 -> {
+                                DesktopWindowMode.toggle()
+                                true
+                            }
+                            event.key == Key.DirectionLeft && event.isAltPressed && !overlays.nowPlaying -> {
                                 goBack()
                                 true
                             }
+                            isCommand && event.key == Key.Comma -> {
+                                openSettings()
+                                true
+                            }
+                            isCommand && event.key == Key.F -> {
+                                if (overlays.nowPlaying) overlays.nowPlaying = false
+                                destination = DesktopDestination.SEARCH
+                                searchFocusRequested = true
+                                true
+                            }
+                            isCommand && event.key == Key.DirectionRight -> {
+                                playNext()
+                                true
+                            }
+                            isCommand && event.key == Key.DirectionLeft -> {
+                                playPrevious()
+                                true
+                            }
+                            isCommand && event.key == Key.DirectionUp -> {
+                                volume = (volume + 0.05f).coerceIn(0f, 1f)
+                                persistence.saveString("volume", volume.toString())
+                                true
+                            }
+                            isCommand && event.key == Key.DirectionDown -> {
+                                volume = (volume - 0.05f).coerceIn(0f, 1f)
+                                persistence.saveString("volume", volume.toString())
+                                true
+                            }
+                            isCommand && event.key == Key.W -> {
+                                windowActions?.close?.invoke()
+                                true
+                            }
+                            isCommand && event.key == Key.M -> {
+                                windowActions?.minimize?.invoke()
+                                true
+                            }
+                            // One layer at a time, innermost first: the player's own side panel, then
+                            // the player.
+                            event.key == Key.Escape -> when {
+                                // The player's own layers first — the lyrics, the queue, a
+                                // drawer — in the order Android's back reaches them.
+                                overlays.nowPlaying && PlayerBack.dispatch() -> true
+                                overlays.nowPlaying -> {
+                                    overlays.nowPlaying = false
+                                    true
+                                }
+                                overlays.sidePanel != null -> {
+                                    overlays.sidePanel = null
+                                    true
+                                }
+                                // A page of Settings steps back the way the back button does, unless
+                                // one of its prompts is up over it.
+                                overlays.settingsPage != null &&
+                                    !overlays.lastfmLogin && !overlays.listenBrainzToken && !overlays.discordToken -> {
+                                    goBack()
+                                    true
+                                }
+                                else -> false
+                            }
                             else -> false
                         }
-                        else -> false
                     }
-                },
+                    .onKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyUp && event.key == Key.Spacebar &&
+                            !event.isCtrlPressed && !event.isMetaPressed && !event.isAltPressed
+                        ) {
+                            if (selectedSong != null) {
+                                togglePlayPauseFromUser()
+                                true
+                            } else false
+                        } else false
+                    },
                 topBar = { compact ->
                     DesktopTopBar(
                         compact = compact,

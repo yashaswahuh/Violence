@@ -22,7 +22,7 @@ Private, GPL-3.0 modified fork of BitChord (kushagrasinghx/BitChord), rebranded 
 | `backend/` | Go server (gorilla/websocket), in-memory, no DB | Jam | ACTIVE (not yet deployed) |
 | `native/` | C++ analyzer used by `:app`/`:tv` CMake | phone, TV | ACTIVE (never delete) |
 | `:wearos` | Wear OS, still BitChord branded (`com.music.violence`, "BitChord") | watch | DORMANT |
-| `:desktopApp`, `:desktopUi` | Compose Desktop, branded Violence | desktop | DORMANT |
+| `:desktopApp`, `:desktopUi` | Compose Desktop, branded Violence | desktop | ACTIVE (Unfrozen DW-1..DW-6) |
 
 `settings.gradle.kts` (rootProject name still `BitChord`) includes `:shared :sharedUi :desktopUi :desktopApp` always, and `:app :tv :wearos` only if an Android SDK is found (`local.properties sdk.dir`, `ANDROID_HOME`, or `ANDROID_SDK_ROOT`). Without an SDK the Gradle build is desktop-only.
 
@@ -163,3 +163,35 @@ Task paths (from build files and CI): phone `:app:assembleDevDebug`; TV `:tv:ass
 - **Dependencies:** CameraX 1.6.2 in `:app` and `:tv` (the TV compiles the phone's sources), `uqr` 0.1.3 on the web. No server, no account, no analytics, nothing logged.
 - **Release build:** the minified prod release of phone and TV builds (unsigned without `keystore.properties`); R8 merges some small classes, manifest-declared ones are kept. Per-CPU arm64 sizes: phone 82.2 MiB, TV 74.8 MiB (the Phase 7 phone arm64 was 81.7 MiB).
 - **Not done / unverified:** everything that needs a real NFC chip or camera (`PHASES.md` Phase 9 lists it), App Links verification for the new prefixes, TV and web in a real TV/browser.
+
+## 21. Update after Desktop and Web Parity (DW-0 to DW-6) (2026-11-04)
+- **Status:** **DONE**. Desktop target unfrozen, compile health restored, logic & styling parity completed with 100% OFF-parity guarantee.
+- **Unfreezing & Compile Health (DW-1):** Fixed exhaustive `when` in `DesktopApp.kt:4223:33` (`EntityType.OTHER`). Ran all 58 test suites (349 tests) in `:desktopApp:test`. Verified distributable binary creation (`Violence.exe`).
+- **Logic Parity (DW-2):**
+  - **Jam:** modernized Desktop to support `JAM_BACKEND_URL`, 85s wake-up state (`serverWaking`), 15-member rooms, code & link extraction (`PartyLinks`/`JamInvite`), unplayable-track isolation (`onTrackUnplayable`, `setStalledTrack`).
+  - **Profiles & Friends:** added `DesktopProfileManager` (persisted via `DesktopPersistence`), 24 emoji avatar picker, 10 color swatches, local friends storage (`DesktopFriendsDialog`, `DesktopAddFriendDialog`, `FriendCard`), and profile identity in Jam.
+  - **Sharing & Links:** added song, playlist, profile, and Jam share dialogs with QR code rendering (`DesktopShareDialogs`, `DesktopQrCode`), incoming link hub (`DesktopIncomingLinkHub`, `DesktopReceiveDialog`), Windows protocol registration (`DesktopWindowsProtocol` registering `violence://`), and launch CLI arg dispatch in `Main.kt`.
+  - **Spotify Import:** wired `DesktopSpotifyLibrary` into desktop import UI (`DesktopIntegrationsUi.kt`).
+- **Violence Style Portability (DW-3 & DW-4):**
+  - Moved pure math (`AccentMath`, `AccentEngine`, `StyleModel`, `StyleBackgroundGeometry`) to `:shared` (`com.music.violence.ui.violencestyle`).
+  - Added SIL OFL fonts (Bodoni Moda, Cormorant Garamond, Inter, Anton) to Desktop Compose resources and Web `@font-face`.
+  - Desktop: implemented Skia hardware canvas background (`DesktopStyleBackground.kt`) throttled at 30 fps (`rememberBackgroundClock`), glass chrome (`desktopChromeGlass`, `desktopBarGlass`, `desktopWindowGlass`), glowing capsules, and section headers (`DesktopStyledComponents.kt`). LITE fallback under reduced transparency.
+  - Web: implemented CSS radial gradients (`ViolenceBackground.tsx`), native `backdrop-filter` glass panels, glowing indicators, and serif headers (`ViolenceSectionHeader.tsx`).
+  - Strict 100% OFF-parity: default is OFF across Desktop and Web; zero DOM or visual differences when disabled.
+- **Platform Extras & Polish (DW-5):**
+  - System Tray: added "Minimize to Tray" (`ID_MINIMIZE_TO_TRAY`) alongside "Open Violence", wired window hide/show restoration via `DesktopWindowVisibility`, and verified tray state (`DesktopTrayMenuTest`).
+  - Keyboard Navigation: added Space for play/pause, Ctrl+F / Cmd+F search jump with automatic focus, Ctrl+ArrowRight/Left track skipping, Ctrl+ArrowUp/Down volume step, Ctrl+, for settings, and Esc for dialogs.
+  - Update Flow: `DesktopUpdateChecker.kt` queries `update.json` from `UPDATE_INFO_URL` at 24h intervals (`CHECK_INTERVAL_MS`), caches responses, extracts platform binaries (Windows `.exe`/`.msi`, macOS `.dmg`, Linux `.AppImage`), and prompts with in-app dialog.
+  - Web PWA: updated `manifest.json` with standalone mode and maskable icons; dynamic theme-color and accent-tinted SVG favicon in `violenceStyle.ts`.
+  - Windows Installer Invariant: confirmed `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"` intact.
+- **Audit & Test Suite Metrics (DW-6):**
+  - `:shared:jvmTest`: 245 passed (0 failures).
+  - `:desktopUi:jvmTest`: 42 passed (0 failures).
+  - `:desktopApp:test`: 377 passed (0 failures, 100% pass rate).
+  - `web test`: 249 passed (20 test files, 0 failures).
+  - `web typecheck`: 0 errors.
+  - `web build:site`: clean production bundle in 1.79s.
+  - `:app:testDevDebugUnitTest`: 63 tasks clean, 0 regressions.
+  - `:tv:compileDevDebugKotlin`: 50 tasks clean, 0 errors.
+  - WCAG 2.1 AA contrast verified across all presets (`liftToContrast()` enforces `>= 4.5:1`).
+

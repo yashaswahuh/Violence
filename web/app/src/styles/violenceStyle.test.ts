@@ -95,7 +95,7 @@ describe('ViolenceStyle Core Math and Tokens', () => {
     expect(AccentMath.isNegligibleChange(red1, blue)).toBe(false);
   });
 
-  it('updates DOM attributes when enabled and font changes', async () => {
+  it('updates DOM attributes and theme elements when enabled', async () => {
     const attrs = new Map<string, string>();
     const fakeDoc = {
       documentElement: {
@@ -103,6 +103,8 @@ describe('ViolenceStyle Core Math and Tokens', () => {
         removeAttribute: (k: string) => attrs.delete(k),
         getAttribute: (k: string) => attrs.get(k) ?? null,
       },
+      querySelectorAll: () => [],
+      querySelector: () => null,
     };
     (globalThis as unknown as { document: typeof fakeDoc }).document = fakeDoc;
 
@@ -131,4 +133,3 @@ describe('ViolenceStyle Core Math and Tokens', () => {
     }
   });
 });
-

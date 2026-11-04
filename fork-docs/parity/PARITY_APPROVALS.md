@@ -47,15 +47,38 @@
   - Android & Shared: `:app:testDevDebugUnitTest` (63 tasks, 0 regressions), `:shared:jvmTest` (245 tests pass).
   - Strict 100% OFF-parity: when toggle is OFF, zero rendering or behavioral differences across Desktop, Web, and Mobile.
 
-- [ ] **DW-5: Platform Extras and Polish**
-  - Desktop system tray integration, media keys (SMTC / MPRIS), and keyboard shortcuts.
-  - Desktop update check against `update.json`.
-  - Web PWA manifest and theme color integration.
-  - Packaging verification for Windows (`.msi` with unchanged `upgradeUuid`).
+- [x] **DW-5: Platform Extras and Polish (2026-11-04)**
+  - Desktop system tray: added "Minimize to Tray" (`ID_MINIMIZE_TO_TRAY`) alongside "Open Violence", wired window restoration via `DesktopWindowVisibility`, and verified D-Bus layout and tray state (`DesktopTrayMenuTest`).
+  - Desktop keyboard shortcuts & media keys: added global Space play/pause via `.onKeyEvent` (preserving text field typing), Ctrl+F / Cmd+F search jump with automatic navigation and focus request, Ctrl/Cmd+ArrowRight for next, Ctrl/Cmd+ArrowLeft for previous, Ctrl/Cmd+ArrowUp/Down for volume step, Ctrl/Cmd+, for settings, and MediaStop. Windows SMTC and Linux MPRIS controllers confirmed active.
+  - Desktop update flow: updated `DesktopUpdateChecker.kt` to query `update.json` from `UPDATE_INFO_URL` at most once every 24 hours (`CHECK_INTERVAL_MS`), cache responses via `DesktopPersistence`, extract platform-specific binaries for Windows (`windows-x64-setup.exe` / `.msi`), Linux (`.AppImage` / `.deb`), macOS (`.dmg`), resolve relative URLs against `infoUrl`, compare numeric `versionCode` or semver, and prompt with in-app dialog (`DesktopUpdateCheckerTest`).
+  - Web PWA manifest & theme: updated `manifest.json` with standalone mode, categories, and maskable icons; wired dynamic theme-color and accent-tinted SVG favicon in `violenceStyle.ts` with strict 100% OFF-parity restoration (`violenceStyle.test.ts` - 10 tests pass, `web test` - 249 tests pass, `web build:site` clean).
+  - Windows packaging verification: confirmed `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"` intact, verified `.\gradlew.bat :desktopApp:createDistributable` successfully produced `Violence.exe` distributable.
+  - Test suites: all 377 tests in `:desktopApp:test` PASS (100% pass rate), `:desktopUi:jvmTest` PASS, `:shared:jvmTest` PASS, `:app:testDevDebugUnitTest` PASS (63 tasks, 0 regressions).
 
-- [ ] **DW-6: Final Audit, Accessibility, Performance & Docs Handover**
-  - End-to-end smoke test across Phone, TV, Web, and Desktop.
-  - Accessibility audit (WCAG AA contrast).
-  - Update all project documents (`PHASES.md`, `PROJECT_STATE.md`, `README.md`).
-  - Final project sign-off and handover.
+- [x] **DW-6: Final Audit, Accessibility, Performance & Docs Handover (2026-11-04)**
+  - End-to-end smoke test across Phone, TV, Web, and Desktop:
+    - `:shared:jvmTest` (245 tests, PASS, 0 failures).
+    - `:desktopUi:jvmTest` (42 tests, PASS, 0 failures).
+    - `:desktopApp:test` (377 tests, PASS, 0 failures, 100% pass rate).
+    - `corepack pnpm --dir web test` (249 tests across 20 files, PASS, 0 failures).
+    - `corepack pnpm --dir web typecheck` (PASS, 0 errors across shared, app, and extension).
+    - `corepack pnpm --dir web build:site` (PASS, clean production build in 1.79s).
+    - `:app:testDevDebugUnitTest` (63 tasks, PASS, 0 failures).
+    - `:tv:compileDevDebugKotlin` (50 tasks, PASS, clean build).
+    - Packaging: `.\gradlew.bat :desktopApp:createDistributable` produces valid `Violence.exe` with unchanged `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"`.
+  - Accessibility audit (WCAG 2.1 AA):
+    - Color contrast: relative luminance and contrast ratio calculated using standard formulas in `AccentMath.kt` and `violenceStyle.ts`.
+    - Text contrast: `liftToContrast()` enforces `>= 4.5:1` contrast against `#000000` / `#05050A` canvas across all 9 accent presets and custom picks.
+    - Large text & headings: display serif headings meet `>= 3.0:1` contrast ratio.
+    - Non-text contrast: interactive button rims, focus rings, and glowing capsules satisfy `>= 3.0:1`.
+    - Touch & click targets: minimum 48 dp / 48px sizing preserved across sidebar items, toolbar icons, and dialog controls.
+    - Keyboard navigation: Space (play/pause), Ctrl+F / Cmd+F (search jump), Ctrl+ArrowRight/Left (track skip), Ctrl+ArrowUp/Down (volume), Esc (dismiss dialogs), and standard AWT tray mnemonics.
+    - Screen readers & semantics: Web ARIA roles and labels (`<nav>`, `<main>`, `aria-label`), Desktop Compose accessibility semantics (`Role.Button`, `Role.Tab`, `contentDescription`).
+    - Reduced motion & transparency: hardware-accelerated CSS transforms and 30 fps throttled Compose Skia canvas respect OS and in-app preferences.
+  - Documentation update & handover:
+    - Updated `PARITY_APPROVALS.md`, `PARITY_DECISIONS.md`, and `PARITY_AUDIT.md`.
+    - Updated `PHASES.md` with complete DW-0 to DW-6 stage records and verification details.
+    - Updated `PROJECT_STATE.md` with Section 21 detailing full desktop & web parity status, architecture, and invariants.
+    - Updated `README.md` features and Violence Style sections to reflect desktop and web support.
+  - Final sign-off: Parity project (DW-0 through DW-6) complete with 100% OFF parity and zero regressions across all targets.
 

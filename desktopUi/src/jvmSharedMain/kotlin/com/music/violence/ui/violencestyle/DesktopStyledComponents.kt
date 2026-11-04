@@ -422,7 +422,11 @@ fun Modifier.violenceGlassRim(shape: Shape): Modifier {
     return violenceGlassEdge(shape, 0.75.dp, Color.Transparent)
 }
 
-fun Modifier.violenceCapsuleGlowFor(style: StyleState, tokens: AccentTokens): Modifier {
+fun Modifier.violenceCapsuleGlowFor(
+    style: StyleState,
+    tokens: AccentTokens,
+    cornerRadius: Dp = 7.dp,
+): Modifier {
     if (!style.enabled || tokens.neutral) return this
     val strength = ViolenceGlassColors.glowStrength(style.intensity)
     val line = Color(ViolenceGlassColors.glowLine(tokens.accent))
@@ -430,11 +434,12 @@ fun Modifier.violenceCapsuleGlowFor(style: StyleState, tokens: AccentTokens): Mo
     return drawWithCache {
         val inset = size.width * 0.14f
         val washTop = size.height * 0.55f
-        val capsule = Path().apply {
+        val crPx = cornerRadius.toPx()
+        val clipShape = Path().apply {
             addRoundRect(
                 RoundRect(
                     0f, 0f, size.width, size.height,
-                    CornerRadius(size.height / 2f, size.height / 2f),
+                    CornerRadius(crPx, crPx),
                 ),
             )
         }
@@ -462,7 +467,7 @@ fun Modifier.violenceCapsuleGlowFor(style: StyleState, tokens: AccentTokens): Mo
         val wide = 6.dp.toPx()
         onDrawWithContent {
             drawContent()
-            clipPath(capsule) {
+            clipPath(clipShape) {
                 drawRect(wash, topLeft = Offset(0f, washTop), size = Size(size.width, size.height - washTop))
                 drawLine(soft, Offset(inset, size.height - wide / 2f), Offset(size.width - inset, size.height - wide / 2f), strokeWidth = wide, cap = StrokeCap.Butt)
                 drawLine(lineBrush, Offset(inset, size.height - thin), Offset(size.width - inset, size.height - thin), strokeWidth = thin, cap = StrokeCap.Butt)

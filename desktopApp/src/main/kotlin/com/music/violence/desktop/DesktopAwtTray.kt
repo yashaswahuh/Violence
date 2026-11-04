@@ -1,8 +1,12 @@
 package com.music.violence.desktop
 
 import java.awt.EventQueue
+import java.awt.MouseInfo
+import java.awt.Point
 import java.awt.SystemTray
 import java.awt.TrayIcon
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
@@ -34,11 +38,28 @@ internal object DesktopAwtTray {
                 if (icon != null) return@invokeLater
                 val tray = runCatching { SystemTray.getSystemTray() }.getOrNull() ?: return@invokeLater
                 val art = image ?: blank(tray.trayIconSize.width.coerceAtLeast(16))
-                val created = TrayIcon(art, tooltip, DesktopTrayMenu.awtPopup()).apply {
+                val created = TrayIcon(art, tooltip, null).apply {
                     isImageAutoSize = true
-                    // Windows opens the menu on right-click itself; the left click is the shortcut
-                    // back to the window, which is what every media player there does.
-                    addActionListener { EventQueue.invokeLater(onActivate) }
+                    addMouseListener(object : MouseAdapter() {
+                        override fun mousePressed(e: MouseEvent) {
+                            if (e.isPopupTrigger || e.button == MouseEvent.BUTTON3) {
+                                showFlyout()
+                            }
+                        }
+
+                        override fun mouseReleased(e: MouseEvent) {
+                            if (e.isPopupTrigger || e.button == MouseEvent.BUTTON3) {
+                                showFlyout()
+                            }
+                        }
+
+                        override fun mouseClicked(e: MouseEvent) {
+                            if (e.button == MouseEvent.BUTTON1) {
+                                DesktopTrayFlyout.hide()
+                                EventQueue.invokeLater(onActivate)
+                            }
+                        }
+                    })
                 }
                 runCatching { tray.add(created) }
                     .onSuccess { icon = created }
@@ -47,8 +68,14 @@ internal object DesktopAwtTray {
         }
     }
 
+    private fun showFlyout() {
+        val loc = MouseInfo.getPointerInfo()?.location ?: Point(0, 0)
+        DesktopTrayFlyout.toggle(loc.x, loc.y)
+    }
+
     fun stop() {
         EventQueue.invokeLater {
+            DesktopTrayFlyout.hide()
             synchronized(lock) {
                 val current = icon ?: return@invokeLater
                 runCatching { SystemTray.getSystemTray().remove(current) }
@@ -58,8 +85,7 @@ internal object DesktopAwtTray {
     }
 
     /**
-     * Re-labels the icon, and rebuilds the menu because one of its entries is Play or Pause
-     * depending on this.
+     * Re-labels the icon and keeps the tray flyout state in step with playback.
      */
     fun update(title: String?, isPlaying: Boolean) {
         val text = title?.let { "$APP_NAME — $it" } ?: APP_NAME
@@ -68,7 +94,7 @@ internal object DesktopAwtTray {
                 tooltip = text
                 val current = icon ?: return@invokeLater
                 current.toolTip = text
-                current.popupMenu = DesktopTrayMenu.awtPopup()
+                DesktopTrayFlyout.update(title, isPlaying)
             }
         }
     }

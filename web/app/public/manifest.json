@@ -1,16 +1,26 @@
 {
   "name": "Violence",
   "short_name": "Violence",
+  "description": "Aesthetic YouTube Music web client inspired by Apple Music.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#1f1f1f",
-  "theme_color": "#1f1f1f",
+  "orientation": "any",
+  "background_color": "#05050A",
+  "theme_color": "#05050A",
+  "categories": ["music", "entertainment", "audio"],
   "icons": [
     {
       "src": "favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }

@@ -24,9 +24,10 @@ internal object DesktopTrayMenu {
     private const val ID_PREVIOUS = 5
     private const val ID_SEPARATOR_MIDDLE = 6
     private const val ID_OPEN_PLAYER = 7
-    private const val ID_SETTINGS = 8
-    private const val ID_SEPARATOR_BOTTOM = 9
-    private const val ID_QUIT = 10
+    private const val ID_MINIMIZE_TO_TRAY = 8
+    private const val ID_SETTINGS = 9
+    private const val ID_SEPARATOR_BOTTOM = 10
+    private const val ID_QUIT = 11
 
     private val lock = Any()
 
@@ -75,6 +76,17 @@ internal object DesktopTrayMenu {
 
     fun revision(): Int = synchronized(lock) { revision }
 
+    fun triggerPlayPause() = synchronized(lock) { playPause }()
+    fun triggerNext() = synchronized(lock) { next }()
+    fun triggerPrevious() = synchronized(lock) { previous }()
+    fun triggerOpenPlayer() = synchronized(lock) { openPlayer }()
+    fun triggerOpenSettings() = synchronized(lock) { openSettings }()
+    fun triggerQuit() = synchronized(lock) { quit }()
+    fun triggerMinimizeToTray() { DesktopWindowVisibility.onCloseRequest() }
+
+    fun currentNowPlaying(): String? = synchronized(lock) { nowPlaying }
+    fun currentIsPlaying(): Boolean = synchronized(lock) { isPlaying }
+
     /** The menu as it stands. */
     private fun entries(): List<Entry> = synchronized(lock) {
         buildList {
@@ -94,6 +106,9 @@ internal object DesktopTrayMenu {
             add(Entry(ID_PREVIOUS, label = DesktopStrings["widget_previous", "Previous"], icon = "media-skip-backward", action = previous))
             add(Entry(ID_SEPARATOR_MIDDLE, separator = true))
             add(Entry(ID_OPEN_PLAYER, label = DesktopStrings["widget_open_violence", "Open Violence"], icon = "media-playback-start", action = openPlayer))
+            add(Entry(ID_MINIMIZE_TO_TRAY, label = DesktopStrings["d_minimize_to_tray", "Minimize to Tray"], icon = "window-minimize", action = {
+                DesktopWindowVisibility.onCloseRequest()
+            }))
             add(Entry(ID_SETTINGS, label = DesktopStrings["settings", "Settings"], icon = "preferences-system", action = openSettings))
             add(Entry(ID_SEPARATOR_BOTTOM, separator = true))
             add(Entry(ID_QUIT, label = DesktopStrings["d_quit_violence", "Quit Violence"], icon = "application-exit", action = quit))

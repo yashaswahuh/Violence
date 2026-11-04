@@ -48,6 +48,7 @@ private fun localProperty(name: String): String = rootProject.file("local.proper
     ?: System.getenv(name).orEmpty().trim()
 
 val desktopModuleIndexUrl = localProperty("MODULE_INDEX_URL")
+val updateInfoUrl = localProperty("UPDATE_INFO_URL")
 
 // Last.fm signs every request with these, so signing in from inside the app
 // needs them at hand. Supplied locally and never committed, as on Android.
@@ -431,7 +432,8 @@ val windowsPortableAssemble by tasks.registering {
                 appendLine("set \"HERE=%~dp0\"")
                 appendLine("set \"RUNNER=java\"")
                 appendLine("if defined JAVA_HOME set \"RUNNER=%JAVA_HOME%\\bin\\java\"")
-                append("\"%RUNNER%\" -Dviolence.version=$version -Dviolence.version=$version")
+                append("\"%RUNNER%\" -Dviolence.version=$version -Dviolence.version.code=$desktopVersionCode")
+                if (updateInfoUrl.isNotBlank()) append(" -Dviolence.update.url=$updateInfoUrl")
                 if (moduleIndex.isNotBlank()) append(" -Dviolence.module.index=$moduleIndex -Dviolence.module.index=$moduleIndex")
                 if (lastfmKey.isNotBlank() && lastfmSharedSecret.isNotBlank()) {
                     append(" -Dviolence.lastfm.key=$lastfmKey -Dviolence.lastfm.key=$lastfmKey -Dviolence.lastfm.secret=$lastfmSharedSecret -Dviolence.lastfm.secret=$lastfmSharedSecret")
@@ -500,7 +502,11 @@ compose.desktop {
         mainClass = composeMainClass
         jvmArgs("-Xmx512m")
         jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=20000", "-XX:G1PeriodicGCSystemLoadThreshold=0")
-        jvmArgs("-Dviolence.version=$appVersion", "-Dviolence.version=$appVersion")
+        jvmArgs("-Dviolence.version=$appVersion")
+        jvmArgs("-Dviolence.version.code=$desktopVersionCode")
+        if (updateInfoUrl.isNotBlank()) {
+            jvmArgs("-Dviolence.update.url=$updateInfoUrl")
+        }
         if (desktopModuleIndexUrl.isNotBlank()) {
             jvmArgs("-Dviolence.module.index=$desktopModuleIndexUrl", "-Dviolence.module.index=$desktopModuleIndexUrl")
         }
