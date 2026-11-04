@@ -1,4 +1,4 @@
-﻿# Project Roadmap & Implementation Phases
+# Project Roadmap & Implementation Phases
 
 **Audit Date:** 2026-10-29  
 **Execution Model:** Phased implementation. Each phase is scoped to be executed independently in a fresh AI chat session.  
@@ -293,3 +293,17 @@ A **skin** on the existing phone UI, switched by one toggle (default OFF): displ
 Each stage starts with a `pre-skin-<stage>` backup tag and waits for the previous stage (and its "OFF-parity verified on device" line) to be ticked in `STYLE_APPROVALS.md`.
 
 **Phase 10 (Final audit and handover) waited for Violence Style; with S6 done it may now run.** Phase 11 is independent.
+
+## Extra: Desktop and web parity (DW-0 to DW-6)
+
+Bringing the desktop and web targets to parity with the phone and TV apps (features, modern Jam, profiles, sharing, and Violence Style with strict OFF-parity). The owner unfroze desktop on 2026-11-04. Wear OS remains frozen. Documents: `fork-docs/parity/` (`PARITY_AUDIT.md`, `PARITY_DECISIONS.md`, `PARITY_APPROVALS.md`).
+
+| Stage | What | Status |
+|---|---|---|
+| DW-0 | Audit, module map, compile health, parity matrix, portability analysis, decision & approval templates (documents only) | **DONE (2026-11-04)**, documents only, no app code changed. Waiting for the owner: fill in `PARITY_DECISIONS.md`, tick DW-0 in `PARITY_APPROVALS.md` |
+| DW-1 | Desktop compile health (fix `when` in `DesktopApp.kt`), test suites, and unfreeze housekeeping | Planned |
+| DW-2 | Desktop and web logic parity (Jam modernization, profiles, friends, sharing dialogs, imports) | Planned |
+| DW-3 | Violence Style foundation (pure math in `:shared`, state holder, settings, tokens, fonts) with OFF parity | Planned |
+| DW-4 | Live background, glass chrome, and styled components (LITE first) | Planned |
+| DW-5 | Platform extras and desktop system polish (tray, media keys, shortcuts, PWA, installer verification) | Planned |
+| DW-6 | Audit, accessibility, performance benchmarks, and docs handover | Planned |

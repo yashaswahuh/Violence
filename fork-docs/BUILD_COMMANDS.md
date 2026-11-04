@@ -1,7 +1,7 @@
 # Build commands (active targets only)
 
-Active: Android phone (`:app`), Android TV (`:tv`), web (`/web`), plus the shared code they use (`:shared`, `:sharedUi`, `/native`, `/backend`).
-Dormant: Wear OS (`:wearos`), desktop (`:desktopApp`, `:desktopUi`). See `FROZEN_TARGETS.md`.
+Active: Android phone (`:app`), Android TV (`:tv`), web (`/web`), desktop (`:desktopApp`, `:desktopUi` unfrozen 2026-11-04 for DW parity project), plus the shared code they use (`:shared`, `:sharedUi`, `/native`, `/backend`).
+Dormant (strictly frozen): Wear OS (`:wearos`). See `FROZEN_TARGETS.md`.
 
 ## The rule
 **Root-level Gradle tasks are forbidden for routine work**: `build`, `assemble`, `assembleDevDebug`, `check`, `test`, `testDevDebugUnitTest`, `lint`, `clean`, or a bare `.\gradlew.bat`, with no `:module:` path. Gradle runs a task name in EVERY project that has it, so they would also build `:wearos` (it has `dev`/`prod` flavors too) and `:desktopApp`/`:desktopUi`. Always write the module path.
@@ -37,8 +37,17 @@ Web needs `VITE_PARTY_SERVER_URL` set for `build:site` (upstream v1.9 refuses to
 Outputs: phone `app/build/outputs/apk/dev/debug/` (4 APKs: universal, arm64-v8a, armeabi-v7a, x86_64), TV `tv/build/outputs/apk/dev/debug/`, web `web/app/dist`.
 Measured (cold, this PC): phone ~15 min, TV ~6.5 min, tests ~2 min, web ~1 min.
 
-## Owner-only manual desktop commands (dormant: never run by agents)
-Run by hand by the owner, only when working on desktop. **Verified 2026-11-01** with `.\gradlew.bat :desktopApp:tasks --all` (configuration only, nothing built): `run`, `runDistributable`, `createDistributable` (plus `packageMsi`, `packageExe`, `packageDeb`, `packageRpm`, `packageDmg`, `packagePkg`) exist.
+## Desktop commands (unfrozen for DW parity project; explicit module tasks only)
+Verified during DW-0 audit (2026-11-04):
+- Desktop UI compile: `.\gradlew.bat :desktopUi:compileKotlinJvm` (verified PASS)
+- Desktop UI tests: `.\gradlew.bat :desktopUi:jvmTest` (verified PASS, 42 tests)
+- Desktop App compile: `.\gradlew.bat :desktopApp:compileKotlin` (verified fails at `DesktopApp.kt:4223:33` exhaustive `when`; to be resolved in DW-1)
+- Desktop App tests: `.\gradlew.bat :desktopApp:test`
+- Desktop App run: `.\gradlew.bat :desktopApp:run`
+- Desktop App distributable: `.\gradlew.bat :desktopApp:createDistributable`
+- Windows portable bundle: `.\gradlew.bat :desktopApp:windowsPortable`
+- Windows installer packaging: `.\gradlew.bat :desktopApp:packageMsi` (or `packageExe`)
+- Packaging invariant: `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"` must NEVER change. Never run root-level Gradle tasks. Do not add desktop jobs to automatic push CI.
 ```powershell
 .\gradlew.bat :desktopApp:run
 .\gradlew.bat :desktopApp:createDistributable

@@ -1,13 +1,14 @@
 # Frozen (dormant) targets
 
-Status since Phase 3 (2026-11-01): **Wear OS and desktop are DORMANT.** Kept intact and revivable. Not edited, built, tested, or linted in routine work. The earlier plan to delete them (`MODULE_PRUNING_PLAN.md`, old Phase 3) is cancelled.
+Status since Phase 3 (2026-11-01): **Wear OS and desktop are DORMANT.**
+Status update (2026-11-04): **The owner explicitly UNFROZE DESKTOP (`:desktopApp`, `:desktopUi`) for the Desktop and Web parity project (DW-0 to DW-6).** Wear OS (`:wearos`) **REMAINS FROZEN** (do not edit, build, test, or lint `:wearos`).
 
 ## (a) The dormant modules
 | Module | Gradle path / dir | What it is | Status |
 |---|---|---|---|
-| Wear OS | `:wearos` (`wearos/`, source `wearos/src`, plus `wearos/protocol`) | Watch remote app: now playing, controls, local speaker playback; Data Layer to the phone. `applicationId` `com.music.violence` (dev `com.dev.bitchord`). | Dormant. Still **BitChord branded** (39 lines mention BitChord, incl. `app_name`). |
-| Desktop app | `:desktopApp` (`desktopApp/`: `src`, `native` (SMTC, window helpers, CMake), `packaging`) | Compose Desktop launcher: tray, SMTC, JavaFX WebView BotGuard, jpackage (MSI/EXE/DEB/RPM/DMG/AppImage). | Dormant. **Violence branded by the owner and working** (as of the rebrand). |
-| Desktop UI | `:desktopUi` (`desktopUi/`) | Desktop window layout, sidebar, wide now-playing; branched from `:sharedUi`. | Dormant. |
+| Wear OS | `:wearos` (`wearos/`, source `wearos/src`, plus `wearos/protocol`) | Watch remote app: now playing, controls, local speaker playback; Data Layer to the phone. `applicationId` `com.music.violence` (dev `com.dev.bitchord`). | **FROZEN (DORMANT)**. Kept intact, not edited, built, or linted. Still BitChord branded. |
+| Desktop app | `:desktopApp` (`desktopApp/`: `src`, `native` (SMTC, window helpers, CMake), `packaging`) | Compose Desktop launcher: tray, SMTC, JavaFX WebView BotGuard, jpackage (MSI/EXE/DEB/RPM/DMG/AppImage). | **UNFROZEN (Parity project DW-0 to DW-6)**. Violence branded by owner; upgradeUuid `ac94b47f-e765-4578-91a1-a5497a4c267c` invariant. |
+| Desktop UI | `:desktopUi` (`desktopUi/`) | Desktop window layout, sidebar, wide now-playing; branched from `:sharedUi`. | **UNFROZEN (Parity project DW-0 to DW-6)**. Compiles cleanly (`compileKotlinJvm`), 42 tests pass. |
 Also dormant by association: `DESKTOP.md`, `docs/DESKTOP_RELEASES.md`, `.github/workflows/desktop-check.yml` (manual), `.github/workflows/release.yml` (manual), the `bitchord.bundleWear` Gradle property path in `app/build.gradle.kts`, and the TV stubs `tv/.../wear/WatchInstaller.kt`, `WearBridge.kt` (they exist only because Wear code exists in `:app`).
 
 ## (b) Dependencies on shared code (what a change could affect)
@@ -79,3 +80,9 @@ Append one line per change: `date | file | what changed | why it could affect a 
 - Part 4: no further shared-code change (the player's buttons use the existing LocalGlassDisc hook, now supplied with a snapshot-backed glass inside the phone's player window). Desktop is not built or tested.
 
 - 2026-11-02, UI-1: `sharedUi/.../ui/screens/HomeScreen.kt` `HomeTitle` now draws the text wordmark VIOLENCE instead of the logo image (owner request). Affects desktop's Home too; desktop not built or tested.
+
+## 2026-11-04: DW-0 Desktop & Web Parity Project Unfreeze Audit
+- Owner explicitly unfroze desktop modules (`:desktopApp`, `:desktopUi`) for the parity project (DW-0 to DW-6). Wear OS (`:wearos`) remains frozen.
+- `desktopUi`: compiles cleanly (`.\gradlew.bat :desktopUi:compileKotlinJvm`), 42 unit tests pass (`.\gradlew.bat :desktopUi:jvmTest`).
+- `desktopApp`: `.\gradlew.bat :desktopApp:compileKotlin` fails at `DesktopApp.kt:4223:33` because `when (entity.entityType)` is not exhaustive. Upstream v1.9 added `@SerialName("OTHER") OTHER` to `EntityType` in `shared/.../data/model/SearchHistoryEntity.kt`. This was predicted in the 2026-10-31 impact row above. Fixing this single exhaustive `when` in DW-1 will unblock `:desktopApp:test` and packaging.
+- Desktop Windows packaging invariant confirmed: `upgradeUuid = "ac94b47f-e765-4578-91a1-a5497a4c267c"` in `desktopApp/build.gradle.kts:590`. Must never be changed.
