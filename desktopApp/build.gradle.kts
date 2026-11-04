@@ -432,7 +432,7 @@ val windowsPortableAssemble by tasks.registering {
                 appendLine("set \"HERE=%~dp0\"")
                 appendLine("set \"RUNNER=java\"")
                 appendLine("if defined JAVA_HOME set \"RUNNER=%JAVA_HOME%\\bin\\java\"")
-                append("\"%RUNNER%\" -Xmx512m -XX:+UseG1GC -XX:G1PeriodicGCInterval=20000 -XX:G1PeriodicGCSystemLoadThreshold=0 -XX:+ShrinkHeapInSteps=false -Dviolence.version=$version -Dviolence.version.code=$desktopVersionCode")
+                append("\"%RUNNER%\" -Xmx512m -XX:+UseG1GC -XX:G1PeriodicGCInterval=20000 -XX:G1PeriodicGCSystemLoadThreshold=0 -Dviolence.version=$version -Dviolence.version.code=$desktopVersionCode")
                 if (updateInfoUrl.isNotBlank()) append(" -Dviolence.update.url=$updateInfoUrl")
                 if (moduleIndex.isNotBlank()) append(" -Dviolence.module.index=$moduleIndex -Dviolence.module.index=$moduleIndex")
                 if (lastfmKey.isNotBlank() && lastfmSharedSecret.isNotBlank()) {
@@ -501,7 +501,7 @@ compose.desktop {
         }.get()
         mainClass = composeMainClass
         jvmArgs("-Xmx512m")
-        jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=20000", "-XX:G1PeriodicGCSystemLoadThreshold=0", "-XX:+ShrinkHeapInSteps=false", "-XX:MaxMetaspaceSize=192m")
+        jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=20000", "-XX:G1PeriodicGCSystemLoadThreshold=0")
         jvmArgs("-Dviolence.version=$appVersion")
         jvmArgs("-Dviolence.version.code=$desktopVersionCode")
         if (updateInfoUrl.isNotBlank()) {
