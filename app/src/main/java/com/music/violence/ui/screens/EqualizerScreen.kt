@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material.icons.rounded.Tune
@@ -102,6 +103,11 @@ fun EqualizerScreen(
     val bands by AppSettings.equalizerBands.collectAsStateWithLifecycle()
     val preset by AppSettings.equalizerPreset.collectAsStateWithLifecycle()
     val outputStatus by AudioOutputStatus.current.collectAsStateWithLifecycle()
+    val autoEqEnabled by AppSettings.autoEqEnabled.collectAsStateWithLifecycle()
+    val autoEqModel by AppSettings.autoEqSelectedModel.collectAsStateWithLifecycle()
+    val autoEqSource by AppSettings.autoEqSelectedSource.collectAsStateWithLifecycle()
+    val autoEqCustom by AppSettings.autoEqCustomCurve.collectAsStateWithLifecycle()
+    var showAutoEqPicker by remember { mutableStateOf(false) }
 
     val haptics = rememberHaptics()
 
@@ -131,6 +137,46 @@ fun EqualizerScreen(
                 onClick = {
                     haptics.play(if (!enabled) Haptic.ToggleOn else Haptic.ToggleOff)
                     AppSettings.setEqualizerEnabled(!enabled)
+                },
+            )
+        }
+
+        SettingsGroup(
+            header = "HEADPHONE CALIBRATION (AUTOEQ)",
+            footer = "Harmonizes acoustic response to the Harman target using 8,850+ measured profiles (Oratory1990, Crinacle, Rtings).",
+        ) {
+            SettingsRow(
+                icon = androidx.compose.material.icons.Icons.Rounded.Headphones,
+                title = "Calibration",
+                trailing = {
+                    IosSwitch(
+                        checked = autoEqEnabled,
+                        onCheckedChange = {
+                            haptics.play(if (it) Haptic.ToggleOn else Haptic.ToggleOff)
+                            AppSettings.setAutoEqEnabled(it)
+                        },
+                    )
+                },
+                onClick = {
+                    haptics.play(if (!autoEqEnabled) Haptic.ToggleOn else Haptic.ToggleOff)
+                    AppSettings.setAutoEqEnabled(!autoEqEnabled)
+                },
+            )
+            RowDivider()
+            SettingsRow(
+                title = "Headphone Model",
+                value = when {
+                    autoEqCustom.isNotBlank() -> "Custom Profile"
+                    autoEqModel.isNotBlank() -> autoEqModel
+                    else -> "None"
+                },
+                subtitle = when {
+                    autoEqCustom.isNotBlank() -> "Imported ParametricEQ"
+                    autoEqModel.isNotBlank() -> autoEqSource
+                    else -> null
+                },
+                onClick = {
+                    showAutoEqPicker = true
                 },
             )
         }
@@ -268,6 +314,10 @@ fun EqualizerScreen(
         }
 
         Spacer(Modifier.height(32.dp))
+    }
+
+    if (showAutoEqPicker) {
+        AutoEqPickerSheet(onDismiss = { showAutoEqPicker = false })
     }
 }
 

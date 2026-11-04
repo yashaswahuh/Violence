@@ -1784,8 +1784,15 @@ fun ViolenceDesktopApp() {
     val eqFocused by DesktopEqualizerSettings.focused.collectAsState()
     val eqBalance by DesktopEqualizerSettings.balance.collectAsState()
     val eqBands by DesktopEqualizerSettings.bands.collectAsState()
+    val autoEqEnabled by DesktopEqualizerSettings.autoEqEnabled.collectAsState()
+    val autoEqModel by DesktopEqualizerSettings.autoEqModel.collectAsState()
+    val autoEqSource by DesktopEqualizerSettings.autoEqSource.collectAsState()
+    val autoEqCustom by DesktopEqualizerSettings.autoEqCustom.collectAsState()
     LaunchedEffect(eqEnabled, eqMode, eqToneX, eqToneY, eqFocused, eqBalance, eqBands) {
         playbackEngine.setEqualizer(eqEnabled, DesktopEqualizerSettings.curve(), eqBalance)
+    }
+    LaunchedEffect(autoEqEnabled, autoEqModel, autoEqSource, autoEqCustom) {
+        playbackEngine.setAutoEq(autoEqEnabled, DesktopEqualizerSettings.autoEqProfile())
     }
     LaunchedEffect(spatialAudio, skipSilence, outputPrecision) {
         playbackEngine.setSpatialAudio(spatialAudio)

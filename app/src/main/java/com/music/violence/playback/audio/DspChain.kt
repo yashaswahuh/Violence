@@ -33,6 +33,7 @@ import com.music.violence.playback.TransitionFilterProcessor
  */
 class DspChain(
     val spatial: SpatialAudioProcessor = SpatialAudioProcessor(),
+    val autoEq: AutoEqProcessor = AutoEqProcessor(),
     val equalizer: EqualizerProcessor = EqualizerProcessor(),
     val transition: TransitionFilterProcessor = TransitionFilterProcessor(),
     val loudness: LoudnessProcessor = LoudnessProcessor(),
@@ -44,6 +45,7 @@ class DspChain(
     override fun configure(sampleRate: Int, channelCount: Int) {
         this.currentSampleRate = sampleRate
         spatial.configure(sampleRate, channelCount)
+        autoEq.configure(sampleRate, channelCount)
         equalizer.configure(sampleRate, channelCount)
         transition.configure(sampleRate, channelCount)
         loudness.configure(sampleRate, channelCount)
@@ -78,17 +80,19 @@ class DspChain(
         }
 
         spatial.process(block)
+        autoEq.process(block)
         equalizer.process(block)
         transition.process(block)
         // The equaliser leaves its overs in place for the stages after it to
         // see; the loudness stage's limiter is what catches whatever survives.
-        loudness.holdLimiter = equalizer.isShaping
+        loudness.holdLimiter = equalizer.isShaping || autoEq.isShaping()
         loudness.process(block)
     }
 
     @Suppress("DEPRECATION")
     override fun flush() {
         spatial.flush()
+        autoEq.flush()
         equalizer.flush()
         transition.flush()
         loudness.flush()
@@ -97,6 +101,7 @@ class DspChain(
     override fun reset() {
         processCounter = 0L
         spatial.reset()
+        autoEq.reset()
         equalizer.reset()
         transition.reset()
         loudness.reset()

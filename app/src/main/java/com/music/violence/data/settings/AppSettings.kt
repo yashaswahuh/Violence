@@ -407,6 +407,15 @@ object AppSettings {
      */
     val equalizerPreset = MutableStateFlow(EqualizerPreset.FLAT)
 
+    /**
+     * Headphone Calibration (AutoEQ) state and selected profile.
+     */
+    val autoEqEnabled = MutableStateFlow(false)
+    val autoEqSelectedModel = MutableStateFlow("")
+    val autoEqSelectedSource = MutableStateFlow("")
+    val autoEqSelectedCategory = MutableStateFlow("")
+    val autoEqCustomCurve = MutableStateFlow("")
+
     val playbackSpeed = MutableStateFlow(1.0f)
     val themeMode = MutableStateFlow(ThemeMode.DARK)
     val appFont = MutableStateFlow(AppFont.DEFAULT)
@@ -955,6 +964,11 @@ object AppSettings {
         equalizerBalance.value = prefs.getFloat(KEY_EQ_BALANCE, 0f).coerceIn(-1f, 1f)
         equalizerBands.value = readEqualizerBands()
         equalizerPreset.value = EqualizerPreset.matching(equalizerBands.value)
+        autoEqEnabled.value = prefs.getBoolean(KEY_AUTO_EQ_ENABLED, false)
+        autoEqSelectedModel.value = prefs.getString(KEY_AUTO_EQ_MODEL, "") ?: ""
+        autoEqSelectedSource.value = prefs.getString(KEY_AUTO_EQ_SOURCE, "") ?: ""
+        autoEqSelectedCategory.value = prefs.getString(KEY_AUTO_EQ_CATEGORY, "") ?: ""
+        autoEqCustomCurve.value = prefs.getString(KEY_AUTO_EQ_CUSTOM, "") ?: ""
         playbackSpeed.value = prefs.getFloat(KEY_SPEED, 1.0f)
         themeMode.value = runCatching {
             ThemeMode.valueOf(prefs.getString(KEY_THEME, null) ?: "DARK")
@@ -1304,6 +1318,27 @@ object AppSettings {
     fun setEqualizerPreset(preset: EqualizerPreset) {
         if (preset == EqualizerPreset.CUSTOM) return
         setEqualizerBands(preset.bands)
+    }
+
+    fun setAutoEqEnabled(value: Boolean) {
+        autoEqEnabled.value = value
+        prefs.edit().putBoolean(KEY_AUTO_EQ_ENABLED, value).apply()
+    }
+
+    fun setAutoEqProfile(model: String, source: String, category: String = "") {
+        autoEqSelectedModel.value = model
+        autoEqSelectedSource.value = source
+        autoEqSelectedCategory.value = category
+        prefs.edit()
+            .putString(KEY_AUTO_EQ_MODEL, model)
+            .putString(KEY_AUTO_EQ_SOURCE, source)
+            .putString(KEY_AUTO_EQ_CATEGORY, category)
+            .apply()
+    }
+
+    fun setAutoEqCustomCurve(text: String) {
+        autoEqCustomCurve.value = text
+        prefs.edit().putString(KEY_AUTO_EQ_CUSTOM, text).apply()
     }
 
     private fun readEqualizerBands(): List<Float> {
@@ -2157,6 +2192,11 @@ object AppSettings {
     private const val KEY_EQ_FOCUSED = "equalizer_focused"
     private const val KEY_EQ_BALANCE = "equalizer_balance"
     private const val KEY_EQ_BANDS = "equalizer_bands"
+    private const val KEY_AUTO_EQ_ENABLED = "auto_eq_enabled"
+    private const val KEY_AUTO_EQ_MODEL = "auto_eq_model"
+    private const val KEY_AUTO_EQ_SOURCE = "auto_eq_source"
+    private const val KEY_AUTO_EQ_CATEGORY = "auto_eq_category"
+    private const val KEY_AUTO_EQ_CUSTOM = "auto_eq_custom"
     private const val KEY_SPEED = "playback_speed"
     private const val KEY_THEME = "theme_mode"
     private const val KEY_APP_FONT = "app_font"

@@ -598,6 +598,8 @@ class PlaybackService : MediaLibraryService() {
      */
     private val spatialAudioProcessorA = SpatialAudioProcessor()
     private val spatialAudioProcessorB = SpatialAudioProcessor()
+    private val autoEqProcessorA = com.music.violence.playback.audio.AutoEqProcessor()
+    private val autoEqProcessorB = com.music.violence.playback.audio.AutoEqProcessor()
     private val equalizerProcessorA = EqualizerProcessor()
     private val equalizerProcessorB = EqualizerProcessor()
     private val transitionFilterA = TransitionFilterProcessor()
@@ -1757,6 +1759,7 @@ class PlaybackService : MediaLibraryService() {
         configuredFloatOutput = shouldEnableFloatOutput()
         val exoPlayer = buildPlayer(
             spatialAudioProcessorA,
+            autoEqProcessorA,
             equalizerProcessorA,
             transitionFilterA,
             loudnessA,
@@ -1764,6 +1767,7 @@ class PlaybackService : MediaLibraryService() {
         )
         val sparePlayer = buildPlayer(
             spatialAudioProcessorB,
+            autoEqProcessorB,
             equalizerProcessorB,
             transitionFilterB,
             loudnessB,
@@ -3444,12 +3448,13 @@ class PlaybackService : MediaLibraryService() {
      */
     private fun buildPlayer(
         spatial: SpatialAudioProcessor,
+        autoEq: com.music.violence.playback.audio.AutoEqProcessor,
         equalizer: EqualizerProcessor,
         filter: TransitionFilterProcessor,
         loudness: LoudnessProcessor,
         ownsSession: Boolean,
     ): ExoPlayer = ExoPlayer.Builder(this)
-        .setRenderersFactory(silenceSkippingRenderers(spatial, equalizer, filter, loudness))
+        .setRenderersFactory(silenceSkippingRenderers(spatial, autoEq, equalizer, filter, loudness))
         .setMediaSourceFactory(requireNotNull(mediaSourceFactory))
         .setLoadControl(farBufferingLoadControl())
         .setAudioAttributes(AUDIO_ATTRIBUTES, /* handleAudioFocus = */ ownsSession)
@@ -6607,6 +6612,7 @@ class PlaybackService : MediaLibraryService() {
      */
     private fun silenceSkippingRenderers(
         spatial: SpatialAudioProcessor,
+        autoEq: com.music.violence.playback.audio.AutoEqProcessor,
         equalizer: EqualizerProcessor,
         transition: TransitionFilterProcessor,
         loudness: LoudnessProcessor,
@@ -6690,7 +6696,7 @@ class PlaybackService : MediaLibraryService() {
             // them for the same reason: it belongs to the listener and
             // the whole session, while the transition filter belongs to
             // one handoff and has to have the last word on it.
-            val dspChain = DspChain(spatial, equalizer, transition, loudness)
+            val dspChain = DspChain(spatial, autoEq, equalizer, transition, loudness)
             val precision = PrecisionAudioSink(
                 delegate = defaultSink,
                 dspChain = dspChain,
@@ -6936,6 +6942,7 @@ class PlaybackService : MediaLibraryService() {
         spareFilter = transitionFilterB
         val newActive = buildPlayer(
             spatialAudioProcessorA,
+            autoEqProcessorA,
             equalizerProcessorA,
             transitionFilterA,
             loudnessA,
@@ -6943,6 +6950,7 @@ class PlaybackService : MediaLibraryService() {
         )
         val newSpare = buildPlayer(
             spatialAudioProcessorB,
+            autoEqProcessorB,
             equalizerProcessorB,
             transitionFilterB,
             loudnessB,
@@ -7160,6 +7168,14 @@ class PlaybackService : MediaLibraryService() {
                 AppSettings.equalizerBands,
             ) { }.collect { applyEqualizer() }
         }
+        scope.launch {
+            combine(
+                AppSettings.autoEqEnabled,
+                AppSettings.autoEqSelectedModel,
+                AppSettings.autoEqSelectedSource,
+                AppSettings.autoEqCustomCurve,
+            ) { _, _, _, _ -> }.collect { applyAutoEq() }
+        }
     }
 
     /**
@@ -7188,6 +7204,21 @@ class PlaybackService : MediaLibraryService() {
         val balance = AppSettings.equalizerBalance.value
         equalizerProcessorA.setTuning(enabled, curve, balance)
         equalizerProcessorB.setTuning(enabled, curve, balance)
+    }
+
+    private fun applyAutoEq() {
+        val enabled = AppSettings.autoEqEnabled.value
+        val model = AppSettings.autoEqSelectedModel.value
+        val source = AppSettings.autoEqSelectedSource.value
+        val custom = AppSettings.autoEqCustomCurve.value
+
+        val profile = when {
+            custom.isNotBlank() -> com.music.violence.playback.autoeq.AutoEqParser.parse(custom, "Custom Profile", "User")
+            model.isNotBlank() -> com.music.violence.playback.autoeq.AutoEqDatabase.findProfile(model, source.ifBlank { null })
+            else -> null
+        }
+        autoEqProcessorA.setProfile(enabled, profile)
+        autoEqProcessorB.setProfile(enabled, profile)
     }
 
     /**

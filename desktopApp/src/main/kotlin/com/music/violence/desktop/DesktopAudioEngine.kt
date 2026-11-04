@@ -7,6 +7,8 @@ import com.music.violence.data.settings.SmartAnalysis
 import com.music.violence.data.settings.TrackAnalysisState
 import com.music.violence.data.settings.TransitionWindow
 import com.music.violence.playback.EqCurve
+import com.music.violence.playback.autoeq.AutoEqEngine
+import com.music.violence.playback.autoeq.AutoEqProfile
 import com.music.violence.playback.TransitionFilter
 import com.music.violence.playback.smart.CrossfadeMode
 import com.music.violence.playback.smart.TransitionPlan
@@ -716,6 +718,8 @@ class DesktopPlaybackEngine(
      * the listener and the whole session, while the filter belongs to one handoff and has to have
      * the last word on it.
      */
+    private var autoEq = AutoEqEngine()
+    private var autoEqIncoming = AutoEqEngine()
     private var equalizer = DesktopEqualizer()
     private var equalizerIncoming = DesktopEqualizer()
     private var silence: DesktopSilenceSkipper? = null
@@ -881,6 +885,7 @@ class DesktopPlaybackEngine(
         val incoming = upcoming
         // Widened first, whether or not a mix is running, then equalised.
         widen(spatial, track, block, count)
+        autoEqualise(autoEq, block, count)
         equalise(equalizer, block, count)
         if (fadeRemaining <= 0 || incoming == null) return block to count
 
@@ -891,6 +896,7 @@ class DesktopPlaybackEngine(
         incomingSourceFrames += otherCount.toDouble() / sink.format.channels.coerceAtLeast(1) * incomingRate
         if (other != null) {
             widen(spatialIncoming, incoming, other, otherCount)
+            autoEqualise(autoEqIncoming, other, otherCount)
             equalise(equalizerIncoming, other, otherCount)
         }
         val channels = sink.format.channels.coerceAtLeast(1)
@@ -1098,6 +1104,11 @@ class DesktopPlaybackEngine(
         processor.process(samples, count)
     }
 
+    private fun autoEqualise(engine: AutoEqEngine, samples: FloatArray, count: Int) {
+        engine.setProfile(autoEqEnabled, autoEqProfile)
+        engine.process(samples, count)
+    }
+
     private fun stretch(samples: FloatArray, count: Int): Pair<FloatArray, Int> {
         val processor = speedProcessor ?: return samples to count
         processor.speed = playbackSpeed
@@ -1149,6 +1160,10 @@ class DesktopPlaybackEngine(
         // this track for the whole crossfade, and its sections — a 60 Hz shelf above all — are
         // ringing with that audio; handing the track over to the other one instead would hand it
         // the outgoing track's history at the seam.
+        val promotedAutoEq = autoEqIncoming
+        autoEqIncoming = autoEq
+        autoEq = promotedAutoEq
+        autoEqIncoming.reset()
         val promoted = equalizerIncoming
         equalizerIncoming = equalizer
         equalizer = promoted
@@ -1411,6 +1426,8 @@ class DesktopPlaybackEngine(
         speedProcessor = DesktopAudioSpeed(sink.format.channels, sink.format.sampleRate)
         spatial = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
         spatialIncoming = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
+        autoEq.configure(sink.format.channels, sink.format.sampleRate)
+        autoEqIncoming.configure(sink.format.channels, sink.format.sampleRate)
         equalizer.configure(sink.format.channels, sink.format.sampleRate)
         equalizerIncoming.configure(sink.format.channels, sink.format.sampleRate)
         silence = DesktopSilenceSkipper(sink.format.channels, sink.format.sampleRate)
@@ -1447,6 +1464,8 @@ class DesktopPlaybackEngine(
         speedProcessor = DesktopAudioSpeed(sink.format.channels, sink.format.sampleRate)
         spatial = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
         spatialIncoming = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
+        autoEq.configure(sink.format.channels, sink.format.sampleRate)
+        autoEqIncoming.configure(sink.format.channels, sink.format.sampleRate)
         equalizer.configure(sink.format.channels, sink.format.sampleRate)
         equalizerIncoming.configure(sink.format.channels, sink.format.sampleRate)
         silence = DesktopSilenceSkipper(sink.format.channels, sink.format.sampleRate)
@@ -1496,6 +1515,8 @@ class DesktopPlaybackEngine(
         // A seek is not a continuous signal, so the filters are cleared rather than left ringing
         // with the audio from before it — a strong band otherwise rings that state out over the
         // first moments of the new position.
+        autoEq.reset()
+        autoEqIncoming.reset()
         equalizer.reset()
         equalizerIncoming.reset()
         silence?.reset()
@@ -1826,6 +1847,14 @@ class DesktopPlaybackEngine(
 
     @Volatile private var preferFloat = false
     @Volatile private var spatialEnabled = false
+
+    @Volatile private var autoEqEnabled = false
+    @Volatile private var autoEqProfile: AutoEqProfile? = null
+
+    fun setAutoEq(enabled: Boolean, profile: AutoEqProfile?) {
+        autoEqProfile = profile
+        autoEqEnabled = enabled
+    }
 
     @Volatile private var equalizerEnabled = false
 

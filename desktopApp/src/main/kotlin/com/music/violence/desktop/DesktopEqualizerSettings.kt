@@ -4,6 +4,9 @@ import com.music.violence.playback.EqLayout
 import com.music.violence.playback.EqualizerPreset
 import com.music.violence.playback.manualCurve
 import com.music.violence.playback.toneCurve
+import com.music.violence.playback.autoeq.AutoEqDatabase
+import com.music.violence.playback.autoeq.AutoEqParser
+import com.music.violence.playback.autoeq.AutoEqProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -34,6 +37,10 @@ internal object DesktopEqualizerSettings {
     )
     private val _bands = MutableStateFlow(readBands())
     private val _preset = MutableStateFlow(EqualizerPreset.matching(_bands.value))
+    private val _autoEqEnabled = MutableStateFlow(persistence.boolean(KEY_AUTO_EQ_ENABLED, false))
+    private val _autoEqModel = MutableStateFlow(persistence.string(KEY_AUTO_EQ_MODEL, ""))
+    private val _autoEqSource = MutableStateFlow(persistence.string(KEY_AUTO_EQ_SOURCE, ""))
+    private val _autoEqCustom = MutableStateFlow(persistence.string(KEY_AUTO_EQ_CUSTOM, ""))
 
     val enabled: StateFlow<Boolean> = _enabled
     val mode: StateFlow<DesktopEqualizerMode> = _mode
@@ -55,6 +62,10 @@ internal object DesktopEqualizerSettings {
 
     /** Which preset the bands currently are, or [EqualizerPreset.CUSTOM]. */
     val preset: StateFlow<EqualizerPreset> = _preset
+    val autoEqEnabled: StateFlow<Boolean> = _autoEqEnabled
+    val autoEqModel: StateFlow<String> = _autoEqModel
+    val autoEqSource: StateFlow<String> = _autoEqSource
+    val autoEqCustom: StateFlow<String> = _autoEqCustom
 
     fun setEnabled(value: Boolean) {
         _enabled.value = value
@@ -120,6 +131,34 @@ internal object DesktopEqualizerSettings {
         }
     }
 
+    fun setAutoEqEnabled(value: Boolean) {
+        _autoEqEnabled.value = value
+        persistence.saveBoolean(KEY_AUTO_EQ_ENABLED, value)
+    }
+
+    fun setAutoEqProfile(model: String, source: String) {
+        _autoEqModel.value = model
+        _autoEqSource.value = source
+        persistence.saveString(KEY_AUTO_EQ_MODEL, model)
+        persistence.saveString(KEY_AUTO_EQ_SOURCE, source)
+    }
+
+    fun setAutoEqCustom(text: String) {
+        _autoEqCustom.value = text
+        persistence.saveString(KEY_AUTO_EQ_CUSTOM, text)
+    }
+
+    fun autoEqProfile(): AutoEqProfile? {
+        val custom = _autoEqCustom.value
+        val model = _autoEqModel.value
+        val source = _autoEqSource.value
+        return when {
+            custom.isNotBlank() -> AutoEqParser.parse(custom, "Custom Profile", "User")
+            model.isNotBlank() -> AutoEqDatabase.findProfile(model, source.ifBlank { null })
+            else -> null
+        }
+    }
+
     private fun clampStep(value: Int) = value.coerceIn(-EqLayout.TONE_STEPS, EqLayout.TONE_STEPS)
 
     private const val KEY_ENABLED = "equalizer_enabled"
@@ -129,4 +168,8 @@ internal object DesktopEqualizerSettings {
     private const val KEY_FOCUSED = "equalizer_focused"
     private const val KEY_BALANCE = "equalizer_balance"
     private const val KEY_BANDS = "equalizer_bands"
+    private const val KEY_AUTO_EQ_ENABLED = "auto_eq_enabled"
+    private const val KEY_AUTO_EQ_MODEL = "auto_eq_model"
+    private const val KEY_AUTO_EQ_SOURCE = "auto_eq_source"
+    private const val KEY_AUTO_EQ_CUSTOM = "auto_eq_custom"
 }

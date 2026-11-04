@@ -51,6 +51,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.music.violence.playback.EqLayout
+import com.music.violence.playback.autoeq.AutoEqDatabase
+import com.music.violence.playback.autoeq.AutoEqParser
+import com.music.violence.playback.autoeq.AutoEqProfileSummary
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
 import com.music.violence.playback.EqualizerPreset
 import com.music.violence.ui.icons.ViolenceIcons
 import java.util.Locale
@@ -78,6 +87,11 @@ internal fun DesktopEqualizerDialog(onDismiss: () -> Unit) {
     val enabled by DesktopEqualizerSettings.enabled.collectAsState()
     val mode by DesktopEqualizerSettings.mode.collectAsState()
     val balance by DesktopEqualizerSettings.balance.collectAsState()
+    val autoEqEnabled by DesktopEqualizerSettings.autoEqEnabled.collectAsState()
+    val autoEqModel by DesktopEqualizerSettings.autoEqModel.collectAsState()
+    val autoEqSource by DesktopEqualizerSettings.autoEqSource.collectAsState()
+    val autoEqCustom by DesktopEqualizerSettings.autoEqCustom.collectAsState()
+    var showAutoEqPicker by remember { mutableStateOf(false) }
 
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 560) {
         Row(
@@ -102,6 +116,15 @@ internal fun DesktopEqualizerDialog(onDismiss: () -> Unit) {
                 colors = desktopSwitchColors(),
             )
         }
+
+        DesktopAutoEqCard(
+            enabled = autoEqEnabled,
+            model = autoEqModel,
+            source = autoEqSource,
+            custom = autoEqCustom,
+            onToggle = DesktopEqualizerSettings::setAutoEqEnabled,
+            onOpenPicker = { showAutoEqPicker = true },
+        )
 
         // Off, the apparatus below reads as unavailable rather than merely idle: dimmed, and it
         // stops answering the pointer, so nobody drags a band wondering why nothing changed.
@@ -703,3 +726,250 @@ private const val ZERO_DETENT_DB = 0.6f
 
 /** Same, for the balance trim's own centre. */
 private const val BALANCE_DETENT = 0.04f
+
+
+@Composable
+private fun DesktopAutoEqCard(
+    enabled: Boolean,
+    model: String,
+    source: String,
+    custom: String,
+    onToggle: (Boolean) -> Unit,
+    onOpenPicker: () -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = panelInset(18.dp), vertical = 6.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(14.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Headphone Calibration (AutoEQ)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Harman target frequency calibration for 8,850+ headphones",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesktopSecondary,
+                )
+            }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onToggle,
+                colors = desktopSwitchColors(),
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.08f))
+                .clickable(onClick = onOpenPicker)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = when {
+                        custom.isNotBlank() -> "Custom Imported Profile"
+                        model.isNotBlank() -> model
+                        else -> "Select Headphone..."
+                    },
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    color = if (model.isNotBlank() || custom.isNotBlank()) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f),
+                    maxLines = 1,
+                )
+                if (source.isNotBlank() && custom.isBlank()) {
+                    Text(
+                        text = "Measurement by $source",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DesktopSecondary,
+                    )
+                }
+            }
+            Text(
+                "Change",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DesktopAutoEqPickerDialog(onDismiss: () -> Unit) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategoryFilter by remember { mutableStateOf("All") }
+    val selectedModel by DesktopEqualizerSettings.autoEqModel.collectAsState()
+    val selectedSource by DesktopEqualizerSettings.autoEqSource.collectAsState()
+
+    val searchResults = remember(searchQuery, selectedCategoryFilter) {
+        AutoEqDatabase.ensureLoaded()
+        val query = searchQuery.trim()
+        val baseList = if (query.isEmpty()) {
+            AutoEqDatabase.popularSummaries()
+        } else {
+            AutoEqDatabase.search(query, limit = 80)
+        }
+        if (selectedCategoryFilter == "All") {
+            baseList
+        } else {
+            baseList.filter { it.category.contains(selectedCategoryFilter, ignoreCase = true) }
+        }
+    }
+
+    DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 520) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "Select Headphone",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                )
+                TextButton(onClick = onDismiss) {
+                    Text("Close", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Search box
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                    singleLine = true,
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    decorationBox = { inner ->
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                "Search 8,850+ headphones...",
+                                style = TextStyle(color = DesktopSecondary, fontSize = 14.sp),
+                            )
+                        }
+                        inner()
+                    },
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // Category filter pills
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf("All", "over-ear", "in-ear").forEach { cat ->
+                    val isSelected = selectedCategoryFilter.equals(cat, ignoreCase = true)
+                    val label = when (cat.lowercase()) {
+                        "over-ear" -> "Over-Ear"
+                        "in-ear" -> "In-Ear / IEM"
+                        else -> "All"
+                    }
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                else Color.White.copy(alpha = 0.06f),
+                            )
+                            .clickable { selectedCategoryFilter = cat }
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else DesktopSecondary,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Results list
+            LazyColumn(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 340.dp),
+            ) {
+                items(searchResults, key = { "${it.id}_${it.model}_${it.source}" }) { item ->
+                    val isSelected = item.model.equals(selectedModel, ignoreCase = true) &&
+                        item.source.equals(selectedSource, ignoreCase = true)
+
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
+                            .clickable {
+                                DesktopEqualizerSettings.setAutoEqProfile(item.model, item.source)
+                                DesktopEqualizerSettings.setAutoEqCustom("")
+                                DesktopEqualizerSettings.setAutoEqEnabled(true)
+                                onDismiss()
+                            }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                item.model,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                ),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
+                                maxLines = 1,
+                            )
+                            Text(
+                                "${item.source} · ${item.category}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DesktopSecondary,
+                            )
+                        }
+                        if (isSelected) {
+                            Text(
+                                "Active",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
