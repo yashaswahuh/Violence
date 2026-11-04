@@ -354,6 +354,20 @@
         </activity-alias>
 
         <activity-alias
+            android:name=".LauncherResonantCore"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_resonant_core"
+            android:roundIcon="@mipmap/ic_resonant_core"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
             android:name=".LauncherGlassLight"
             android:enabled="false"
             android:exported="true"
