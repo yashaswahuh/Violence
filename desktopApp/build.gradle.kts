@@ -1,5 +1,9 @@
 import java.util.concurrent.TimeUnit
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -421,6 +425,7 @@ val windowsPortableAssemble by tasks.registering {
             artifact.file.copyTo(File(lib, name), overwrite = true)
         }
         appJar.get().asFile.copyTo(File(lib, "violence-app.jar"), overwrite = true)
+        pruneForeignNativesFromJars(lib)
 
         // `lib\*` rather than a spelled-out classpath: the wildcard is what keeps this working when
         // a dependency is added, and the JVM is what expands it.
@@ -604,4 +609,86 @@ compose.desktop {
         }
     }
 
+}
+
+
+fun pruneForeignNativesFromJars(jarDir: File) {
+    if (!jarDir.isDirectory) return
+    val foreignPattern = Regex(""".*\.(so|dylib|jnilib|a)$|.*[/\\]dSYM[/\\].*|.*\.dylib\.ya?ml$""")
+    val jarFiles = jarDir.listFiles { f: File -> f.extension == "jar" } ?: return
+    for (jar in jarFiles) {
+        val hasForeign = ZipFile(jar).use { zip: ZipFile ->
+            zip.entries().asSequence().any { entry: ZipEntry ->
+                val name = entry.name
+                foreignPattern.matches(name) &&
+                    !name.contains("win", ignoreCase = true) &&
+                    !name.contains("windows", ignoreCase = true)
+            }
+        }
+        if (hasForeign) {
+            val tempFile = File(jar.parentFile, "${jar.name}.tmp")
+            var removed = 0
+            ZipFile(jar).use { zipIn: ZipFile ->
+                ZipOutputStream(FileOutputStream(tempFile)).use { zipOut: ZipOutputStream ->
+                    val entries = zipIn.entries()
+                    while (entries.hasMoreElements()) {
+                        val entry = entries.nextElement()
+                        val name = entry.name
+                        if (foreignPattern.matches(name) &&
+                            !name.contains("win", ignoreCase = true) &&
+                            !name.contains("windows", ignoreCase = true)
+                        ) {
+                            removed++
+                            continue
+                        }
+                        val newEntry = ZipEntry(entry.name)
+                        zipOut.putNextEntry(newEntry)
+                        zipIn.getInputStream(entry).use { stream: InputStream ->
+                            stream.copyTo(zipOut)
+                        }
+                        zipOut.closeEntry()
+                    }
+                }
+            }
+            if (removed > 0) {
+                tempFile.copyTo(jar, overwrite = true)
+            }
+            tempFile.delete()
+        }
+    }
+}
+
+tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDistributable" }.configureEach {
+    doLast {
+        val appDir = layout.buildDirectory.dir("compose/binaries/main/app/Violence/app").get().asFile
+        if (appDir.isDirectory) {
+            logger.lifecycle("createDistributable: stripping foreign non-Windows binaries from packaged JARs...")
+            pruneForeignNativesFromJars(appDir)
+        }
+    }
+}
+
+val packageWindowsInstaller by tasks.registering {
+    group = "distribution"
+    description = "Builds the Inno Setup Windows installer using ISCC."
+    dependsOn("createDistributable")
+    doLast {
+        val localAppData = System.getenv("LOCALAPPDATA") ?: ""
+        val programFiles = System.getenv("ProgramFiles") ?: ""
+        val programFilesX86 = System.getenv("ProgramFiles(x86)") ?: ""
+        val isccCandidates = listOf(
+            File(localAppData, "Programs/Inno Setup 6/ISCC.exe"),
+            File(programFiles, "Inno Setup 6/ISCC.exe"),
+            File(programFilesX86, "Inno Setup 6/ISCC.exe"),
+        )
+        val iscc = isccCandidates.firstOrNull { it.isFile }
+            ?: findOnPath("ISCC")
+            ?: error("Inno Setup compiler (ISCC.exe) not found on PATH or standard locations.")
+        val issFile = project.file("packaging/windows/installer.iss")
+        logger.lifecycle("Compiling Inno Setup installer with ${iscc.absolutePath}...")
+        providers.exec {
+            commandLine(iscc.absolutePath, issFile.absolutePath)
+        }.result.get().assertNormalExitValue()
+        logger.lifecycle("Windows installer compiled successfully in desktopApp/dist/")
+    }
 }

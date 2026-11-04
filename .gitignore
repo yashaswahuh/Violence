@@ -69,3 +69,7 @@ AGENTS.md
 
 # Violence Style on-device screenshots (may show copyrighted covers: local only)
 /fork-docs/style/device-screenshots/
+
+# Distribution outputs (installers, packages)
+/dist/
+/desktopApp/dist/
