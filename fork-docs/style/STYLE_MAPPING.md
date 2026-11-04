@@ -7,9 +7,9 @@ Rule: restyle through the theme and shared components; every change is guarded s
 | Master toggle, options | `SettingsSheet.kt` (new rows in `ADVANCED` or `APPEARANCE`, owner decides); `AppSettings.kt` (new keys, append-only) | New composable `ViolenceStyleSettings()` in a new file, one call site | S1 | Med |
 | Style state | none today | `LocalViolenceStyle` CompositionLocal (`staticCompositionLocalOf`, default OFF) provided in `MainActivity.setContent` | S1 | Med (one edit in MainActivity) |
 | Accent engine | `ArtworkPalette.kt` (shared, read only), `AppSettings`, system colours | New `AccentEngine` in new package `ui/violencestyle/`; reads `rememberArtworkPalette` (no edit) | S1 | Low |
-| Dark-only theme | `Theme.kt` `BitChordTheme(darkTheme, font)` | Wrapper `ViolenceStyleTheme` applied around it when on; forces `darkTheme = true`; `SystemBarIcons(dark)` follows | S1 | Med |
+| Dark-only theme | `Theme.kt` `ViolenceTheme(darkTheme, font)` | Wrapper `ViolenceStyleTheme` applied around it when on; forces `darkTheme = true`; `SystemBarIcons(dark)` follows | S1 | Med |
 | Fonts (serif, Inter) | `Theme.kt` typography, `res/font` | New font families in new file; typography swap by wrapper `MaterialTheme(typography = ...)` nested inside the existing theme when on | S1 (files), S3 (use) | Low |
-| Safe mode | `BitChordApplication` / `MainActivity.onCreate` | Counter in SharedPreferences, new file; a 3-line hook | S1 | Med |
+| Safe mode | `ViolenceApplication` / `MainActivity.onCreate` | Counter in SharedPreferences, new file; a 3-line hook | S1 | Med |
 | Style preview card | none | New composable shown in the style settings | S1 | Low |
 | Live background (all five styles) | root `BoxWithConstraints` and `paintBackdrop` in `MainActivity.kt:455-495` | **Root layer**: `ViolenceBackground()` drawn after `drawRect(windowBackground)` inside `paintBackdrop` and in the root box when glass is off; style OFF draws nothing | S2 | High (MainActivity edit, glass interaction) |
 | Background pause and LITE logic | `ForegroundState.kt` `rememberIsForeground()` (shared, read only); `reduceDynamicBlur`, `reduceAnimation` | New `StylePerformance` state holder | S2 | Low |
@@ -35,4 +35,4 @@ Rule: restyle through the theme and shared components; every change is guarded s
 
 ## New code location
 
-New package `com.music.bitchord.ui.violencestyle` in `:app` (`app/src/main/java/com/music/bitchord/ui/violencestyle/`), plus tests under `app/src/test/.../violencestyle/`. Shared-UI guards (`HomeScreen.kt`, `TopPicksShelf.kt`, `SearchScreen.kt`) cannot import `:app`, so they read a small `ViolenceStyleHooks` interface defined in `:sharedUi` (new file, `ui/violencestyle/StyleHooks.kt`, default = off) that `:app` implements and provides. The shared composables call it; when it is off they take the original path. This is the only new code in `:sharedUi`.
+New package `com.music.violence.ui.violencestyle` in `:app` (`app/src/main/java/com/music/violence/ui/violencestyle/`), plus tests under `app/src/test/.../violencestyle/`. Shared-UI guards (`HomeScreen.kt`, `TopPicksShelf.kt`, `SearchScreen.kt`) cannot import `:app`, so they read a small `ViolenceStyleHooks` interface defined in `:sharedUi` (new file, `ui/violencestyle/StyleHooks.kt`, default = off) that `:app` implements and provides. The shared composables call it; when it is off they take the original path. This is the only new code in `:sharedUi`.

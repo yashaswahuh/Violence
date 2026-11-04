@@ -13,7 +13,7 @@
 Before removing any module, the following invariants must be preserved:
 
 1. **Native Analyzer Preservation:** Root directory `/native/analyzer` must **NOT** be deleted. Although `desktopApp/native/CMakeLists.txt` compiles it for desktop, `app/src/main/cpp/CMakeLists.txt` also compiles it for Android and TV. Deleting `/native/analyzer` would completely break Android Automix and DSP analysis.
-2. **TV Stubs Awareness:** The TV module (`:tv`) currently maintains stubs for `WatchInstaller.kt` and `WearBridge.kt` (`tv/src/main/java/com/music/bitchord/wear/`). When Wear OS is removed from `:app`, those stubs in `:tv` must be handled concurrently to avoid orphaned files or compilation errors.
+2. **TV Stubs Awareness:** The TV module (`:tv`) currently maintains stubs for `WatchInstaller.kt` and `WearBridge.kt` (`tv/src/main/java/com/music/violence/wear/`). When Wear OS is removed from `:app`, those stubs in `:tv` must be handled concurrently to avoid orphaned files or compilation errors.
 3. **Step-by-Step Verification:** Wear OS and Desktop must be pruned in separate, isolated steps. After each removal, `./gradlew assembleDevDebug` and `./gradlew :tv:assembleDevDebug` must pass with zero errors.
 
 ---
@@ -33,7 +33,7 @@ Wear OS is entangled with `:app` in five distinct places:
    ```
 2. **Phone-to-Watch Gradle Tasks:**
    `app/build.gradle.kts:480-522`:
-   Task `BundleWearApk` compiles `:wearos:assemble*` and injects `BitChordWear.apk` and `BitChordWear.sha256` into phone assets.
+   Task `BundleWearApk` compiles `:wearos:assemble*` and injects `ViolenceWear.apk` and `ViolenceWear.sha256` into phone assets.
 3. **External Dependencies in `:app`:**
    `app/build.gradle.kts:403-421`:
    - `com.google.android.gms:play-services-wearable:20.0.1` (Google Wearable Data Layer)
@@ -42,24 +42,24 @@ Wear OS is entangled with `:app` in five distinct places:
    - `org.conscrypt:conscrypt-android:2.5.3` (ADB TLS crypto)
    - `org.bouncycastle:bcpkix-jdk18on:1.85` (ADB certificate generator)
 4. **Phone Application Code:**
-   - `app/src/main/java/com/music/bitchord/wear/WatchInstaller.kt` (Full ADB client and pairing state machine)
-   - `app/src/main/java/com/music/bitchord/wear/WearBridge.kt` (Data layer sync)
-   - `app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt` (UI settings rows for "BitChord for Wear OS")
-   - `app/src/main/java/com/music/bitchord/playback/PlaybackService.kt` (Hooks calling `WearBridge`)
+   - `app/src/main/java/com/music/violence/wear/WatchInstaller.kt` (Full ADB client and pairing state machine)
+   - `app/src/main/java/com/music/violence/wear/WearBridge.kt` (Data layer sync)
+   - `app/src/main/java/com/music/violence/ui/screens/SettingsSheet.kt` (UI settings rows for "BitChord for Wear OS")
+   - `app/src/main/java/com/music/violence/playback/PlaybackService.kt` (Hooks calling `WearBridge`)
 5. **TV Stubs:**
-   - `tv/src/main/java/com/music/bitchord/wear/WatchInstaller.kt`
-   - `tv/src/main/java/com/music/bitchord/wear/WearBridge.kt`
+   - `tv/src/main/java/com/music/violence/wear/WatchInstaller.kt`
+   - `tv/src/main/java/com/music/violence/wear/WearBridge.kt`
 
 ### 2.2 Execution Steps for Wear OS Pruning
 
 Execute in this exact sequence:
 
 - [ ] **Step W1: Clean Calling Code in `:app`**
-  - In `app/src/main/java/com/music/bitchord/playback/PlaybackService.kt`, remove calls pushing state to `WearBridge`.
-  - In `app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt`, remove the "BitChord for Wear OS" settings group and ADB wireless pairing dialogs.
-  - Delete `app/src/main/java/com/music/bitchord/wear/WatchInstaller.kt` and `WearBridge.kt`.
+  - In `app/src/main/java/com/music/violence/playback/PlaybackService.kt`, remove calls pushing state to `WearBridge`.
+  - In `app/src/main/java/com/music/violence/ui/screens/SettingsSheet.kt`, remove the "BitChord for Wear OS" settings group and ADB wireless pairing dialogs.
+  - Delete `app/src/main/java/com/music/violence/wear/WatchInstaller.kt` and `WearBridge.kt`.
 - [ ] **Step W2: Clean Calling Code in `:tv`**
-  - Delete `tv/src/main/java/com/music/bitchord/wear/WatchInstaller.kt` and `WearBridge.kt`.
+  - Delete `tv/src/main/java/com/music/violence/wear/WatchInstaller.kt` and `WearBridge.kt`.
   - In `tv/build.gradle.kts:483-497`, verify that `replacedByTv` exclusion logic continues to work cleanly (it will simply find zero overlapping files).
 - [ ] **Step W3: Clean `app/build.gradle.kts`**
   - Delete `sourceSets { getByName("main") { java.srcDir("../wearos/protocol") } }`.
@@ -116,7 +116,7 @@ Execute in this exact sequence:
 - [ ] **Step D2: Clean Shared Library (`:shared`)**
   - In `shared/build.gradle.kts`:
     - Remove desktop-only comments and dependencies.
-  - In `shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/presence/Presence.kt`:
+  - In `shared/src/jvmSharedMain/kotlin/com/music/violence/data/presence/Presence.kt`:
     - `enum class PresencePlatform`: Can remove `Pc("pc")` or leave as legacy no-op.
 - [ ] **Step D3: Clean Settings and Build Scripts**
   - In `settings.gradle.kts`:

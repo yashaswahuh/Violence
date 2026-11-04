@@ -21,12 +21,12 @@ Private, GPL-3.0 modified fork of BitChord (kushagrasinghx/BitChord), rebranded 
 | `web/` (pnpm: `app`, `extension`, `shared`) | React 19 + Vite SPA, WXT MV3 extension | web | ACTIVE |
 | `backend/` | Go server (gorilla/websocket), in-memory, no DB | Jam | ACTIVE (not yet deployed) |
 | `native/` | C++ analyzer used by `:app`/`:tv` CMake | phone, TV | ACTIVE (never delete) |
-| `:wearos` | Wear OS, still BitChord branded (`com.music.bitchord`, "BitChord") | watch | DORMANT |
+| `:wearos` | Wear OS, still BitChord branded (`com.music.violence`, "BitChord") | watch | DORMANT |
 | `:desktopApp`, `:desktopUi` | Compose Desktop, branded Violence | desktop | DORMANT |
 
 `settings.gradle.kts` (rootProject name still `BitChord`) includes `:shared :sharedUi :desktopUi :desktopApp` always, and `:app :tv :wearos` only if an Android SDK is found (`local.properties sdk.dir`, `ANDROID_HOME`, or `ANDROID_SDK_ROOT`). Without an SDK the Gradle build is desktop-only.
 
-Build stack: Gradle 8.11.1 wrapper, AGP 8.10.1, Kotlin 2.3.20, R8 8.13.23 classpath override in root build, Compose MP 1.10.3, Media3 1.11.0, compileSdk 37, targetSdk 36, minSdk 26, JDK 17 required for Android (AGP enforces it). Version 1.8.1, code 28 (phone) / 26 (TV, hardcoded in `tv/build.gradle.kts`), beta suffix `beta1`. Internal Kotlin package and namespace stay `com.music.bitchord` (JNI symbols depend on it).
+Build stack: Gradle 8.11.1 wrapper, AGP 8.10.1, Kotlin 2.3.20, R8 8.13.23 classpath override in root build, Compose MP 1.10.3, Media3 1.11.0, compileSdk 37, targetSdk 36, minSdk 26, JDK 17 required for Android (AGP enforces it). Version 1.8.1, code 28 (phone) / 26 (TV, hardcoded in `tv/build.gradle.kts`), beta suffix `beta1`. Internal Kotlin package and namespace stay `com.music.violence` (JNI symbols depend on it).
 
 ## 4. Identifiers
 - Phone: `com.yashaswahuh.violencemusic` (dev flavor `.dev`). TV: `com.yashaswahuh.violencemusic.tv` (dev `.tv.dev`). Desktop bundleID `com.yashaswahuh.violencemusic.desktop`. Deep link scheme `violence://` (`violence://party/<CODE>?server=...`). FileProvider `${applicationId}.provider`.
@@ -63,7 +63,7 @@ Verified disabled: presence pings, author update checker, donation links/files, 
 
 ## 8. Workflows
 - `web.yml` (violence-main, main; web/**): pnpm `build:site`, deploy to GitHub Pages with `VITE_BASE_URL` = Pages base path or `/Violence`. Summary line says `https://yashaswahuh.is-a.dev/Violence/`.
-- `android.yml` (violence-main, main): `:app:assembleDevDebug :tv:assembleDevDebug -Pbitchord.bundleWear=false`, uploads APK artifacts (30 days).
+- `android.yml` (violence-main, main): `:app:assembleDevDebug :tv:assembleDevDebug -Pviolence.bundleWear=false`, uploads APK artifacts (30 days).
 - `tv.yml` (main, PR): `:tv:assembleDevDebug`. Upstream, not updated.
 - `check.yml` (main, PR): desktop tests and `createDistributable` on 3 OSes (touches dormant desktop). Upstream.
 - `release.yml` (tags `v*.*.*`): desktop packaging release (DEB/RPM/MSI/DMG...). Upstream; would publish desktop builds if a tag is pushed.
@@ -98,7 +98,7 @@ No keystore, `local.properties`, `google-services.json`, `.env`, service-account
 Command: `.\gradlew.bat :app:assembleDevDebug` in the clone with `ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk`.
 **Result: FAIL (environment, not code).** This machine has only JDK 16 and JDK 26. With JDK 26 Gradle 8.11.1 aborts ("What went wrong: 26.0.2.1", it cannot parse the version). With JDK 16 AGP fails: "Android Gradle plugin requires Java 17 to run." The Android SDK folder has only `platforms/android-34`, with no `ndk`, no `cmake` (the project needs compileSdk 37, CMake 3.22.1 and an NDK). `gradlew projects/tasks` could not run, so task paths below come from build files and workflows. No pnpm or Go on PATH (corepack exists). Needed before any build works: JDK 17, SDK platform 37, NDK, CMake 3.22.1, pnpm via corepack. Not fixed, as instructed.
 
-Task paths (from build files and CI): phone `:app:assembleDevDebug`; TV `:tv:assembleDevDebug`; web `corepack pnpm --dir web build:site`; phone tests `:app:testDevDebugUnitTest`; shared tests `:shared:jvmTest`; web tests `pnpm --dir web test`; backend `go test -v ./...` in `backend/`. Add `-Pbitchord.bundleWear=false` to phone/TV builds to skip Wear.
+Task paths (from build files and CI): phone `:app:assembleDevDebug`; TV `:tv:assembleDevDebug`; web `corepack pnpm --dir web build:site`; phone tests `:app:testDevDebugUnitTest`; shared tests `:shared:jvmTest`; web tests `pnpm --dir web test`; backend `go test -v ./...` in `backend/`. Add `-Pviolence.bundleWear=false` to phone/TV builds to skip Wear.
 
 ## 13. Known risks
 1. Root `build`/`assemble`/`check`/`test` would pull in `:wearos`, `:desktopApp`, `:desktopUi`. Never run them.
@@ -139,7 +139,7 @@ Task paths (from build files and CI): phone `:app:assembleDevDebug`; TV `:tv:ass
 - **Owner to do:** Pages source = GitHub Actions; add `violence-nk` to the `github-pages` environment's allowed branches; optional repo variables `JAM_BACKEND_URL`, `JAM_INVITE_BASE_URL` and secrets `LASTFM_API_KEY`, `LASTFM_SECRET`; confirm the custom domain (UNCLEAR).
 
 ## 18. Update after Phase 7 (2026-11-02): TV review, signing, updates, App Links
-- **Versions:** one place, root `build.gradle.kts` (`bitchordVersionCode`, `bitchordVersionName`, `bitchordBetaSuffix`). The TV now reads it too (it had its own `29` / copy of the name). Format `<upstream>-violence.N`, versionCode +1 per release. Currently `1.9.0-violence.1` / `35`, not yet released.
+- **Versions:** one place, root `build.gradle.kts` (`violenceVersionCode`, `violenceVersionName`, `violenceBetaSuffix`). The TV now reads it too (it had its own `29` / copy of the name). Format `<upstream>-violence.N`, versionCode +1 per release. Currently `1.9.0-violence.1` / `35`, not yet released.
 - **Signing:** `keystore.properties` (gitignored, points at a keystore outside the repo). Phone and TV release both come out unsigned without it (the TV used to silently fall back to the debug key; fixed). `scripts/release.ps1` builds `violence-phone-<v>.apk` and `violence-tv-<v>.apk` + `update.json` into `release-out/<v>/` (gitignored).
 - **Updates:** `AppUpdateChecker` reads `update.json` (`versionCode`, `versionName`, `changelog`, `apks.<phone|tv>-<cpu>.{url,sha256}` (per-CPU APKs, the app picks its own)) from `UPDATE_INFO_URL` at most once per 24 h, compares versionCode, verifies SHA-256, installs through the system installer (FileProvider `<applicationId>.provider`, `REQUEST_INSTALL_PACKAGES`). Files are served by GitHub Pages: `web.yml` copies the newest published release's `update.json` + the per-CPU APKs it lists into the site folder `updates/` (also on every later deploy). Tests: `AppUpdateCheckerTest`.
 - **App Links:** one `autoVerify` filter (both manifests) for `https://yashaswahuh.is-a.dev` with prefixes `/Violence/party/` and `/Violence/invite/`; owner must publish `.well-known/assetlinks.json` at the domain root (`APP_LINKS.md`).

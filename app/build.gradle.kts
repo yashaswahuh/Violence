@@ -82,10 +82,10 @@ val updateInfoUrl: String = (
     ).trim()
 
 // See the root build.gradle.kts: one version for the phone and its watch app.
-val betaSuffix = rootProject.extra["bitchordBetaSuffix"] as String
+val betaSuffix = rootProject.extra["violenceBetaSuffix"] as String
 
 android {
-    namespace = "com.music.bitchord"
+    namespace = "com.music.violence"
     // InnerTubeX's AAR requires compiling against 37; targetSdk (runtime behaviour) stays 36.
     compileSdk = 37
 
@@ -95,8 +95,8 @@ android {
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
         targetSdk = 36
-        versionCode = rootProject.extra["bitchordVersionCode"] as Int
-        versionName = rootProject.extra["bitchordVersionName"] as String
+        versionCode = rootProject.extra["violenceVersionCode"] as Int
+        versionName = rootProject.extra["violenceVersionName"] as String
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -373,13 +373,13 @@ dependencies {
     // a camera scanner and an Activity with it, and nothing here reads a code —
     // a party is joined by tapping somebody else's link or typing six
     // characters. This produces the bit matrix; the drawing is ours, in
-    // [com.music.bitchord.ui.components.QrCode], so the result is styled like
+    // [com.music.violence.ui.components.QrCode], so the result is styled like
     // the rest of the app rather than a stock black-and-white bitmap.
     implementation("com.google.zxing:core:3.5.3")
 
     // ---- QR scanning, for receiving a shared song, profile or Jam invite ----
     // CameraX (Apache-2.0) gives the preview and the frames; ZXing `core` above decodes them
-    // ([com.music.bitchord.share.QrDecoder]). No Play Services / ML Kit. The phone asks for the
+    // ([com.music.violence.share.QrDecoder]). No Play Services / ML Kit. The phone asks for the
     // camera permission only when the scan screen opens. The TV has no camera and never shows the
     // scanner, but it compiles the phone's sources, so it needs the same classes.
     implementation("androidx.camera:camera-core:1.6.2")
@@ -453,19 +453,19 @@ dependencies {
     // ---- Casting: Google Cast sender + the route discovery it sits on ----
     // The framework and the router only. media3-cast is left out on purpose:
     // its CastPlayer hands the receiver whatever URI a MediaItem carries, and
-    // ours are `bitchord://` addresses that only the service's resolver can
-    // turn into a real stream — see [com.music.bitchord.playback.cast.CastPlayback].
+    // ours are `violence://` addresses that only the service's resolver can
+    // turn into a real stream — see [com.music.violence.playback.cast.CastPlayback].
     implementation("com.google.android.gms:play-services-cast-framework:22.2.0")
     implementation("androidx.mediarouter:mediarouter:1.8.1")
 
     // ---- The watch app (wearos/): Data Layer state out, commands in ----
-    // See com.music.bitchord.wear.WearBridge. Rides on the Play services base
+    // See com.music.violence.wear.WearBridge. Rides on the Play services base
     // the Cast framework already brings, so it adds very little.
     implementation("com.google.android.gms:play-services-wearable:20.0.1")
     // Opens the watch app after an update, so its install prompt is on screen.
     implementation("androidx.wear:wear-remote-interactions:1.1.0")
 
-    // ---- "BitChord for Wear OS": the first install onto a watch ----
+    // ---- "Violence for Wear OS": the first install onto a watch ----
     // Without the Play Store only ADB can install on a watch, so this phone is
     // the ADB client, over the watch's Wireless debugging — see WatchInstaller.
     // GPL-3.0/Apache-2.0 dual-licensed. Its own BouncyCastle (jdk15to18) is the
@@ -523,7 +523,7 @@ val verifyDevInstall = tasks.register("verifyDevInstall") {
 tasks.matching { it.name == "installDevDebug" }.configureEach { finalizedBy(verifyDevInstall) }
 
 /*
- * The watch app rides inside the phone app, so "BitChord for Wear OS" in
+ * The watch app rides inside the phone app, so "Violence for Wear OS" in
  * Settings can put it on a watch — or update it — with no computer involved.
  *
  * Each phone variant carries the watch build of the same flavor *and* build
@@ -532,7 +532,7 @@ tasks.matching { it.name == "installDevDebug" }.configureEach { finalizedBy(veri
  * all. A SHA-256 travels with it, so the phone can tell the watch's build from
  * the one it carries even when the version numbers match.
  *
- * Costs a watch build per phone build; -Pbitchord.bundleWear=false skips it
+ * Costs a watch build per phone build; -Pviolence.bundleWear=false skips it
  * for a quick local iteration (Settings then offers no install).
  */
 abstract class BundleWearApk : DefaultTask() {
@@ -549,7 +549,7 @@ abstract class BundleWearApk : DefaultTask() {
         out.mkdirs()
         val apk = apks.asFileTree.matching { include("*.apk") }.files.singleOrNull()
             ?: throw GradleException("Expected exactly one watch APK in ${apks.files}")
-        val target = out.resolve("BitChordWear.apk")
+        val target = out.resolve("ViolenceWear.apk")
         apk.copyTo(target, overwrite = true)
         val digest = MessageDigest.getInstance("SHA-256")
         target.inputStream().use { input ->
@@ -560,11 +560,11 @@ abstract class BundleWearApk : DefaultTask() {
                 digest.update(buffer, 0, read)
             }
         }
-        out.resolve("BitChordWear.sha256").writeText(digest.digest().joinToString("") { "%02x".format(it) })
+        out.resolve("ViolenceWear.sha256").writeText(digest.digest().joinToString("") { "%02x".format(it) })
     }
 }
 
-if (providers.gradleProperty("bitchord.bundleWear").orNull != "false" && findProject(":wearos") != null) {
+if (providers.gradleProperty("violence.bundleWear").orNull != "false" && findProject(":wearos") != null) {
     androidComponents.onVariants { variant ->
         val flavor = variant.productFlavors.firstOrNull { it.first == "env" }?.second ?: return@onVariants
         val type = variant.buildType ?: return@onVariants

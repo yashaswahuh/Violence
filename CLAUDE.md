@@ -3,7 +3,7 @@
 Read this first. Verified state: `fork-docs/PROJECT_STATE.md`. Roadmap: `fork-docs/PHASES.md`. Rules: `fork-docs/AGENT_RULES.md` (updated in Phase 3). Build commands: `fork-docs/BUILD_COMMANDS.md` and `scripts/`.
 
 ## What this is
-"Violence": a private, modified fork of BitChord (https://github.com/kushagrasinghx/BitChord, GPL-3.0), an Android music player with an Apple Music style UI that plays YouTube Music and links Spotify. Application ID `com.yashaswahuh.violencemusic` (TV: `.tv`, dev flavors add `.dev`), deep link scheme `violence://`. Used privately by 4-6 core people (10-15 with friends/family). Never published. Everything must be 100% free: no paid plans, expiring trials, or credit cards. Kotlin Multiplatform + Compose; internal package stays `com.music.bitchord` on purpose (JNI).
+"Violence": a private, modified fork of BitChord (https://github.com/kushagrasinghx/BitChord, GPL-3.0), an Android music player with an Apple Music style UI that plays YouTube Music and links Spotify. Application ID `com.yashaswahuh.violencemusic` (TV: `.tv`, dev flavors add `.dev`), deep link scheme `violence://`. Used privately by 4-6 core people (10-15 with friends/family). Never published. Everything must be 100% free: no paid plans, expiring trials, or credit cards. Kotlin Multiplatform + Compose; internal package is `com.music.violence` (renamed from `com.music.bitchord` on 2026-11-04, with the JNI symbols; storage names, the Jam protocol and attribution keep the old name on purpose).
 
 ## Targets
 - ACTIVE: Android phone (`:app`), Android TV (`:tv`), web (`/web`), plus `:shared`, `:sharedUi`, `/native`, `/backend` (Go).
@@ -20,15 +20,15 @@ Read this first. Verified state: `fork-docs/PROJECT_STATE.md`. Roadmap: `fork-do
 
 ## BRANCH RULE
 All work, commits, and pushes go to the branch violence-nk, never main and never violence-main. Never force-push, never rewrite history, never push to the upstream remote.
-Before starting and before every push run `git branch --show-current`; if it is not violence-nk, switch or stop. Remote `upstream` = BitChord, push URL `DISABLED`. Upstream v1.9 was merged on 2026-10-31 (`fork-docs/UPSTREAM_SYNC_LOG.md`; playbook and watch list `UPSTREAM_SYNC.md`).
+Before starting and before every push run `git branch --show-current`; if it is not violence-nk, switch or stop. Remote `upstream` = Violence, push URL `DISABLED`. Upstream v1.9 was merged on 2026-10-31 (`fork-docs/UPSTREAM_SYNC_LOG.md`; playbook and watch list `UPSTREAM_SYNC.md`).
 
 ## Environment
 - Owner is on Windows; use PowerShell. Git Bash is also available.
 - Toolchain on the owner's PC (installed 2026-10-31/11-01): JDK 17 (Android) and JDK 21 (desktop toolchain; **required by Gradle for any build** because `:desktopApp` is in the build), Android SDK platforms 36 and 37.0, NDK 27, CMake 3.22.1. `ANDROID_HOME` or `local.properties sdk.dir` must point at the SDK.
 - Easiest: `.\scripts\build-active.ps1 [-Target phone|tv|web]` and `.\scripts\test-active.ps1 [-Target phone|web]`. They set the toolchain for the session.
 - Explicit Gradle task paths (never root-level):
-  - Phone: `.\gradlew.bat :app:assembleDevDebug '-Pbitchord.bundleWear=false'`
-  - TV: `.\gradlew.bat :tv:assembleDevDebug '-Pbitchord.bundleWear=false'`
+  - Phone: `.\gradlew.bat :app:assembleDevDebug '-Pviolence.bundleWear=false'`
+  - TV: `.\gradlew.bat :tv:assembleDevDebug '-Pviolence.bundleWear=false'`
   - Web: `corepack pnpm --dir web build:site` (tests: `corepack pnpm --dir web test`)
   - Tests: `:app:testDevDebugUnitTest`, `:shared:jvmTest`; backend: `go test -v ./...` in `backend/`
 - PowerShell: quote the `-P` flag, or it is split at the dot. Web scripts need `pnpm` on PATH (corepack shim) and `VITE_PARTY_SERVER_URL` set (the scripts do both).
@@ -62,14 +62,14 @@ Never remove or break playback, search, stream resolution, lyrics, metadata, art
 5. Run only explicit-module builds and tests. Never claim a build passed without its output.
 
 ## Things that must never happen
-- Pushing to `main`, `violence-main`, or `upstream`; force-pushing; rewriting history; opening PRs to BitChord.
+- Pushing to `main`, `violence-main`, or `upstream`; force-pushing; rewriting history; opening PRs to Violence.
 - A root-level Gradle task; building or testing Wear OS or desktop without being asked.
 - Committing any secret, keystore, `local.properties`, cookie or token.
 - Re-adding telemetry, presence pings, analytics, crash reporting, the author's updater, or donation links.
 - Disabling or deleting a KEEP service, a login flow, or Jam wiring to "clean up".
 - Using a paid service, a trial, or anything needing a credit card.
 - Publishing the APKs, web build links, or code publicly. Pushing a `v*.*.*` tag is allowed to do nothing now (`release.yml` is manual-only) but still do not.
-- Changing desktop branding or `upgradeUuid`; deleting `/wearos`, `/desktopApp`, `/desktopUi`; renaming the internal `com.music.bitchord` package; deleting `/native/analyzer`.
+- Changing desktop branding or `upgradeUuid`; deleting `/wearos`, `/desktopApp`, `/desktopUi`; renaming the internal `com.music.violence` package; deleting `/native/analyzer`.
 - Removing `NOTICE`, `LICENSE`, or attribution to Kushagra Singh.
 
 ## Known open issues (details in PROJECT_STATE.md s.9)

@@ -8,7 +8,7 @@ breaks one of the rules below, the update check silently stops working for Linux
 ## 1. One version, stamped from one place
 
 - The version is a plain string such as `1.8` or `1.8-beta1`. No leading `v`.
-- `desktopApp/build.gradle.kts` reads it from `-Pbitchord.version=...` and falls back to a default
+- `desktopApp/build.gradle.kts` reads it from `-Pviolence.version=...` and falls back to a default
   (`appVersion`). CI passes the tag with the `v` removed (`v1.8` becomes `1.8`).
 - The app reads the same value at runtime from the `bitchord.version` system property. It is baked
   into every package by `jvmArgs("-Dbitchord.version=$appVersion")` in the `compose.desktop`
@@ -65,8 +65,8 @@ look for macOS files yet, so Mac users get the release page.
 
 ## 4. How the app finds an update
 
-`desktopApp/src/main/kotlin/com/music/bitchord/desktop/DesktopUpdateChecker.kt`, shown as a dialog
-from `BitChordDesktopApp` in `DesktopApp.kt`:
+`desktopApp/src/main/kotlin/com/music/violence/desktop/DesktopUpdateChecker.kt`, shown as a dialog
+from `ViolenceDesktopApp` in `DesktopApp.kt`:
 
 1. At launch it calls `GET https://api.github.com/repos/kushagrasinghx/BitChord/releases/latest`.
 2. It strips the `v` from `tag_name` and compares it with `bitchord.version` (numeric, dot by dot;
@@ -91,7 +91,7 @@ What this means for releasing:
 
 Before publishing, confirm each of these on the built files, not just in the source:
 
-- [ ] Version stamped (`-Pbitchord.version=<v>`). Launch each built file and check Settings shows the
+- [ ] Version stamped (`-Pviolence.version=<v>`). Launch each built file and check Settings shows the
       same version.
 - [ ] `desktopVersionCode` is higher than the last published build.
 - [ ] The three files are named exactly as in section 3.
@@ -108,7 +108,7 @@ Before publishing, confirm each of these on the built files, not just in the sou
 Run an old build with the version forced low, against the real latest release:
 
 ```bash
-./gradlew :desktopApp:run -Pbitchord.version=0.1
+./gradlew :desktopApp:run -Pviolence.version=0.1
 ```
 
 The dialog should appear. Run it with the current published version and it should not.

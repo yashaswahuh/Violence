@@ -22,17 +22,17 @@ Needs JDK 17, Android SDK platform 37.0 (and 36), NDK, CMake 3.22.1. **Quote the
 
 | What | Command |
 |---|---|
-| Phone debug APK | `.\gradlew.bat :app:assembleDevDebug '-Pbitchord.bundleWear=false'` |
-| TV debug APK | `.\gradlew.bat :tv:assembleDevDebug '-Pbitchord.bundleWear=false'` |
-| Phone unit tests | `.\gradlew.bat :app:testDevDebugUnitTest '-Pbitchord.bundleWear=false'` |
-| Shared unit tests | `.\gradlew.bat :shared:jvmTest '-Pbitchord.bundleWear=false'` |
+| Phone debug APK | `.\gradlew.bat :app:assembleDevDebug '-Pviolence.bundleWear=false'` |
+| TV debug APK | `.\gradlew.bat :tv:assembleDevDebug '-Pviolence.bundleWear=false'` |
+| Phone unit tests | `.\gradlew.bat :app:testDevDebugUnitTest '-Pviolence.bundleWear=false'` |
+| Shared unit tests | `.\gradlew.bat :shared:jvmTest '-Pviolence.bundleWear=false'` |
 | Clean phone / TV only | `.\gradlew.bat :app:clean :tv:clean` (never a bare `clean`) |
 | Web typecheck | `corepack pnpm --dir web typecheck` (scripts call `pnpm`, so put a corepack shim on PATH) |
 | Web build | `corepack pnpm --dir web build:site` |
 | Web tests | `corepack pnpm --dir web test` |
 | Backend tests | `cd backend; go test -v ./...`. Go is not installed on the owner's machine. In Phase 8 they were run with a **portable** Go 1.27.3 (zip from go.dev, SHA-256 checked, unpacked into a scratch folder, `GOROOT`/`GOPATH`/`GOTOOLCHAIN=local` set for the session). **Do not set `GOFLAGS=-mod=mod`**: it rewrites `backend/go.mod` (drops `// indirect`). `-race` needs a C compiler and does not work on this PC. Real-server check: `go build -o jamserver.exe .` then run it with `PORT`, `JAM_CREATE_RATE_PER_MINUTE=200` and `node scripts/jam-test.mjs --url http://localhost:<port> --clients 4 --profiles`. |
 
-`'-Pbitchord.bundleWear=false'` stops `:app` from building and bundling the Wear OS APK. Without it, `:app` builds `:wearos` too (`app/build.gradle.kts` `BundleWearApk`).
+`'-Pviolence.bundleWear=false'` stops `:app` from building and bundling the Wear OS APK. Without it, `:app` builds `:wearos` too (`app/build.gradle.kts` `BundleWearApk`).
 Web needs `VITE_PARTY_SERVER_URL` set for `build:site` (upstream v1.9 refuses to build without it); the scripts and `web.yml` use the same default.
 Outputs: phone `app/build/outputs/apk/dev/debug/` (4 APKs: universal, arm64-v8a, armeabi-v7a, x86_64), TV `tv/build/outputs/apk/dev/debug/`, web `web/app/dist`.
 Measured (cold, this PC): phone ~15 min, TV ~6.5 min, tests ~2 min, web ~1 min.
@@ -47,7 +47,7 @@ Because `:desktopApp` is part of the Gradle build, **every build on a machine ne
 ## CI (what runs automatically)
 | Workflow | Runs on | Tasks |
 |---|---|---|
-| `android.yml` | push `violence-nk` (path-filtered), manual | JDK 21+17, SDK, `:app:assembleDevDebug :tv:assembleDevDebug -Pbitchord.bundleWear=false`, uploads the two APKs (Phase 6) |
+| `android.yml` | push `violence-nk` (path-filtered), manual | JDK 21+17, SDK, `:app:assembleDevDebug :tv:assembleDevDebug -Pviolence.bundleWear=false`, uploads the two APKs (Phase 6) |
 | `tv.yml` | push (same branches), PR | `:tv:assembleDevDebug` |
 | `check.yml` | push (same branches), PR | `:app:testDevDebugUnitTest`, `:app:assembleDevDebug` (explicit), plus backend Go checks |
 | `web.yml` | push `violence-nk` (`web/**`), release published, manual | typecheck + tests + `pnpm build:site` with `VITE_BASE_URL`=the Pages folder, adds the newest release's update files under `updates/`, deploy to GitHub Pages (Phase 6, 7) |
@@ -68,6 +68,6 @@ node scripts/serve-pages-local.mjs              # then open http://localhost:417
 Needs `keystore.properties` and a keystore outside the repo (`RELEASE_GUIDE.md` A1). Phone and TV only.
 ```powershell
 .\scripts\release.ps1 -Bump -Changelog 'what changed'    # build, sign, write release-out\<version>\ (phone apk, tv apk, update.json), print the publish steps
-.\gradlew.bat ':app:assembleDevRelease' '-Pbitchord.bundleWear=false'    # dev flavor release, only when needed
+.\gradlew.bat ':app:assembleDevRelease' '-Pviolence.bundleWear=false'    # dev flavor release, only when needed
 ```
 Never run it with a real keystore from CI; the keystore stays on the owner's machine.

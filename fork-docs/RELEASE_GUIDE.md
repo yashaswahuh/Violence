@@ -69,7 +69,7 @@ git switch violence-nk
 and then steps 2-4 above (the tag is `v1.9.0-violence.1`). Install it on your own phone first (B1) and try the main things before sending it to anyone. There is no older version to update *from*, so the update check can only be tested once a second release exists: make a tiny second release (`-Bump`) and open the first install.
 
 ### Versions
-One place: `extra["bitchordVersionCode"]` and `extra["bitchordVersionName"]` in the root `build.gradle.kts` (the phone and the TV both read it).
+One place: `extra["violenceVersionCode"]` and `extra["violenceVersionName"]` in the root `build.gradle.kts` (the phone and the TV both read it).
 - **versionName** is `<upstream version>-violence.<N>`, for example `1.9.0-violence.2`. `-Bump` adds 1 to `N`. After merging a new upstream BitChord version, set the new base by hand: `.\scripts\release.ps1 -VersionName 1.10.0-violence.1` (this resets `N` and still adds 1 to the versionCode).
 - **versionCode** is a whole number that must go up with every release (Android refuses an update with a lower or equal number). `-Bump` and `-VersionName` add 1.
 - The update check compares **versionCode only**, never the name.
@@ -90,7 +90,7 @@ Update files are served from **GitHub Pages**, built from the private repository
 - Why not GitHub Releases directly? In a private repo a release download needs a GitHub login, which friends do not have and the app must not ask for. Why not Cloudflare R2 or Firebase? They want a card on file or have tighter free limits; Cloudflare Pages has a 25 MiB per-file limit, smaller than the APK.
 
 ## A6. Other build variants
-- **Dev flavor** (installs beside the real app as `com.yashaswahuh.violencemusic.dev`): `.\gradlew.bat ':app:assembleDevRelease' '-Pbitchord.bundleWear=false'` (output `app\build\outputs\apk\dev\release`). Signed with the release key when `keystore.properties` exists. Not needed for normal releases.
+- **Dev flavor** (installs beside the real app as `com.yashaswahuh.violencemusic.dev`): `.\gradlew.bat ':app:assembleDevRelease' '-Pviolence.bundleWear=false'` (output `app\build\outputs\apk\dev\release`). Signed with the release key when `keystore.properties` exists. Not needed for normal releases.
 - **Debug builds** (`.\scripts\build-active.ps1`, and the Android CI workflow) are signed with a *debug* key; they cannot be updated by a release APK or the other way round. Uninstall one before installing the other.
 - R8/minify: release builds are minified and resource-shrunk; the keep rules in `app/proguard-rules.pro` cover Ktor and the `@Serializable` classes used by Jam and Last.fm, the playback libraries, search and lyrics code, and the YouTube Music / Spotify login code. Launch a release build and try each (Jam, Last.fm, playback, search, lyrics, a download, both logins) before sending it out; this has **not** been done on a device.
 

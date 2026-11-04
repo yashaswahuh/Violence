@@ -12,22 +12,22 @@ Written 2026-11-02 (UI-0). Nothing in this plan has been built. The direction is
 
 ### 1.2 Where the switch is (and why it is not the whole app)
 
-`BitChordApp` is one composable of about 5,800 lines that creates the media controller (`rememberMediaController()`), owns all routes and nearly every dialog. Swapping it wholesale would force a copy of all that logic or a risky extraction of it from the file upstream edits most. So the switch swaps **the theme and the chrome**, and leaves pages, routes, dialogs and state exactly as they are:
+`ViolenceApp` is one composable of about 5,800 lines that creates the media controller (`rememberMediaController()`), owns all routes and nearly every dialog. Swapping it wholesale would force a copy of all that logic or a risky extraction of it from the file upstream edits most. So the switch swaps **the theme and the chrome**, and leaves pages, routes, dialogs and state exactly as they are:
 
 | # | Entry point | Edit in `MainActivity.kt` | New code |
 |---|---|---|---|
-| 1 | `setContent`, around `BitChordTheme` | Read `AppSettings.uiVariant`; if `CUSTOM`, wrap the content in `V2Theme { ... }` (palette, type, shapes, tier, `LocalUiVariant`); otherwise unchanged | `ui/v2/theme/V2Theme.kt` |
+| 1 | `setContent`, around `ViolenceTheme` | Read `AppSettings.uiVariant`; if `CUSTOM`, wrap the content in `V2Theme { ... }` (palette, type, shapes, tier, `LocalUiVariant`); otherwise unchanged | `ui/v2/theme/V2Theme.kt` |
 | 2 | Top bar call (`FrostedTopBar(...)`, about line 3,840) | `if (variant == CUSTOM) V2TopBar(...) else FrostedTopBar(...)` | `ui/v2/chrome/V2TopBar.kt` |
 | 3 | Bottom area (`GlassNavBar`/`MiniPlayer`/`FloatingBottomBar`, about lines 4,261 to 4,330) | the same one-line `if`, passing the same arguments | `ui/v2/chrome/V2Dock.kt` (dock, orb or command bar) |
 | 4 | Player presentation (the sheet that hosts `nowPlaying(...)`) | `if (variant == CUSTOM)` wraps it in `V2PlayerFrame { ... }` (the morph, the Jam chips overlay) | `ui/v2/player/V2PlayerFrame.kt` |
 | 5 | Settings | one row | `ui/v2/settings/V2SettingsRow.kt` |
 
-Why this is safe: the controller, view model, navigator, dialogs and overlays are in the same composition either way, so flipping the setting recomposes the chrome only. The queue and playback live in `PlaybackService`; the player's open state is a field of `BitChordApp`; neither is recreated. UI-1 must prove this with a test on a device (toggle while a song plays, with a queue and the player open) before UI-2 builds on it.
+Why this is safe: the controller, view model, navigator, dialogs and overlays are in the same composition either way, so flipping the setting recomposes the chrome only. The queue and playback live in `PlaybackService`; the player's open state is a field of `ViolenceApp`; neither is recreated. UI-1 must prove this with a test on a device (toggle while a song plays, with a queue and the player open) before UI-2 builds on it.
 
 ### 1.3 Code layout (new files only, upstream-friendly)
 
 ```
-app/src/main/java/com/music/bitchord/ui/v2/
+app/src/main/java/com/music/violence/ui/v2/
   UiVariant.kt            enum + settings glue
   theme/                  V2Colors, V2Type, V2Shapes, V2Motion, V2Theme, contrast utilities
   glass/                  V2GlassTier, V2Glass (wraps the existing primitives), TierController
@@ -138,7 +138,7 @@ Direction: **A Lumen with Tide's solid pages and Aurora's wash on Now Playing on
 
 **Libraries added: none.** New resources: Sora and Inter variable fonts (SIL OFL 1.1; texts appended to `NOTICE`; bundled, no network). Icons use the Material icons already in the app (Apache-2.0).
 
-| Piece | File (under `app/src/main/java/com/music/bitchord/ui/v2/`) |
+| Piece | File (under `app/src/main/java/com/music/violence/ui/v2/`) |
 |---|---|
 | Variant enum (CURRENT/NEW), parse | `UiVariant.kt`; stored as `ui_variant` in `bitchord_settings` via `AppSettings.uiVariant`/`setUiVariant`; default CURRENT |
 | Root switch | `V2Root.kt` (always the same composition shape; only values change, so the media controller, queue, Jam and downloads are untouched), `rememberNewUi()` |
@@ -173,7 +173,7 @@ The Hub avatar sheet, back chip, top bar and player morph are UI-2 and UI-3. The
 - `V2NowPanel.kt`: **Now Playing panel**, opened by tapping the orb: artwork, title, artist, Jam presence chips with profile avatars and "host", accessible seek bar (`Slider` in a 48 dp box; state "1:24 of 3:30"; actions Back/Forward 10 s), transport (48 dp or more; disabled and explained when the Jam host has locked controls), actions (full player, share, Jam). Colour from the artwork through `ArtworkAccent` (contrast guaranteed) plus the artwork wash behind the sheet. Seek goes to `MediaController.seekTo` once, when the finger lifts.
 - `V2Frames.kt`: **shortcut strips** pinned above the current Home and Library pages (solid, scrolls sideways, chips 48 dp), with the page's top padding raised by the strip's height. The pages are unchanged and keep their own skeletons, empty and error states, pull to refresh, sorting and filtering.
 - `V2Dock.kt`: `V2DockHost` now also hosts the panel and the Hub.
-- Deep links and incoming links: no change needed. `IncomingLinkHub` and its dialogs, the route stack and `AppNavigator` live in `BitChordApp`, which is the same composition in both UIs, so a link lands where it does today (to be confirmed on a device: `UI_TEST_PLAN.md` 2.8). State restoration: the selected tab is `rememberSaveable` as before; the Hub and panel are not restored (UNCLEAR whether that matters).
+- Deep links and incoming links: no change needed. `IncomingLinkHub` and its dialogs, the route stack and `AppNavigator` live in `ViolenceApp`, which is the same composition in both UIs, so a link lands where it does today (to be confirmed on a device: `UI_TEST_PLAN.md` 2.8). State restoration: the selected tab is `rememberSaveable` as before; the Hub and panel are not restored (UNCLEAR whether that matters).
 
 **Fallbacks to replace in UI-3 (each is still reachable):**
 1. Queue, lyrics, audio output and quality, add to playlist, the track menu: via "Queue, lyrics and more", which opens the current full player.
@@ -187,4 +187,4 @@ The Hub avatar sheet, back chip, top bar and player morph are UI-2 and UI-3. The
 
 **Performance notes.** No device measurement was possible here. By reasoning: the panel recomposes once a second at most (it reads `PlaybackPosition.positionMs`; no per-frame work); the seek drag keeps its value in local state and seeks once; lists in the pages are the existing lazy lists with their own keys; the dock and the panel add at most 2 to 3 live glass surfaces (budget in `GlassBudget`); image loading is Coil with the app's cache. Hotspots to check on a phone: the Full-glass page backdrop recording (existing cost, now also on under the New UI), the glass sheet's backdrop still being captured on open, and the shortcut strip's `onSizeChanged` causing one extra layout pass when it first measures. Compose compiler metrics and layout inspector were not run.
 
-**Risks seen.** `BitChordApp` is at the JVM method-size limit: keep additions single calls. The `Slider` track is 44 dp, so the 48 dp touch area is the wrapping box, not the slider.
+**Risks seen.** `ViolenceApp` is at the JVM method-size limit: keep additions single calls. The `Slider` track is 44 dp, so the 48 dp touch area is the wrapping box, not the slider.

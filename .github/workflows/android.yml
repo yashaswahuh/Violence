@@ -74,7 +74,7 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleDevDebug :tv:assembleDevDebug \
-            -Pbitchord.bundleWear=false \
+            -Pviolence.bundleWear=false \
             -Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64 \
             --stacktrace
 

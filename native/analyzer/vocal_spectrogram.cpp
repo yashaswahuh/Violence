@@ -26,7 +26,7 @@
 #include <complex>
 #include <vector>
 
-namespace bitchord::smart {
+namespace violence::smart {
 namespace {
 
 constexpr double kPi = 3.14159265358979323846;
@@ -134,4 +134,4 @@ VocalSpectrogram ComputeVocalSpectrogram(
   return result;
 }
 
-}  // namespace bitchord::smart
+}  // namespace violence::smart

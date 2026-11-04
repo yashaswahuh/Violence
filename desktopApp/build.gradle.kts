@@ -4,7 +4,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 /** What the packages, the launcher and the settings footer all say. */
-val appVersion: String = (providers.gradleProperty("violence.version").orNull ?: providers.gradleProperty("bitchord.version").orNull)
+val appVersion: String = (providers.gradleProperty("violence.version").orNull ?: providers.gradleProperty("violence.version").orNull)
     ?.removePrefix("v")
     ?.takeIf { it.isNotBlank() }
     ?: "1.8-beta1"
@@ -13,7 +13,7 @@ val appVersion: String = (providers.gradleProperty("violence.version").orNull ?:
 val hostIsWindows = System.getProperty("os.name").contains("Windows", ignoreCase = true)
 val hostIsLinux = System.getProperty("os.name").contains("Linux", ignoreCase = true)
 val hostIsMac = System.getProperty("os.name").contains("Mac", ignoreCase = true)
-val targetOs: String = (providers.gradleProperty("violence.target").orNull ?: providers.gradleProperty("bitchord.target").orNull ?: when {
+val targetOs: String = (providers.gradleProperty("violence.target").orNull ?: providers.gradleProperty("violence.target").orNull ?: when {
     hostIsWindows -> "windows"
     hostIsLinux -> "linux"
     hostIsMac -> "macos"
@@ -36,7 +36,7 @@ val nativeClassifier = when (targetOs) {
     "windows" -> "windows-x86_64"
     "linux" -> "linux-x86_64"
     "macos" -> if (isArm64) "macosx-arm64" else "macosx-x86_64"
-    else -> error("BitChord desktop supports Linux, Windows, and macOS only")
+    else -> error("Violence desktop supports Linux, Windows, and macOS only")
 }
 private fun localProperty(name: String): String = rootProject.file("local.properties")
     .takeIf { it.isFile }
@@ -430,10 +430,10 @@ val windowsPortableAssemble by tasks.registering {
                 appendLine("set \"HERE=%~dp0\"")
                 appendLine("set \"RUNNER=java\"")
                 appendLine("if defined JAVA_HOME set \"RUNNER=%JAVA_HOME%\\bin\\java\"")
-                append("\"%RUNNER%\" -Dviolence.version=$version -Dbitchord.version=$version")
-                if (moduleIndex.isNotBlank()) append(" -Dviolence.module.index=$moduleIndex -Dbitchord.module.index=$moduleIndex")
+                append("\"%RUNNER%\" -Dviolence.version=$version -Dviolence.version=$version")
+                if (moduleIndex.isNotBlank()) append(" -Dviolence.module.index=$moduleIndex -Dviolence.module.index=$moduleIndex")
                 if (lastfmKey.isNotBlank() && lastfmSharedSecret.isNotBlank()) {
-                    append(" -Dviolence.lastfm.key=$lastfmKey -Dbitchord.lastfm.key=$lastfmKey -Dviolence.lastfm.secret=$lastfmSharedSecret -Dbitchord.lastfm.secret=$lastfmSharedSecret")
+                    append(" -Dviolence.lastfm.key=$lastfmKey -Dviolence.lastfm.key=$lastfmKey -Dviolence.lastfm.secret=$lastfmSharedSecret -Dviolence.lastfm.secret=$lastfmSharedSecret")
                 }
                 appendLine(" -cp \"%HERE%lib\\*\" $mainClass %*")
                 appendLine("endlocal")
@@ -447,8 +447,8 @@ val windowsPortableAssemble by tasks.registering {
             ZipFile(jar).use { zip -> zip.getEntry(entry) != null }
         }
         val problems = buildList {
-            if (!holds("com/music/bitchord/desktop/MainKt.class")) {
-                add("the BitChord desktop entry point is missing")
+            if (!holds("com/music/violence/desktop/MainKt.class")) {
+                add("the Violence desktop entry point is missing")
             }
             if (!holds("androidx/compose/runtime/Composer.class")) {
                 add("the Compose runtime is missing")
@@ -467,12 +467,12 @@ val windowsPortableAssemble by tasks.registering {
         }
         check(problems.isEmpty()) { "windowsPortable: " + problems.joinToString("; ") }
 
-        val analyser = File(analysisNativeDir.get().asFile, "bitchord_analysis.dll").isFile
+        val analyser = File(analysisNativeDir.get().asFile, "violence_analysis.dll").isFile
         logger.lifecycle(
             if (analyser) {
                 "windowsPortable: verified — Compose runtime, Windows renderer, Windows FFmpeg, Automix analyser."
             } else {
-                "windowsPortable: verified, but no bitchord_analysis.dll — Automix will not run in this archive. " +
+                "windowsPortable: verified, but no violence_analysis.dll — Automix will not run in this archive. " +
                     "Rebuild with: nix-shell -p cmake pkgsCross.mingwW64.buildPackages.gcc"
             },
         )
@@ -489,7 +489,7 @@ val windowsPortable by tasks.registering(Zip::class) {
     doLast { logger.lifecycle("windowsPortable: ${archiveFile.get().asFile.absolutePath}") }
 }
 
-val composeMainClass = "com.music.bitchord.desktop.MainKt"
+val composeMainClass = "com.music.violence.desktop.MainKt"
 
 compose.desktop {
     application {
@@ -499,22 +499,22 @@ compose.desktop {
         mainClass = composeMainClass
         jvmArgs("-Xmx512m")
         jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=20000", "-XX:G1PeriodicGCSystemLoadThreshold=0")
-        jvmArgs("-Dviolence.version=$appVersion", "-Dbitchord.version=$appVersion")
+        jvmArgs("-Dviolence.version=$appVersion", "-Dviolence.version=$appVersion")
         if (desktopModuleIndexUrl.isNotBlank()) {
-            jvmArgs("-Dviolence.module.index=$desktopModuleIndexUrl", "-Dbitchord.module.index=$desktopModuleIndexUrl")
+            jvmArgs("-Dviolence.module.index=$desktopModuleIndexUrl", "-Dviolence.module.index=$desktopModuleIndexUrl")
         }
         if (lastfmApiKey.isNotBlank() && lastfmSecret.isNotBlank()) {
             jvmArgs(
                 "-Dviolence.lastfm.key=$lastfmApiKey",
-                "-Dbitchord.lastfm.key=$lastfmApiKey",
+                "-Dviolence.lastfm.key=$lastfmApiKey",
                 "-Dviolence.lastfm.secret=$lastfmSecret",
-                "-Dbitchord.lastfm.secret=$lastfmSecret",
+                "-Dviolence.lastfm.secret=$lastfmSecret",
             )
         }
         if (listenTogetherServer.isNotBlank()) {
             jvmArgs(
                 "-Dviolence.listentogether.server=$listenTogetherServer",
-                "-Dbitchord.listentogether.server=$listenTogetherServer",
+                "-Dviolence.listentogether.server=$listenTogetherServer",
             )
         }
 

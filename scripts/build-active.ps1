@@ -33,8 +33,8 @@ function Invoke-Step([string]$Name, [scriptblock]$Body) {
     else { Write-Host "OK: $Name" -ForegroundColor Green }
 }
 
-# '-Pbitchord.bundleWear=false' keeps :app from building the Wear OS APK (dormant target).
-$noWear = '-Pbitchord.bundleWear=false'
+# '-Pviolence.bundleWear=false' keeps :app from building the Wear OS APK (dormant target).
+$noWear = '-Pviolence.bundleWear=false'
 
 if ($Target -in 'all', 'phone') {
     Use-AndroidToolchain

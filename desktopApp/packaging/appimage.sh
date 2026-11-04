@@ -38,7 +38,7 @@ Exec=Violence
 Icon=violence
 Categories=AudioVideo;Audio;Player;
 Terminal=false
-StartupWMClass=com-music-bitchord-desktop-MainKt
+StartupWMClass=com-music-violence-desktop-MainKt
 DESKTOP
 
 # appimagetool reads the icon by the desktop entry; the desktop reads .DirIcon.
