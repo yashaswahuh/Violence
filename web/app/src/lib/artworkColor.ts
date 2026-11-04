@@ -138,23 +138,39 @@ async function measure(url: string): Promise<ArtworkColor> {
 }
 
 export function useArtworkColor(url: string | null | undefined): ArtworkColor | null {
-  const [color, setColor] = useState<ArtworkColor | null>(() => (url ? cache.get(url) ?? null : null));
+  const [state, setState] = useState<{ url: string | null | undefined; color: ArtworkColor | null }>({
+    url,
+    color: url ? cache.get(url) ?? null : null,
+  });
+
+  // Always evaluate color against the current url. If url changed and is not yet in state,
+  // return the cached color if ready, or null while loading. Never return another url's color!
+  const color = state.url === url ? state.color : (url ? cache.get(url) ?? null : null);
+
   useEffect(() => {
-    if (!url) return setColor(null);
+    if (!url) {
+      setState({ url: null, color: null });
+      return;
+    }
     const known = cache.get(url);
-    if (known) return setColor(known);
+    if (known) {
+      setState({ url, color: known });
+      return;
+    }
     let live = true;
     measure(url)
       .then((measured) => {
         cache.set(url, measured);
-        if (live) setColor(measured);
+        if (live) setState({ url, color: measured });
       })
       .catch(() => {
-        // An unreadable image leaves the page in its normal colours.
+        // An unreadable or failed image clears the color rather than keeping a stale one
+        if (live) setState({ url, color: null });
       });
     return () => {
       live = false;
     };
   }, [url]);
+
   return color;
 }
