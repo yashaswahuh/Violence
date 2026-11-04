@@ -28,6 +28,7 @@ Based on fork documentation and logs (`/fork-docs`):
 - **Rebrand:** Renamed application identity and user-facing assets to Violence across Android, TV, Web, and companion extensions; updated package application IDs, URI schemes (`violence://`), and notification channels.
 - **Author-Hosted Services Disabled or Replaced:** Decoupled and disabled upstream author telemetry and presence pings (`api.bitchord.kushagrasingh.in/api/presence`), upstream update check polling, and donation/promotional links.
 - **New CI:** Configured automated GitHub Actions workflows for Android phone/TV debug builds and GitHub Pages web deployment with SPA routing.
+- **Playback Sources & APIs Reference:** See [fork-docs/PLAYBACK_SOURCES.md](fork-docs/PLAYBACK_SOURCES.md) for complete technical documentation of playback endpoints, login flows, lyrics providers, and replacement guides.
 
 ### Third-Party Disclaimer
 Violence is not affiliated with or endorsed by YouTube, Google, Spotify, Last.fm, or Apple. All trademarks, service marks, trade names, and logos belong to their respective owners. Users are solely responsible for complying with the terms of service of any third-party platforms they access through this software. The user interface of Violence is inspired by Apple Music.

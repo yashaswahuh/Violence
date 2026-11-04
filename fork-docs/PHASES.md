@@ -240,9 +240,9 @@ Phase 11: Playback sources and login flows log                                  
 
 The end-to-end audit on personal devices that the old Phase 9 left to the owner, plus a last pass over the docs and the repo. (Renumbered from the earlier "Phase 8".)
 
-## Phase 11: Playback Sources and Login Flows Log [PLANNED]
+## Phase 11: Playback Sources and Login Flows Log [COMPLETED]
 
-A document of the playback sources and the login flows (YouTube Music, Spotify) as they are. (Renumbered from the earlier "Phase 9".)
+A comprehensive technical reference of all music playback sources, APIs, login flows (YouTube Music, Spotify), lyrics providers, CDN endpoints, failure troubleshooting, and step-by-step replacement guides documented in `fork-docs/PLAYBACK_SOURCES.md`. (Renumbered from the earlier "Phase 9".) (2026-11-04)
 
 ---
 
