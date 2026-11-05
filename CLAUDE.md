@@ -7,7 +7,8 @@ Read this first. Verified state: `fork-docs/PROJECT_STATE.md`. Roadmap: `fork-do
 
 ## Targets
 - ACTIVE: Android phone (`:app`), Android TV (`:tv`), web (`/web`), plus `:shared`, `:sharedUi`, `/native`, `/backend` (Go).
-- DORMANT: Wear OS (`:wearos`), desktop (`:desktopApp`, `:desktopUi`). Frozen, not removed. See `fork-docs/FROZEN_TARGETS.md`.
+- ACTIVE (unfrozen 2026-11-05 by the owner): Wear OS (`:wearos`). Build only with an explicit task: `.\gradlew.bat :wearos:assembleDevDebug`.
+- DORMANT: nothing remains frozen except as listed in `fork-docs/FROZEN_TARGETS.md` (desktop was unfrozen 2026-11-04 for the parity project).
 
 ## Decisions
 - Keep the original's playback APIs and services, even ones the author hosts, and the in-app YT Music and Spotify web logins (WebView session cookies/tokens captured and used locally).
@@ -36,7 +37,7 @@ Before starting and before every push run `git branch --show-current`; if it is 
 - Secrets live in `local.properties`, `keystore.properties`, env vars. All gitignored.
 
 ## DORMANT TARGETS
-Dormant: `:wearos`, `:desktopApp`, `:desktopUi` (details: `fork-docs/FROZEN_TARGETS.md`).
+Dormant: none right now. `:wearos` was unfrozen on 2026-11-05 and `:desktopApp`/`:desktopUi` on 2026-11-04 (details and the rules to apply if they are frozen again: `fork-docs/FROZEN_TARGETS.md`).
 - Never edit, rebrand, refactor, build, test, or lint the dormant modules unless the owner explicitly says "unfreeze".
 - Never run root-level Gradle tasks without explicit module paths; use `BUILD_COMMANDS.md` or the scripts in `/scripts`.
 - Do not include dormant targets in verification or reports beyond one line: "Wear OS and desktop: dormant, not checked."

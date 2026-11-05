@@ -18,7 +18,7 @@ Every AI agent starting a new phase in this project **MUST** read and adhere str
 - This is a private fork created strictly for personal use by a small group (core 4-6 people, up to about 10-15 with friends and family).
 - **Never publish APKs, modified code, release notes, or website instances publicly.**
 - Do not add trackers, commercial analytics, ads, telemetry beacons, or monetization code.
-- Active targets: **Android Phone (`:app`)**, **Android TV (`:tv`)**, **Web (`/web`)**. Wear OS and desktop are **DORMANT** (section 7), not removed.
+- Active targets: **Android Phone (`:app`)**, **Android TV (`:tv`)**, **Web (`/web`)**. Wear OS was unfrozen on 2026-11-05 and desktop on 2026-11-04 (section 7).
 - Never add caps, allowlists, extra login steps or restrictions that hinder the core users.
 
 ---
@@ -61,6 +61,7 @@ Every AI agent starting a new phase in this project **MUST** read and adhere str
 ---
 
 ## 7. DORMANT TARGETS (Wear OS and desktop)
+**Status 2026-11-05: the owner unfroze Wear OS (`:wearos`); desktop was unfrozen on 2026-11-04. The rules below apply again if either is re-frozen. Wear OS builds use an explicit task only: `:wearos:assembleDevDebug`.**
 Dormant modules: `:wearos` (`wearos/`), `:desktopApp` (`desktopApp/`), `:desktopUi` (`desktopUi/`). Details and the unfreeze checklist: `FROZEN_TARGETS.md`.
 - **Never edit, rebrand, refactor, build, test, or lint the dormant modules unless the owner explicitly says "unfreeze".**
 - **Never run root-level Gradle tasks without explicit module paths** (`build`, `assemble`, `check`, `test`, `lint`, `clean`, bare `gradlew`): they include the dormant modules. Use `BUILD_COMMANDS.md` or the scripts in `/scripts`.
