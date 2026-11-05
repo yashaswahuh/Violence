@@ -174,15 +174,9 @@ internal fun TopPicksShelf(
         snapshotFlow { rowState.isScrollInProgress to clipOwner(rowState.layoutInfo, hasClip) }
             .collect { (scrolling, next) -> if (!scrolling) owner = next }
     }
-    // The card at the front of the row (the one the snap settles on): it carries the accent rim light under
-    // Violence Style, and the light moves with it as the row is swiped. Read only by the cards' `first` flag.
-    val frontIndex by remember(rowState) {
-        derivedStateOf {
-            val info = rowState.layoutInfo.visibleItemsInfo.firstOrNull()
-            val half = (info?.size ?: 0) / 2
-            rowState.firstVisibleItemIndex + if (rowState.firstVisibleItemScrollOffset > half) 1 else 0
-        }
-    }
+    val density = LocalDensity.current
+    val spacingPx = with(density) { 14.dp.roundToPx() }
+    val defaultLeadOffset = with(density) { PAGE_GUTTER.roundToPx() }
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(stringResource(Res.string.top_picks_for_you), hero = true)
         BoxWithConstraints {
@@ -202,7 +196,28 @@ internal fun TopPicksShelf(
                         ) {
                             TopPickCard(
                                 pick = pick,
-                                first = index == frontIndex,
+                                glowFraction = {
+                                    val layout = rowState.layoutInfo
+                                    val item = layout.visibleItemsInfo.firstOrNull { it.index == index }
+                                    if (item == null) {
+                                        if (layout.visibleItemsInfo.isEmpty() && index == 0) 1f else 0f
+                                    } else {
+                                        val leadOffset = layout.beforeContentPadding.takeIf { it > 0 } ?: defaultLeadOffset
+                                        val rawDelta = item.offset - leadOffset
+                                        val distance = when {
+                                            index == 0 && rawDelta > 0 -> 0f
+                                            index == picks.lastIndex && rawDelta < 0 -> 0f
+                                            else -> abs(rawDelta).toFloat()
+                                        }
+                                        val step = (item.size + spacingPx).toFloat().coerceAtLeast(1f)
+                                        if (distance >= step) {
+                                            0f
+                                        } else {
+                                            val linear = 1f - (distance / step)
+                                            linear * linear * (3f - 2f * linear)
+                                        }
+                                    }
+                                },
                                 listenerName = listenerName,
                                 onClick = onClick,
                                 onLongPress = onLongPress?.takeIf { pick.kind == TopPickKind.LATEST_RELEASE },
@@ -298,8 +313,8 @@ private fun TopPickCard(
     onClick: (TopPick, String) -> Unit,
     onLongPress: ((TopPick) -> Unit)?,
     modifier: Modifier,
-    /** The first card of the row: the one that carries the accent rim light under Violence Style. */
-    first: Boolean = false,
+    /** Provider for the accent rim light intensity (0f = none, 1f = fully lit). */
+    glowFraction: () -> Float = { 0f },
 ) {
     val text = cardText(pick, listenerName)
     val violence = LocalViolenceShared.current
@@ -311,7 +326,7 @@ private fun TopPickCard(
             .clip(shape)
             .thumbnailBorder(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .violenceCardRim(violence, first, shape)
+            .violenceCardRim(violence, glowFraction, shape)
             .longPressMenuClickable(onClick = { onClick(pick, text.title) }, onLongClick = longPress)
             .contextClick(longPress),
     ) {

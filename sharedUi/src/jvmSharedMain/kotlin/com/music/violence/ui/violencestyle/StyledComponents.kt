@@ -236,16 +236,19 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHairline(style:
  * edge along the bottom (STYLE_SPEC.md section 3). Strokes only (no blur), drawn from a cache that is
  * rebuilt only when the size or the style changes. Returns the receiver unchanged when [style] is null.
  */
-fun Modifier.violenceCardRim(style: ViolenceSharedStyle?, first: Boolean, shape: Shape): Modifier {
+fun Modifier.violenceCardRim(
+    style: ViolenceSharedStyle?,
+    glowFraction: () -> Float,
+    shape: Shape,
+): Modifier {
     if (style == null) return this
     return drawWithCache {
         val outline = shape.createOutline(size, layoutDirection, this)
         val thin = Stroke(1.dp.toPx())
-        val rimLit = first && !style.neutral
         val bloomStroke = Stroke(6.dp.toPx())
         val lightStroke = Stroke(1.2.dp.toPx())
         val bloomAlpha = 0.22f * (style.strength / 0.62f).coerceIn(0.5f, 1.4f)
-        val edge = Brush.verticalGradient(
+        val edgeBrush = Brush.verticalGradient(
             0f to Color.Transparent,
             1f to style.accent.copy(alpha = 0.35f),
             startY = size.height * 0.88f,
@@ -254,14 +257,30 @@ fun Modifier.violenceCardRim(style: ViolenceSharedStyle?, first: Boolean, shape:
         onDrawWithContent {
             drawContent()
             strokeOutline(outline, Color.White.copy(alpha = 0.16f), style = thin)
-            if (rimLit) {
-                drawRect(edge, topLeft = Offset(0f, size.height * 0.88f), size = androidx.compose.ui.geometry.Size(size.width, size.height * 0.12f))
-                strokeOutline(outline, style.accent.copy(alpha = bloomAlpha), style = bloomStroke)
-                strokeOutline(outline, style.accent.copy(alpha = 0.85f), style = lightStroke)
+            if (!style.neutral) {
+                val fraction = glowFraction().coerceIn(0f, 1f)
+                if (fraction > 0.001f) {
+                    val edge = if (fraction >= 0.999f) {
+                        edgeBrush
+                    } else {
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            1f to style.accent.copy(alpha = 0.35f * fraction),
+                            startY = size.height * 0.88f,
+                            endY = size.height,
+                        )
+                    }
+                    drawRect(edge, topLeft = Offset(0f, size.height * 0.88f), size = androidx.compose.ui.geometry.Size(size.width, size.height * 0.12f))
+                    strokeOutline(outline, style.accent.copy(alpha = bloomAlpha * fraction), style = bloomStroke)
+                    strokeOutline(outline, style.accent.copy(alpha = 0.85f * fraction), style = lightStroke)
+                }
             }
         }
     }
 }
+
+fun Modifier.violenceCardRim(style: ViolenceSharedStyle?, first: Boolean, shape: Shape): Modifier =
+    violenceCardRim(style, { if (first) 1f else 0f }, shape)
 
 /** The scrim's stops (height fraction, black alpha), shared by the brush and the contrast tests. */
 object ViolenceScrim {
