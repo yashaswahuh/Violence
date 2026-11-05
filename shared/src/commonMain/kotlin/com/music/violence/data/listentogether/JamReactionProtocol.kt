@@ -12,6 +12,7 @@ enum class JamEmoji(val id: Byte, val symbol: String) {
 
     companion object {
         fun fromId(id: Byte): JamEmoji? = entries.firstOrNull { it.id == id }
+        fun fromId(id: Int): JamEmoji? = fromId(id.toByte())
     }
 }
 

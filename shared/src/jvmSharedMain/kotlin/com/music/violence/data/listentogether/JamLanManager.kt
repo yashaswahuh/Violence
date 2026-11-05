@@ -82,37 +82,60 @@ class JamLanManager(
     }
 
     /**
-     * Start hosting or participating in a party: sets filter hash and advertises on LAN.
+     * Enter an active party room as host or participant.
+     * Configures the multicast channel filter and handles LAN advertising for hosts.
      */
-    fun startHosting(partyCode: String, hostName: String, currentTrack: String = "") {
+    fun enterParty(partyCode: String, isHost: Boolean, hostName: String = "", currentTrack: String = "") {
         activePartyCode = partyCode
         activeHostName = hostName
         activeTrack = currentTrack
 
         multicastChannel.setActiveParty(partyCode)
 
-        val jam = DiscoveredJam(
-            partyCode = partyCode,
-            hostName = hostName,
-            currentTrack = currentTrack,
-            lastSeenMs = System.currentTimeMillis(),
-        )
+        if (isHost) {
+            val jam = DiscoveredJam(
+                partyCode = partyCode,
+                hostName = hostName,
+                currentTrack = currentTrack,
+                lastSeenMs = System.currentTimeMillis(),
+            )
+            mdnsEngine.advertise(jam)
+            multicastChannel.broadcastAnnouncement(jam)
 
-        mdnsEngine.advertise(jam)
-        multicastChannel.broadcastAnnouncement(jam)
-
-        // Periodic announcement broadcast every 5s while in room
-        announceJob?.cancel()
-        announceJob = scope.launch {
-            while (isActive) {
-                delay(5_000)
-                val code = activePartyCode ?: break
-                val host = activeHostName.orEmpty()
-                val track = activeTrack.orEmpty()
-                val j = DiscoveredJam(code, host, track, lastSeenMs = System.currentTimeMillis())
-                multicastChannel.broadcastAnnouncement(j)
+            announceJob?.cancel()
+            announceJob = scope.launch {
+                while (isActive) {
+                    delay(5_000)
+                    val code = activePartyCode ?: break
+                    val host = activeHostName.orEmpty()
+                    val track = activeTrack.orEmpty()
+                    val j = DiscoveredJam(code, host, track, lastSeenMs = System.currentTimeMillis())
+                    multicastChannel.broadcastAnnouncement(j)
+                }
             }
+        } else {
+            announceJob?.cancel()
+            announceJob = null
+            mdnsEngine.stopAdvertising()
         }
+    }
+
+    fun leaveParty() {
+        announceJob?.cancel()
+        announceJob = null
+        activePartyCode = null
+        activeHostName = null
+        activeTrack = null
+        multicastChannel.setActiveParty(null)
+        mdnsEngine.stopAdvertising()
+    }
+
+    fun startHosting(partyCode: String, hostName: String, currentTrack: String = "") {
+        enterParty(partyCode, isHost = true, hostName = hostName, currentTrack = currentTrack)
+    }
+
+    fun stopHosting() {
+        leaveParty()
     }
 
     fun updateCurrentTrack(currentTrack: String) {
@@ -124,19 +147,12 @@ class JamLanManager(
         multicastChannel.broadcastAnnouncement(jam)
     }
 
-    fun stopHosting() {
-        announceJob?.cancel()
-        announceJob = null
-        activePartyCode = null
-        activeHostName = null
-        activeTrack = null
-        multicastChannel.setActiveParty(null)
-        mdnsEngine.stopAdvertising()
-    }
+    fun recordReaction(reaction: JamReaction): Boolean =
+        multicastChannel.recordReaction(reaction)
 
-    fun sendReaction(emoji: JamEmoji): Boolean {
-        val code = activePartyCode ?: return false
-        return multicastChannel.sendReaction(code, emoji)
+    fun sendReaction(emoji: JamEmoji, timestampMs: Long = System.currentTimeMillis()): JamReaction? {
+        val code = activePartyCode ?: return null
+        return multicastChannel.sendReaction(code, emoji, timestampMs)
     }
 
     fun shutdown() {

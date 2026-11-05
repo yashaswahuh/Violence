@@ -49,6 +49,7 @@ class JamMulticastChannel(
             groupAddress = group
             val s = MulticastSocket(null).apply {
                 reuseAddress = true
+                broadcast = true
                 bind(InetSocketAddress(JamReactionProtocol.MULTICAST_PORT))
                 timeToLive = 4 // LAN scope
             }
@@ -115,11 +116,7 @@ class JamMulticastChannel(
         // 1. Check if reaction frame: [0x56, 0x4C] ("VL")
         if (data[0] == JamReactionProtocol.MAGIC_BYTE_0 && data[1] == JamReactionProtocol.MAGIC_BYTE_1) {
             val reaction = JamReactionProtocol.decode(data, len) ?: return
-            val currentHash = activePartyHash
-            // Accept if in the same party
-            if (currentHash != null && reaction.partyHash == currentHash) {
-                _reactions.tryEmit(reaction)
-            }
+            recordReaction(reaction)
             return
         }
 
@@ -156,28 +153,77 @@ class JamMulticastChannel(
         activePartyHash = partyCode?.let { JamReactionProtocol.computePartyHash(it) }
     }
 
+    private data class SeenReaction(val receivedAtMs: Long, val reactionTimestampMs: Long, val emojiId: Byte)
+    private val recentReactions = ArrayDeque<SeenReaction>()
+
     /**
-     * Broadcasts a reaction to all peers in the room on local Wi-Fi.
+     * Records an incoming or sent reaction, deduplicating bursts within 100ms.
      */
-    fun sendReaction(partyCode: String, emoji: JamEmoji): Boolean {
+    @Synchronized
+    fun recordReaction(reaction: JamReaction): Boolean {
+        val currentHash = activePartyHash ?: return false
+        if (reaction.partyHash != currentHash) return false
+
+        val now = System.currentTimeMillis()
+        while (recentReactions.isNotEmpty() && now - recentReactions.first().receivedAtMs > 3000) {
+            recentReactions.removeFirst()
+        }
+
+        val emojiId = reaction.emoji.id
+        for (seen in recentReactions) {
+            if (seen.emojiId == emojiId && kotlin.math.abs(reaction.timestampMs - seen.reactionTimestampMs) < 100) {
+                return false // Duplicate reaction (e.g. dual transport or loopback)
+            }
+        }
+        recentReactions.addLast(SeenReaction(now, reaction.timestampMs, emojiId))
+        _reactions.tryEmit(reaction)
+        return true
+    }
+
+    /**
+     * Broadcasts a reaction to all peers in the room on local Wi-Fi (multicast + broadcast).
+     */
+    fun sendReaction(
+        partyCode: String,
+        emoji: JamEmoji,
+        timestampMs: Long = System.currentTimeMillis(),
+    ): JamReaction? {
         return try {
             val hash = JamReactionProtocol.computePartyHash(partyCode)
-            val reaction = JamReaction(hash, emoji, System.currentTimeMillis())
+            val reaction = JamReaction(hash, emoji, timestampMs)
+            recordReaction(reaction)
+
             val bytes = JamReactionProtocol.encode(reaction)
 
-            val group = groupAddress ?: InetAddress.getByName(JamReactionProtocol.MULTICAST_GROUP)
-            val packet = DatagramPacket(bytes, bytes.size, group, JamReactionProtocol.MULTICAST_PORT)
-
             scope.launch(Dispatchers.IO) {
-                try {
-                    socket?.send(packet)
-                } catch (_: Exception) {}
+                val targets = mutableListOf<InetAddress>()
+                runCatching {
+                    targets.add(groupAddress ?: InetAddress.getByName(JamReactionProtocol.MULTICAST_GROUP))
+                }
+                runCatching {
+                    targets.add(InetAddress.getByName("255.255.255.255"))
+                }
+                runCatching {
+                    val interfaces = NetworkInterface.getNetworkInterfaces() ?: return@runCatching
+                    for (nif in interfaces) {
+                        if (!nif.isUp || nif.isLoopback) continue
+                        for (addr in nif.interfaceAddresses) {
+                            addr.broadcast?.let { targets.add(it) }
+                        }
+                    }
+                }
+
+                val currentSocket = socket ?: return@launch
+                for (target in targets.distinct()) {
+                    runCatching {
+                        val packet = DatagramPacket(bytes, bytes.size, target, JamReactionProtocol.MULTICAST_PORT)
+                        currentSocket.send(packet)
+                    }
+                }
             }
-            // Emit locally as well so sender immediately sees particles
-            _reactions.tryEmit(reaction)
-            true
+            reaction
         } catch (_: Exception) {
-            false
+            null
         }
     }
 
@@ -186,13 +232,22 @@ class JamMulticastChannel(
      */
     fun broadcastAnnouncement(jam: DiscoveredJam) {
         val bytes = JamDiscoveryProtocol.encodeAnnouncement(jam)
-        val group = groupAddress ?: InetAddress.getByName(JamReactionProtocol.MULTICAST_GROUP)
-        val packet = DatagramPacket(bytes, bytes.size, group, JamReactionProtocol.MULTICAST_PORT)
 
         scope.launch(Dispatchers.IO) {
-            try {
-                socket?.send(packet)
-            } catch (_: Exception) {}
+            val targets = mutableListOf<InetAddress>()
+            runCatching {
+                targets.add(groupAddress ?: InetAddress.getByName(JamReactionProtocol.MULTICAST_GROUP))
+            }
+            runCatching {
+                targets.add(InetAddress.getByName("255.255.255.255"))
+            }
+            val currentSocket = socket ?: return@launch
+            for (target in targets.distinct()) {
+                runCatching {
+                    val packet = DatagramPacket(bytes, bytes.size, target, JamReactionProtocol.MULTICAST_PORT)
+                    currentSocket.send(packet)
+                }
+            }
         }
     }
 

@@ -273,10 +273,23 @@ object ListenTogether {
         jamLan.stopDiscovery()
         appContext?.let { ctx ->
             AndroidNsdDiscovery.stopDiscovery(ctx)
+            if (_state.value.code == null) {
+                AndroidNsdDiscovery.releaseMulticastLock()
+            }
         }
     }
 
-    fun sendReaction(emoji: JamEmoji): Boolean = jamLan.sendReaction(emoji)
+    fun sendReaction(emoji: JamEmoji): Boolean {
+        val code = _state.value.code ?: return false
+        val now = System.currentTimeMillis()
+        val reaction = jamLan.sendReaction(emoji, now)
+        send(buildJsonObject {
+            put("type", "reaction")
+            put("emojiId", emoji.id.toInt())
+            put("timestampMs", now)
+        })
+        return reaction != null || session != null
+    }
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
@@ -704,19 +717,30 @@ object ListenTogether {
             _state.collect { s ->
                 val code = s.code
                 if (code != null) {
+                    appContext?.let { ctx ->
+                        AndroidNsdDiscovery.acquireMulticastLock(ctx)
+                    }
+                    val isHost = s.you?.isHost == true
                     val host = s.you?.displayName ?: nickname()
                     val track = s.playback.track?.let { "${it.title} - ${it.artist}" } ?: ""
-                    jamLan.startHosting(code, host, track)
-                    appContext?.let { ctx ->
-                        AndroidNsdDiscovery.registerService(
-                            ctx,
-                            DiscoveredJam(code, host, track)
-                        )
+                    jamLan.enterParty(code, isHost, host, track)
+                    if (isHost) {
+                        appContext?.let { ctx ->
+                            AndroidNsdDiscovery.registerService(
+                                ctx,
+                                DiscoveredJam(code, host, track)
+                            )
+                        }
+                    } else {
+                        appContext?.let { ctx ->
+                            AndroidNsdDiscovery.unregisterService(ctx)
+                        }
                     }
                 } else {
-                    jamLan.stopHosting()
+                    jamLan.leaveParty()
                     appContext?.let { ctx ->
                         AndroidNsdDiscovery.unregisterService(ctx)
+                        AndroidNsdDiscovery.releaseMulticastLock()
                     }
                 }
             }
@@ -1527,6 +1551,15 @@ object ListenTogether {
                             ?: current.you,
                     )
                 }
+            }
+
+            "reaction" -> {
+                val emojiId = frame["emojiId"]?.jsonPrimitive?.content?.toIntOrNull() ?: return
+                val ts = frame["timestampMs"]?.jsonPrimitive?.content?.toLongOrNull() ?: received
+                val emoji = JamEmoji.fromId(emojiId) ?: return
+                val partyCode = _state.value.code ?: return
+                val hash = JamReactionProtocol.computePartyHash(partyCode)
+                jamLan.recordReaction(JamReaction(partyHash = hash, emoji = emoji, timestampMs = ts))
             }
 
             "activity" -> {

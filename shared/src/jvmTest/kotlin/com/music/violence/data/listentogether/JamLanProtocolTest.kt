@@ -141,4 +141,32 @@ class JamLanProtocolTest {
         assertEquals("Bob", parsed[JamDiscoveryProtocol.KEY_HOST_NAME])
         assertEquals("Track A - Artist B", parsed[JamDiscoveryProtocol.KEY_CURRENT_TRACK])
     }
+
+    @Test
+    fun testEmojiFromIdOverloads() {
+        assertEquals(JamEmoji.FIRE, JamEmoji.fromId(1))
+        assertEquals(JamEmoji.HEART, JamEmoji.fromId(2))
+        assertEquals(JamEmoji.SKULL, JamEmoji.fromId(3))
+        assertEquals(JamEmoji.MUSIC, JamEmoji.fromId(4))
+        assertEquals(JamEmoji.CLAP, JamEmoji.fromId(5))
+        assertNull(JamEmoji.fromId(99))
+    }
+
+    @Test
+    fun testMulticastChannelDeduplication() {
+        val channel = JamMulticastChannel()
+        channel.setActiveParty("ROOM-ABC")
+        val hash = JamReactionProtocol.computePartyHash("ROOM-ABC")
+        val now = 1730000000000L
+
+        val r1 = JamReaction(hash, JamEmoji.FIRE, now)
+        val r2 = JamReaction(hash, JamEmoji.FIRE, now + 10) // duplicate within 100ms
+        val r3 = JamReaction(hash, JamEmoji.FIRE, now + 500) // distinct > 100ms
+        val rDifferentEmoji = JamReaction(hash, JamEmoji.HEART, now + 10) // different emoji, not duplicate
+
+        assertTrue(channel.recordReaction(r1))
+        kotlin.test.assertFalse(channel.recordReaction(r2), "Duplicate within 100ms must be rejected")
+        assertTrue(channel.recordReaction(rDifferentEmoji), "Different emoji must be accepted")
+        assertTrue(channel.recordReaction(r3), "Subsequent reaction after 500ms must be accepted")
+    }
 }

@@ -19,6 +19,7 @@ const (
 	FrameError   = "error"
 	FrameBye     = "bye"
 	FrameActivity = "activity"
+	FrameReaction = "reaction"
 )
 
 // Client -> Server frame types

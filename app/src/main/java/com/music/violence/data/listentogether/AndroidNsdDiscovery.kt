@@ -23,7 +23,7 @@ object AndroidNsdDiscovery {
         if (multicastLock == null) {
             val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             multicastLock = wifi?.createMulticastLock("violence_jam_multicast")?.apply {
-                setReferenceCounted(true)
+                setReferenceCounted(false)
             }
         }
         try {
