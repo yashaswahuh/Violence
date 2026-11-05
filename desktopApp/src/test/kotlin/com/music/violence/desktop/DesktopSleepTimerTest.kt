@@ -72,4 +72,28 @@ class DesktopSleepTimerTest {
         assertEquals(listOf(15, 30, 45, 60), DesktopSleepTimer.presets)
         DesktopSleepTimer.presets.forEach { DesktopSleepTimer.start(it) }
     }
+
+    @Test
+    fun fadeGainCurvesLogarithmicallyToSilence() {
+        assertEquals(1.0f, DesktopSleepTimer.calculateFadeGain(0.0f))
+        assertEquals(0.0f, DesktopSleepTimer.calculateFadeGain(1.0f))
+        val halfFade = DesktopSleepTimer.calculateFadeGain(0.5f)
+        assertTrue(halfFade in 0.15f..0.20f, "Halfway gain should be approx (0.5)^2.5 ~ 0.1768, got $halfFade")
+        // Clamping check
+        assertEquals(1.0f, DesktopSleepTimer.calculateFadeGain(-0.5f))
+        assertEquals(0.0f, DesktopSleepTimer.calculateFadeGain(1.5f))
+    }
+
+    @Test
+    fun optionsCanBeSet() {
+        DesktopSleepTimer.setFadeToSilence(false)
+        assertFalse(DesktopSleepTimer.fadeToSilence.value)
+        DesktopSleepTimer.setFadeToSilence(true)
+        assertTrue(DesktopSleepTimer.fadeToSilence.value)
+
+        DesktopSleepTimer.setFinishCurrentTrack(true)
+        assertTrue(DesktopSleepTimer.finishCurrentTrack.value)
+        DesktopSleepTimer.setFinishCurrentTrack(false)
+        assertFalse(DesktopSleepTimer.finishCurrentTrack.value)
+    }
 }

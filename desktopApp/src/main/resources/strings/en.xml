@@ -876,4 +876,29 @@
     <string name="pause_background_visuals_subtitle">Pause Skia animation clock and canvas video decoders when window is minimized or hidden in tray</string>
     <string name="constrain_image_cache_memory">Constrain image cache memory</string>
     <string name="constrain_image_cache_memory_subtitle">Downsample decoded album art to widget dimensions and cap memory allocation</string>
+    <!-- Crossfeed DSP Engine -->
+    <string name="crossfeed_title">Binaural Crossfeed (bs2b)</string>
+    <string name="crossfeed_summary">Natural speaker acoustics and cross-bleed for headphones to eliminate fatigue</string>
+    <string name="crossfeed_preset_bypass">Bypass</string>
+    <string name="crossfeed_preset_subtle">Subtle / Studio (650Hz, -9.5dB)</string>
+    <string name="crossfeed_preset_natural">Natural / Default (700Hz, -6dB)</string>
+    <string name="crossfeed_preset_jan_meier">Jan Meier Curve (650Hz, -7.5dB)</string>
+
+    <!-- Sleep Timer Enhancements -->
+    <string name="sleep_timer_fade">Smooth Fade to Silence</string>
+    <string name="sleep_timer_fade_summary">Gently ramp down volume over final 30 seconds</string>
+    <string name="sleep_timer_finish_track">Finish Current Track</string>
+    <string name="sleep_timer_finish_track_summary">Allow active song to finish before sleeping (with 3s outro fade)</string>
+
+    <!-- Storage Health & Cache Hub -->
+    <string name="storage_health_title">Storage &amp; Cache Health</string>
+    <string name="storage_downloaded_tracks">Downloaded Audio</string>
+    <string name="storage_lyrics_cache">Offline Lyrics Cache</string>
+    <string name="storage_stream_cache">Stream &amp; Chunk Cache</string>
+    <string name="storage_image_cache">Artwork Image Cache</string>
+    <string name="storage_clear_stream_cache">Clear Stream Cache</string>
+    <string name="storage_clear_stream_cache_summary">Frees temporary audio segments while preserving complete downloads</string>
+    <string name="storage_repair_lyrics">Verify &amp; Repair Offline Lyrics</string>
+    <string name="storage_repair_lyrics_summary">Scans downloaded files and syncs missing .lyrics.json sidecars</string>
+    <string name="storage_open_folder">Open Downloads Folder</string>
 </resources>

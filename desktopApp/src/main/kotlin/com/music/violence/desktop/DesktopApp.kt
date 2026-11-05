@@ -39,6 +39,9 @@ import com.music.violence.ui.screens.MoodGenrePlaylistsScreen
 import com.music.violence.ui.screens.SearchScreen
 import com.music.violence.data.NerdStats
 import com.music.violence.playback.PlaybackPosition
+import com.music.violence.playback.crossfeed.CrossfeedPreset
+import com.music.violence.data.storage.StorageHealthHub
+import com.music.violence.data.storage.StorageBreakdown
 import com.music.violence.playback.QueueSource
 import com.music.violence.playback.QueueTimeline
 import com.music.violence.playback.QueueTimeline.asQueueEntry
@@ -1604,8 +1607,9 @@ fun ViolenceDesktopApp() {
         DesktopPlaybackEngine(
             onEnded = {
                 selectedSong?.let(DesktopScrobbling::onPlaybackEnded)
-                if (DesktopSleepTimer.afterTrack.value) {
+                if (DesktopSleepTimer.afterTrack.value || (DesktopSleepTimer.finishCurrentTrack.value && DesktopSleepTimer.isExpired())) {
                     DesktopSleepTimer.cancel()
+                    playbackEngine.setVolume(volume)
                 } else if (repeatMode == DesktopRepeatMode.ONE) {
                     // Replayed in place. [startSong] makes the track a queue of one, which threw
                     // the rest of the queue away the first time it repeated.
@@ -1818,6 +1822,11 @@ fun ViolenceDesktopApp() {
     LaunchedEffect(autoEqEnabled, autoEqModel, autoEqSource, autoEqCustom) {
         playbackEngine.setAutoEq(autoEqEnabled, DesktopEqualizerSettings.autoEqProfile())
     }
+    val crossfeedEnabled by DesktopEqualizerSettings.crossfeedEnabled.collectAsState()
+    val crossfeedPresetId by DesktopEqualizerSettings.crossfeedPreset.collectAsState()
+    LaunchedEffect(crossfeedEnabled, crossfeedPresetId) {
+        playbackEngine.setCrossfeed(crossfeedEnabled, CrossfeedPreset.fromId(crossfeedPresetId))
+    }
     LaunchedEffect(spatialAudio, skipSilence, outputPrecision) {
         playbackEngine.setSpatialAudio(spatialAudio)
         playbackEngine.setSkipSilence(skipSilence)
@@ -1883,11 +1892,42 @@ fun ViolenceDesktopApp() {
         }
     }
     LaunchedEffect(Unit) {
+        var wasFading = false
         while (currentCoroutineContext().isActive) {
-            delay(1_000L)
-            if (DesktopSleepTimer.isExpired()) {
-                DesktopSleepTimer.cancel()
-                playbackEngine.pause()
+            delay(200L)
+            val remainingMs = DesktopSleepTimer.remainingMs()
+            if (remainingMs != null) {
+                if (remainingMs > 0L) {
+                    if (DesktopSleepTimer.fadeToSilence.value && remainingMs <= DesktopSleepTimer.FADE_DURATION_MS) {
+                        val progress = (DesktopSleepTimer.FADE_DURATION_MS - remainingMs).toFloat() / DesktopSleepTimer.FADE_DURATION_MS
+                        val gain = DesktopSleepTimer.calculateFadeGain(progress)
+                        playbackEngine.setVolume((volume * gain).coerceIn(0f, 1f))
+                        wasFading = true
+                    } else if (wasFading) {
+                        playbackEngine.setVolume(volume)
+                        wasFading = false
+                    }
+                } else {
+                    if (DesktopSleepTimer.finishCurrentTrack.value) {
+                        val currentPos = playbackEngine.state.value.positionMs
+                        val duration = playbackEngine.state.value.durationMs
+                        val trackRemainingMs = (duration - currentPos).coerceAtLeast(0L)
+                        if (trackRemainingMs in 1..DesktopSleepTimer.OUTRO_FADE_DURATION_MS) {
+                            val progress = (DesktopSleepTimer.OUTRO_FADE_DURATION_MS - trackRemainingMs).toFloat() / DesktopSleepTimer.OUTRO_FADE_DURATION_MS
+                            val gain = DesktopSleepTimer.calculateFadeGain(progress)
+                            playbackEngine.setVolume((volume * gain).coerceIn(0f, 1f))
+                            wasFading = true
+                        }
+                    } else {
+                        DesktopSleepTimer.cancel()
+                        playbackEngine.pause()
+                        playbackEngine.setVolume(volume)
+                        wasFading = false
+                    }
+                }
+            } else if (wasFading) {
+                playbackEngine.setVolume(volume)
+                wasFading = false
             }
         }
     }
@@ -7047,6 +7087,9 @@ private fun DesktopSettingsScreen(
                         saveLyricsWithDownloads,
                         DesktopAppearanceSettings::setSaveSyncedLyricsWithDownloads,
                     )
+                    DesktopStorageHealthCard(
+                        downloadsDir = remember { java.io.File(System.getProperty("user.home"), "Music/Violence") },
+                    )
                 }
             }
             if (section == DesktopSettingsSection.SOURCES) item {
@@ -8567,6 +8610,221 @@ private fun SettingsToggle(title: String, subtitle: String, checked: Boolean, on
         }
         Spacer(Modifier.width(18.dp))
         Switch(checked = checked, onCheckedChange = onCheckedChange, colors = desktopSwitchColors())
+    }
+}
+
+@Composable
+private fun DesktopStorageHealthCard(
+    downloadsDir: java.io.File = remember { java.io.File(System.getProperty("user.home"), "Music/Violence") },
+) {
+    val scope = rememberCoroutineScope()
+    var storageBreakdown by remember { mutableStateOf(StorageBreakdown()) }
+    var isRepairingLyrics by remember { mutableStateOf(false) }
+
+    fun refreshBreakdown() {
+        scope.launch(Dispatchers.IO) {
+            var streamCacheBytes = 0L
+            if (downloadsDir.exists() && downloadsDir.isDirectory) {
+                downloadsDir.walkTopDown().maxDepth(2).forEach { file ->
+                    if (file.isFile && (file.name.endsWith(".part") || file.name.startsWith("."))) {
+                        streamCacheBytes += file.length()
+                    }
+                }
+            }
+            val breakdown = StorageHealthHub.calculateBreakdown(
+                downloadsDir = downloadsDir,
+                streamCacheBytes = streamCacheBytes,
+            )
+            storageBreakdown = breakdown
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshBreakdown()
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(14.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    DesktopStrings["storage_health_title", "Storage & Cache Health"],
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Total space used: ${storageBreakdown.formattedTotal()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesktopSecondary,
+                )
+            }
+            TextButton(onClick = { refreshBreakdown() }) {
+                Text(DesktopStrings["refresh", "Refresh"], color = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // Breakdown items
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(10.dp),
+            ) {
+                Column {
+                    Text(
+                        DesktopStrings["storage_downloaded_tracks", "Downloaded Audio"],
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                    Text(
+                        storageBreakdown.formattedDownloaded(),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                    )
+                    Text(
+                        "${storageBreakdown.downloadedTracksCount} tracks",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                }
+            }
+
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(10.dp),
+            ) {
+                Column {
+                    Text(
+                        DesktopStrings["storage_lyrics_cache", "Offline Lyrics"],
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                    Text(
+                        storageBreakdown.formattedLyrics(),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                    )
+                    Text(
+                        "${storageBreakdown.lyricsCacheCount} files",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                }
+            }
+
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(10.dp),
+            ) {
+                Column {
+                    Text(
+                        DesktopStrings["storage_stream_cache", "Stream Cache"],
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                    Text(
+                        storageBreakdown.formattedStream(),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                    )
+                    Text(
+                        "Temp chunks",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // Actions
+        SettingsRow(
+            icon = androidx.compose.material.icons.Icons.Rounded.Folder,
+            title = DesktopStrings["storage_open_folder", "Open Downloads Folder"],
+            subtitle = downloadsDir.absolutePath,
+            onClick = {
+                if (!downloadsDir.exists()) downloadsDir.mkdirs()
+                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN)) {
+                    runCatching { java.awt.Desktop.getDesktop().open(downloadsDir) }
+                        .onFailure { DesktopPlayerHost.showMessage("Could not open folder: ${it.message}") }
+                }
+            },
+        )
+
+        SettingsRow(
+            icon = androidx.compose.material.icons.Icons.Rounded.DeleteSweep,
+            title = DesktopStrings["storage_clear_stream_cache", "Clear Stream Cache"],
+            subtitle = DesktopStrings["storage_clear_stream_cache_summary", "Frees temporary audio segments while preserving complete downloads"],
+            onClick = {
+                scope.launch(Dispatchers.IO) {
+                    var freedBytes = 0L
+                    if (downloadsDir.exists() && downloadsDir.isDirectory) {
+                        downloadsDir.walkTopDown().maxDepth(2).forEach { file ->
+                            if (file.isFile && (file.name.endsWith(".part") || file.name.startsWith("."))) {
+                                val len = file.length()
+                                if (file.delete()) freedBytes += len
+                            }
+                        }
+                    }
+                    refreshBreakdown()
+                    DesktopPlayerHost.showMessage("Cleared ${StorageBreakdown.formatBytes(freedBytes)} of stream cache")
+                }
+            },
+        )
+
+        SettingsRow(
+            icon = androidx.compose.material.icons.Icons.Rounded.Download,
+            title = DesktopStrings["storage_repair_lyrics", "Verify & Repair Offline Lyrics"],
+            subtitle = if (isRepairingLyrics) "Scanning and downloading missing lyrics..." else DesktopStrings["storage_repair_lyrics_summary", "Scans downloaded files and syncs missing .lyrics.json sidecars"],
+            onClick = if (isRepairingLyrics) null else {
+                {
+                    scope.launch(Dispatchers.IO) {
+                        isRepairingLyrics = true
+                        DesktopPlayerHost.showMessage("Scanning downloaded tracks for lyrics...")
+                        val (scanned, repaired) = StorageHealthHub.verifyAndRepairLyrics(downloadsDir) { videoId, artist, title ->
+                            val song = Song(videoId = videoId, title = title, artist = artist, thumbnailUrl = null)
+                            val lyricsResult = DesktopLyricsClient.lookup(song)
+                            val lines = lyricsResult.getOrNull()?.lines
+                            if (lines != null) {
+                                val targetFile = java.io.File(downloadsDir, "$videoId.lyrics.json")
+                                com.music.violence.data.lyrics.OfflineLyricsStorage.save(videoId, lines, destinationFile = targetFile)
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        refreshBreakdown()
+                        isRepairingLyrics = false
+                        DesktopPlayerHost.showMessage("Scanned $scanned tracks · repaired $repaired missing lyrics")
+                    }
+                }
+            },
+        )
     }
 }
 

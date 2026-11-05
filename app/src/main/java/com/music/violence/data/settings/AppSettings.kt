@@ -425,6 +425,12 @@ object AppSettings {
     val autoEqSelectedCategory = MutableStateFlow("")
     val autoEqCustomCurve = MutableStateFlow("")
 
+    val crossfeedEnabled = MutableStateFlow(false)
+    val crossfeedPreset = MutableStateFlow("natural")
+
+    val sleepTimerFade = MutableStateFlow(true)
+    val sleepTimerFinishTrack = MutableStateFlow(false)
+
     val playbackSpeed = MutableStateFlow(1.0f)
     val themeMode = MutableStateFlow(ThemeMode.DARK)
     val appFont = MutableStateFlow(AppFont.DEFAULT)
@@ -981,6 +987,10 @@ object AppSettings {
         autoEqSelectedSource.value = prefs.getString(KEY_AUTO_EQ_SOURCE, "") ?: ""
         autoEqSelectedCategory.value = prefs.getString(KEY_AUTO_EQ_CATEGORY, "") ?: ""
         autoEqCustomCurve.value = prefs.getString(KEY_AUTO_EQ_CUSTOM, "") ?: ""
+        crossfeedEnabled.value = prefs.getBoolean(KEY_CROSSFEED_ENABLED, false)
+        crossfeedPreset.value = prefs.getString(KEY_CROSSFEED_PRESET, "natural") ?: "natural"
+        sleepTimerFade.value = prefs.getBoolean(KEY_SLEEP_TIMER_FADE, true)
+        sleepTimerFinishTrack.value = prefs.getBoolean(KEY_SLEEP_TIMER_FINISH_TRACK, false)
         playbackSpeed.value = prefs.getFloat(KEY_SPEED, 1.0f)
         themeMode.value = runCatching {
             ThemeMode.valueOf(prefs.getString(KEY_THEME, null) ?: "DARK")
@@ -1351,6 +1361,26 @@ object AppSettings {
     fun setAutoEqCustomCurve(text: String) {
         autoEqCustomCurve.value = text
         prefs.edit().putString(KEY_AUTO_EQ_CUSTOM, text).apply()
+    }
+
+    fun setCrossfeedEnabled(value: Boolean) {
+        crossfeedEnabled.value = value
+        prefs.edit().putBoolean(KEY_CROSSFEED_ENABLED, value).apply()
+    }
+
+    fun setCrossfeedPreset(presetId: String) {
+        crossfeedPreset.value = presetId
+        prefs.edit().putString(KEY_CROSSFEED_PRESET, presetId).apply()
+    }
+
+    fun setSleepTimerFade(value: Boolean) {
+        sleepTimerFade.value = value
+        prefs.edit().putBoolean(KEY_SLEEP_TIMER_FADE, value).apply()
+    }
+
+    fun setSleepTimerFinishTrack(value: Boolean) {
+        sleepTimerFinishTrack.value = value
+        prefs.edit().putBoolean(KEY_SLEEP_TIMER_FINISH_TRACK, value).apply()
     }
 
     private fun readEqualizerBands(): List<Float> {
@@ -2227,6 +2257,10 @@ object AppSettings {
     private const val KEY_AUTO_EQ_SOURCE = "auto_eq_source"
     private const val KEY_AUTO_EQ_CATEGORY = "auto_eq_category"
     private const val KEY_AUTO_EQ_CUSTOM = "auto_eq_custom"
+    private const val KEY_CROSSFEED_ENABLED = "crossfeed_enabled"
+    private const val KEY_CROSSFEED_PRESET = "crossfeed_preset"
+    private const val KEY_SLEEP_TIMER_FADE = "sleep_timer_fade"
+    private const val KEY_SLEEP_TIMER_FINISH_TRACK = "sleep_timer_finish_track"
     private const val KEY_SPEED = "playback_speed"
     private const val KEY_THEME = "theme_mode"
     private const val KEY_APP_FONT = "app_font"

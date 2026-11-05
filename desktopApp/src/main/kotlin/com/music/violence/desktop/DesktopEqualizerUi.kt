@@ -5,6 +5,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import com.music.violence.playback.crossfeed.CrossfeedPreset
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -91,6 +93,8 @@ internal fun DesktopEqualizerDialog(onDismiss: () -> Unit) {
     val autoEqModel by DesktopEqualizerSettings.autoEqModel.collectAsState()
     val autoEqSource by DesktopEqualizerSettings.autoEqSource.collectAsState()
     val autoEqCustom by DesktopEqualizerSettings.autoEqCustom.collectAsState()
+    val crossfeedEnabled by DesktopEqualizerSettings.crossfeedEnabled.collectAsState()
+    val crossfeedPresetId by DesktopEqualizerSettings.crossfeedPreset.collectAsState()
     var showAutoEqPicker by remember { mutableStateOf(false) }
 
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 560) {
@@ -116,6 +120,13 @@ internal fun DesktopEqualizerDialog(onDismiss: () -> Unit) {
                 colors = desktopSwitchColors(),
             )
         }
+
+        DesktopCrossfeedCard(
+            enabled = crossfeedEnabled,
+            presetId = crossfeedPresetId,
+            onToggle = DesktopEqualizerSettings::setCrossfeedEnabled,
+            onSelectPreset = DesktopEqualizerSettings::setCrossfeedPreset,
+        )
 
         DesktopAutoEqCard(
             enabled = autoEqEnabled,
@@ -727,6 +738,99 @@ private const val ZERO_DETENT_DB = 0.6f
 /** Same, for the balance trim's own centre. */
 private const val BALANCE_DETENT = 0.04f
 
+
+@Composable
+private fun DesktopCrossfeedCard(
+    enabled: Boolean,
+    presetId: String,
+    onToggle: (Boolean) -> Unit,
+    onSelectPreset: (String) -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = panelInset(18.dp), vertical = 6.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(14.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    DesktopStrings["crossfeed_title", "Binaural Crossfeed (bs2b)"],
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    DesktopStrings["crossfeed_summary", "Natural speaker acoustics and cross-bleed for headphones to eliminate fatigue"],
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesktopSecondary,
+                )
+            }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onToggle,
+                colors = desktopSwitchColors(),
+            )
+        }
+
+        if (enabled) {
+            Spacer(Modifier.height(10.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf(
+                    CrossfeedPreset.SUBTLE,
+                    CrossfeedPreset.NATURAL,
+                    CrossfeedPreset.JAN_MEIER,
+                ).forEach { preset ->
+                    val isSelected = preset.id.equals(presetId, ignoreCase = true)
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                                else Color.White.copy(alpha = 0.08f)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                shape = RoundedCornerShape(8.dp),
+                            )
+                            .clickable { onSelectPreset(preset.id) }
+                            .padding(vertical = 8.dp, horizontal = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = when (preset) {
+                                    CrossfeedPreset.SUBTLE -> "Subtle"
+                                    CrossfeedPreset.NATURAL -> "Natural"
+                                    CrossfeedPreset.JAN_MEIER -> "Jan Meier"
+                                    else -> preset.displayName
+                                },
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
+                            )
+                            Text(
+                                text = "${preset.cutoffHz.toInt()}Hz · ${preset.levelDb}dB",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = DesktopSecondary,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun DesktopAutoEqCard(

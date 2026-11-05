@@ -73,6 +73,10 @@ internal fun DesktopAudioPipelineDialog(
             }
             PipelineStage(DesktopStrings["pipeline_dsp", "DSP"]) {
                 PipelineRow(
+                    DesktopStrings["crossfeed_title", "Crossfeed"],
+                    if (pipeline.crossfeedEnabled) DesktopStrings["on", "On"] else DesktopStrings["off", "Off"],
+                )
+                PipelineRow(
                     DesktopStrings["equalizer", "Equalizer"],
                     if (pipeline.equalizerEnabled) DesktopStrings["on", "On"] else DesktopStrings["off", "Off"],
                 )

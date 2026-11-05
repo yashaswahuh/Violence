@@ -598,6 +598,8 @@ class PlaybackService : MediaLibraryService() {
      */
     private val spatialAudioProcessorA = SpatialAudioProcessor()
     private val spatialAudioProcessorB = SpatialAudioProcessor()
+    private val crossfeedProcessorA = com.music.violence.playback.audio.CrossfeedProcessor()
+    private val crossfeedProcessorB = com.music.violence.playback.audio.CrossfeedProcessor()
     private val autoEqProcessorA = com.music.violence.playback.audio.AutoEqProcessor()
     private val autoEqProcessorB = com.music.violence.playback.audio.AutoEqProcessor()
     private val equalizerProcessorA = EqualizerProcessor()
@@ -1759,6 +1761,7 @@ class PlaybackService : MediaLibraryService() {
         configuredFloatOutput = shouldEnableFloatOutput()
         val exoPlayer = buildPlayer(
             spatialAudioProcessorA,
+            crossfeedProcessorA,
             autoEqProcessorA,
             equalizerProcessorA,
             transitionFilterA,
@@ -1767,6 +1770,7 @@ class PlaybackService : MediaLibraryService() {
         )
         val sparePlayer = buildPlayer(
             spatialAudioProcessorB,
+            crossfeedProcessorB,
             autoEqProcessorB,
             equalizerProcessorB,
             transitionFilterB,
@@ -3448,13 +3452,14 @@ class PlaybackService : MediaLibraryService() {
      */
     private fun buildPlayer(
         spatial: SpatialAudioProcessor,
+        crossfeed: com.music.violence.playback.audio.CrossfeedProcessor,
         autoEq: com.music.violence.playback.audio.AutoEqProcessor,
         equalizer: EqualizerProcessor,
         filter: TransitionFilterProcessor,
         loudness: LoudnessProcessor,
         ownsSession: Boolean,
     ): ExoPlayer = ExoPlayer.Builder(this)
-        .setRenderersFactory(silenceSkippingRenderers(spatial, autoEq, equalizer, filter, loudness))
+        .setRenderersFactory(silenceSkippingRenderers(spatial, crossfeed, autoEq, equalizer, filter, loudness))
         .setMediaSourceFactory(requireNotNull(mediaSourceFactory))
         .setLoadControl(farBufferingLoadControl())
         .setAudioAttributes(AUDIO_ATTRIBUTES, /* handleAudioFocus = */ ownsSession)
@@ -6538,11 +6543,57 @@ class PlaybackService : MediaLibraryService() {
     private fun watchSleepTimer() {
         scope.launch {
             SleepTimer.deadline.collectLatest { deadline ->
-                if (deadline == null) return@collectLatest
-                val remaining = deadline - SystemClock.elapsedRealtime()
-                if (remaining > 0) delay(remaining)
-                player?.pause()
-                SleepTimer.cancel()
+                try {
+                    if (deadline == null) {
+                        player?.volume = 1.0f
+                        return@collectLatest
+                    }
+                    val fadeEnabled = SleepTimer.fadeToSilence.value
+                    val finishTrack = SleepTimer.finishCurrentTrack.value
+                    val totalDuration = (SleepTimer.minutes.value ?: 1) * 60_000L
+                    val fadeDuration = minOf(SleepTimer.FADE_DURATION_MS, totalDuration / 2)
+
+                    while (true) {
+                        val remaining = deadline - SystemClock.elapsedRealtime()
+                        if (remaining <= 0) break
+
+                        if (fadeEnabled && remaining <= fadeDuration) {
+                            val progress = 1.0f - (remaining.toFloat() / fadeDuration.toFloat())
+                            val gain = SleepTimer.calculateFadeGain(progress)
+                            player?.volume = gain
+                            delay(50L)
+                        } else {
+                            val waitChunk = if (fadeEnabled && remaining > fadeDuration) {
+                                remaining - fadeDuration
+                            } else {
+                                remaining
+                            }
+                            delay(minOf(1000L, waitChunk))
+                        }
+                    }
+
+                    if (finishTrack) {
+                        val p = player
+                        while (p != null && p.isPlaying && p.playbackState != Player.STATE_ENDED) {
+                            val trackDuration = p.duration
+                            val currentPos = p.currentPosition
+                            if (trackDuration > 0 && currentPos > 0) {
+                                val remainingTrackMs = trackDuration - currentPos
+                                if (remainingTrackMs <= SleepTimer.OUTRO_FADE_DURATION_MS) {
+                                    val outroProgress = 1.0f - (remainingTrackMs.toFloat() / SleepTimer.OUTRO_FADE_DURATION_MS.toFloat())
+                                    p.volume = SleepTimer.calculateFadeGain(outroProgress)
+                                }
+                            }
+                            delay(50L)
+                        }
+                    }
+
+                    player?.pause()
+                    player?.volume = 1.0f
+                    SleepTimer.cancel()
+                } finally {
+                    player?.volume = 1.0f
+                }
             }
         }
     }
@@ -6613,6 +6664,7 @@ class PlaybackService : MediaLibraryService() {
      */
     private fun silenceSkippingRenderers(
         spatial: SpatialAudioProcessor,
+        crossfeed: com.music.violence.playback.audio.CrossfeedProcessor,
         autoEq: com.music.violence.playback.audio.AutoEqProcessor,
         equalizer: EqualizerProcessor,
         transition: TransitionFilterProcessor,
@@ -6697,7 +6749,7 @@ class PlaybackService : MediaLibraryService() {
             // them for the same reason: it belongs to the listener and
             // the whole session, while the transition filter belongs to
             // one handoff and has to have the last word on it.
-            val dspChain = DspChain(spatial, autoEq, equalizer, transition, loudness)
+            val dspChain = DspChain(spatial, crossfeed, autoEq, equalizer, transition, loudness)
             val precision = PrecisionAudioSink(
                 delegate = defaultSink,
                 dspChain = dspChain,
@@ -6943,6 +6995,7 @@ class PlaybackService : MediaLibraryService() {
         spareFilter = transitionFilterB
         val newActive = buildPlayer(
             spatialAudioProcessorA,
+            crossfeedProcessorA,
             autoEqProcessorA,
             equalizerProcessorA,
             transitionFilterA,
@@ -6951,6 +7004,7 @@ class PlaybackService : MediaLibraryService() {
         )
         val newSpare = buildPlayer(
             spatialAudioProcessorB,
+            crossfeedProcessorB,
             autoEqProcessorB,
             equalizerProcessorB,
             transitionFilterB,
@@ -6967,6 +7021,8 @@ class PlaybackService : MediaLibraryService() {
         newActive.shuffleModeEnabled = shuffleMode
         applyEqualizer()
         applySpatialAudioEnabled()
+        applyAutoEq()
+        applyCrossfeed()
         if (items.isNotEmpty()) {
             newActive.setMediaItems(items, index.coerceIn(items.indices), position)
             // By hand, because the listener is attached below this: the
@@ -7177,6 +7233,12 @@ class PlaybackService : MediaLibraryService() {
                 AppSettings.autoEqCustomCurve,
             ) { _, _, _, _ -> }.collect { applyAutoEq() }
         }
+        scope.launch {
+            combine(
+                AppSettings.crossfeedEnabled,
+                AppSettings.crossfeedPreset,
+            ) { _, _ -> }.collect { applyCrossfeed() }
+        }
     }
 
     /**
@@ -7229,6 +7291,13 @@ class PlaybackService : MediaLibraryService() {
         }
         autoEqProcessorA.setProfile(enabled, profile)
         autoEqProcessorB.setProfile(enabled, profile)
+    }
+
+    private fun applyCrossfeed() {
+        val enabled = AppSettings.crossfeedEnabled.value
+        val preset = com.music.violence.playback.crossfeed.CrossfeedPreset.fromId(AppSettings.crossfeedPreset.value)
+        crossfeedProcessorA.setParameters(enabled, preset)
+        crossfeedProcessorB.setParameters(enabled, preset)
     }
 
     /**

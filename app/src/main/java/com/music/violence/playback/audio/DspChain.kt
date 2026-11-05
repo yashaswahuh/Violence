@@ -10,8 +10,8 @@ import com.music.violence.playback.TransitionFilterProcessor
 /**
  * Composite DSP chain executing Violence's custom audio processors in their canonical sequence:
  *
- * AudioBlock(Float32) -> SpatialAudioProcessor -> EqualizerProcessor
- *   -> TransitionFilterProcessor -> LoudnessProcessor -> AudioBlock(Float32)
+ * AudioBlock(Float32) -> SpatialAudioProcessor -> CrossfeedProcessor -> AutoEqProcessor
+ *   -> EqualizerProcessor -> TransitionFilterProcessor -> LoudnessProcessor -> AudioBlock(Float32)
  *
  * Operates purely on in-place Float32 audio blocks without intermediate fixed-point quantization,
  * preserving full dynamic range and headroom.
@@ -33,6 +33,7 @@ import com.music.violence.playback.TransitionFilterProcessor
  */
 class DspChain(
     val spatial: SpatialAudioProcessor = SpatialAudioProcessor(),
+    val crossfeed: CrossfeedProcessor = CrossfeedProcessor(),
     val autoEq: AutoEqProcessor = AutoEqProcessor(),
     val equalizer: EqualizerProcessor = EqualizerProcessor(),
     val transition: TransitionFilterProcessor = TransitionFilterProcessor(),
@@ -45,6 +46,7 @@ class DspChain(
     override fun configure(sampleRate: Int, channelCount: Int) {
         this.currentSampleRate = sampleRate
         spatial.configure(sampleRate, channelCount)
+        crossfeed.configure(sampleRate, channelCount)
         autoEq.configure(sampleRate, channelCount)
         equalizer.configure(sampleRate, channelCount)
         transition.configure(sampleRate, channelCount)
@@ -67,12 +69,13 @@ class DspChain(
                     val frames = block.frameCount
                     val sr = currentSampleRate
                     val spatialOn = spatial.enabled
+                    val crossfeedOn = crossfeed.isShaping()
                     val eqOn = equalizer.isEnabled
                     val transitionOn = transition.isFiltering
                     Log.d(
                         TAG,
                         "process() #$count frames=$frames sr=$sr " +
-                            "spatial=$spatialOn eq=$eqOn transition=$transitionOn",
+                            "spatial=$spatialOn crossfeed=$crossfeedOn eq=$eqOn transition=$transitionOn",
                     )
                 } catch (_: Throwable) {
                 }
@@ -80,18 +83,20 @@ class DspChain(
         }
 
         spatial.process(block)
+        crossfeed.process(block)
         autoEq.process(block)
         equalizer.process(block)
         transition.process(block)
         // The equaliser leaves its overs in place for the stages after it to
         // see; the loudness stage's limiter is what catches whatever survives.
-        loudness.holdLimiter = equalizer.isShaping || autoEq.isShaping()
+        loudness.holdLimiter = equalizer.isShaping || autoEq.isShaping() || crossfeed.isShaping()
         loudness.process(block)
     }
 
     @Suppress("DEPRECATION")
     override fun flush() {
         spatial.flush()
+        crossfeed.flush()
         autoEq.flush()
         equalizer.flush()
         transition.flush()
@@ -101,6 +106,7 @@ class DspChain(
     override fun reset() {
         processCounter = 0L
         spatial.reset()
+        crossfeed.reset()
         autoEq.reset()
         equalizer.reset()
         transition.reset()
