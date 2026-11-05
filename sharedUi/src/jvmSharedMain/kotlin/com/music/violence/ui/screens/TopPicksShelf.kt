@@ -415,7 +415,7 @@ private fun TopPickCard(
 private fun CardCaption(text: CardText, eyebrowColor: Color, modifier: Modifier) {
     val violence = LocalViolenceShared.current
     if (violence != null) {
-        // Violence Style: label in the body face, title in the display serif in caps, subtitle below.
+        // Violence Style: label, then the title and subtitle, all in the body face (the heading font is for headings only).
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -429,8 +429,8 @@ private fun CardCaption(text: CardText, eyebrowColor: Color, modifier: Modifier)
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = text.title.uppercase(),
-                style = violence.cardTitleCaps,
+                text = text.title,
+                style = MaterialTheme.typography.titleLarge,
                 color = Color.White,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

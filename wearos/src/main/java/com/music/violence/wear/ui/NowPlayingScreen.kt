@@ -2,20 +2,22 @@ package com.music.violence.wear.ui
 
 import android.view.HapticFeedbackConstants
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -30,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -39,16 +42,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -56,15 +52,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -73,7 +74,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.wear.compose.foundation.requestFocusOnHierarchyActive
+import androidx.wear.compose.material3.FilledTonalIconButton
 import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.IconButton
+import androidx.wear.compose.material3.IconButtonDefaults
+import androidx.wear.compose.material3.IconToggleButton
+import androidx.wear.compose.material3.IconToggleButtonDefaults
 import androidx.wear.compose.material3.Text
 import com.music.violence.wear.R
 import com.music.violence.wear.data.NowPlaying
@@ -95,28 +101,33 @@ class PlayerActions(
 )
 
 /**
- * The phone's player, on a round screen.
+ * The phone's player, on a round screen, in Material 3 Expressive.
  *
- * The cover *is* the play button: a disc with the progress ring round it, the
- * way a watch reads progress, and the glyph over it. That is what lets title,
- * transport and the three actions all fit a 40mm Galaxy Watch without anything
- * shrinking past legible — every size below is a fraction of the screen.
+ * The cover is the *scene*: a blurred, saturated copy fills the screen behind
+ * everything ([ArtBackdrop]) and the controls take the song's own accent
+ * ([accentFor]). Progress is a wave along the bezel ([WavyBezel]) that ripples
+ * while the music plays and goes flat when it pauses. The play button is a
+ * shape that morphs — a circle when paused, a rounded square when playing — and
+ * every press is a spring. Hold it to scrub; the bezel and crown follow.
  *
  * The crown is the phone's volume, as on every watch media app.
  */
 @Composable
 fun NowPlayingScreen(
     np: NowPlaying,
-    artwork: ImageBitmap?,
+    artworkBlur: ImageBitmap?,
     volume: Volume?,
     actions: PlayerActions,
 ) {
     val view = LocalView.current
     var rotary by remember { mutableFloatStateOf(0f) }
+    // The playhead, drawn along the bezel. Read only in the draw pass.
+    val progress = rememberProgress(np)
+    val accent = remember(np.colors) { accentFor(np.colors) }
     // Bumped on every crown step; the readout shows while it keeps changing.
     var volumeNudge by remember { mutableIntStateOf(0) }
 
-    // Hold-to-seek: the target while the disc is a scrubber, null otherwise.
+    // Hold-to-seek: the target while the button is a scrubber, null otherwise.
     var scrubMs by remember { mutableStateOf<Long?>(null) }
     var scrubHeld by remember { mutableStateOf(false) }
     var scrubActivity by remember { mutableIntStateOf(0) }
@@ -176,23 +187,30 @@ fun NowPlayingScreen(
         val w = maxWidth
         val h = maxHeight
 
-        MeshBackground(np.colors)
+        ArtBackdrop(blur = artworkBlur, colors = np.colors)
+        WavyBezel(
+            progress = progress,
+            scrubMs = scrubMs,
+            durationMs = np.durationMs,
+            playing = np.advancing,
+            color = accent,
+        )
 
         Column(
             Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Below the curved clock.
-            Spacer(Modifier.height(h * 0.15f))
+            Spacer(Modifier.height(h * 0.125f))
             key(np.mediaId) {
                 Text(
                     text = np.title,
-                    style = WearType.title,
+                    style = WearType.display.copy(shadow = TextShadow),
                     color = Color.White,
                     maxLines = 1,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .widthIn(max = w * 0.72f)
+                        .widthIn(max = w * 0.74f)
                         // Twice, then rest: a title that scrolls forever is a
                         // screen that never stops redrawing.
                         .basicMarquee(iterations = 2, initialDelayMillis = 1_200, repeatDelayMillis = 2_000),
@@ -200,29 +218,29 @@ fun NowPlayingScreen(
             }
             Text(
                 text = np.artist,
-                style = WearType.subtitle,
-                color = Color.White.copy(alpha = 0.66f),
+                style = WearType.subtitle.copy(shadow = TextShadow),
+                color = Color.White.copy(alpha = 0.78f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(max = w * 0.64f),
+                modifier = Modifier.widthIn(max = w * 0.66f),
             )
 
-            Spacer(Modifier.height(h * 0.035f))
+            Spacer(Modifier.height(h * 0.025f))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                GlyphButton(
+                TransportButton(
                     icon = R.drawable.ic_previous,
                     description = stringResource(R.string.previous),
-                    size = w * 0.2f,
-                    iconSize = w * 0.105f,
+                    size = w * 0.19f,
+                    iconSize = w * 0.10f,
                     onClick = actions.previous,
                 )
-                Spacer(Modifier.width(w * 0.015f))
-                PlayDisc(
+                Spacer(Modifier.width(w * 0.01f))
+                PlayButton(
                     np = np,
-                    artwork = artwork,
-                    size = h * 0.40f,
+                    size = h * 0.375f,
+                    accent = accent,
                     scrubMs = scrubMs,
                     onToggle = actions.togglePlay,
                     onScrubStart = {
@@ -237,70 +255,130 @@ fun NowPlayingScreen(
                     },
                     onCommit = ::commitScrub,
                 )
-                Spacer(Modifier.width(w * 0.015f))
-                GlyphButton(
+                Spacer(Modifier.width(w * 0.01f))
+                TransportButton(
                     icon = R.drawable.ic_next,
                     description = stringResource(R.string.next),
-                    size = w * 0.2f,
-                    iconSize = w * 0.105f,
+                    size = w * 0.19f,
+                    iconSize = w * 0.10f,
                     enabled = np.hasNext,
                     onClick = actions.next,
                 )
             }
 
-            Spacer(Modifier.height(h * 0.04f))
+            Spacer(Modifier.height(h * 0.025f))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(w * 0.045f)) {
-                val chip = w * 0.155f
-                val glyph = w * 0.075f
-                // Only where the phone's player shows one: signed in, not a local file.
-                if (np.canLike) GlyphButton(
-                    icon = if (np.liked) R.drawable.ic_heart_filled else R.drawable.ic_heart,
-                    description = stringResource(if (np.liked) R.string.loved else R.string.love),
-                    size = chip,
-                    iconSize = glyph,
-                    tint = if (np.liked) AccentRed else Color.White,
-                    background = Color.White.copy(alpha = 0.14f),
-                    onClick = actions.toggleLike,
-                )
-                GlyphButton(
-                    icon = R.drawable.ic_queue,
-                    description = stringResource(R.string.up_next),
-                    size = chip,
-                    iconSize = glyph,
-                    background = Color.White.copy(alpha = 0.14f),
-                    onClick = actions.openQueue,
-                )
-                GlyphButton(
-                    icon = R.drawable.ic_more,
-                    description = stringResource(R.string.more),
-                    size = chip,
-                    iconSize = glyph,
-                    background = Color.White.copy(alpha = 0.14f),
-                    onClick = actions.openMore,
-                )
-            }
+            ActionPill(np = np, buttonSize = w * 0.15f, actions = actions)
         }
 
         VolumeReadout(volume = volume, nudge = volumeNudge, edgeInset = 5.dp)
     }
 }
 
+/** A soft shadow so white text holds on any cover. */
+private val TextShadow = Shadow(color = Color.Black.copy(alpha = 0.55f), offset = Offset(0f, 2f), blurRadius = 8f)
+
+/** Previous / next: a glass tonal button that morphs its corners as it is pressed. */
+@Composable
+private fun TransportButton(
+    @DrawableRes icon: Int,
+    description: String,
+    size: Dp,
+    iconSize: Dp,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(size),
+        enabled = enabled,
+        shapes = IconButtonDefaults.animatedShapes(),
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = Glass,
+            contentColor = Color.White,
+        ),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = description,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
 /**
- * The cover, round, with the progress ring outside it and the play glyph on
- * top. While the phone is still finding a stream — play pressed, nothing
- * audible yet — the ring turns instead, so a slow YouTube resolve reads as
- * "working" rather than as a tap that didn't land.
- *
- * Held, it becomes a scrubber, as on Spotify's watch player: drag sideways
- * through the song, or turn the bezel. The ring turns red at the target
- * ([scrubMs]) and the centre reads it out; the caller commits it.
+ * Love, Up Next and More in one glass capsule, the way Material 3 Expressive
+ * groups related actions. Love is a toggle: it fills with Ember and its corners
+ * morph when it is on.
  */
 @Composable
-private fun PlayDisc(
+private fun ActionPill(np: NowPlaying, buttonSize: Dp, actions: PlayerActions) {
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.32f))
+            .padding(horizontal = 4.dp, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Only where the phone's player shows one: signed in, not a local file.
+        if (np.canLike) {
+            IconToggleButton(
+                checked = np.liked,
+                onCheckedChange = { actions.toggleLike() },
+                modifier = Modifier.size(buttonSize),
+                shapes = IconToggleButtonDefaults.animatedShapes(),
+                colors = IconToggleButtonDefaults.colors(
+                    uncheckedContainerColor = Color.Transparent,
+                    uncheckedContentColor = Color.White,
+                    checkedContainerColor = Ember,
+                    checkedContentColor = Color(0xFF14101F),
+                ),
+            ) {
+                Icon(
+                    painter = painterResource(if (np.liked) R.drawable.ic_heart_filled else R.drawable.ic_heart),
+                    contentDescription = stringResource(if (np.liked) R.string.loved else R.string.love),
+                    modifier = Modifier.size(buttonSize * 0.5f),
+                )
+            }
+        }
+        PillButton(R.drawable.ic_queue, stringResource(R.string.up_next), buttonSize, actions.openQueue)
+        PillButton(R.drawable.ic_more, stringResource(R.string.more), buttonSize, actions.openMore)
+    }
+}
+
+@Composable
+private fun PillButton(@DrawableRes icon: Int, description: String, size: Dp, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(size),
+        shapes = IconButtonDefaults.animatedShapes(),
+        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = description,
+            modifier = Modifier.size(size * 0.5f),
+        )
+    }
+}
+
+/**
+ * The play button: solid in the song's accent, with the glyph over it. It
+ * morphs between a circle (paused) and a rounded square (playing) on a spring,
+ * dips with a bounce when pressed, and while the phone is still finding a
+ * stream — play pressed, nothing audible yet — a ring turns round it, so a slow
+ * YouTube resolve reads as "working" rather than as a tap that didn't land.
+ *
+ * Held, it becomes a scrubber, as on Spotify's watch player: drag sideways
+ * through the song, or turn the bezel. The centre reads out the target
+ * ([scrubMs]); the caller commits it.
+ */
+@Composable
+private fun PlayButton(
     np: NowPlaying,
-    artwork: ImageBitmap?,
     size: Dp,
+    accent: Color,
     scrubMs: Long?,
     onToggle: () -> Unit,
     onScrubStart: () -> Unit,
@@ -310,7 +388,6 @@ private fun PlayDisc(
 ) {
     val view = LocalView.current
     val density = LocalDensity.current
-    val progress = rememberProgress(np)
     val ambient = LocalAmbient.current.active
     val scrubbing = scrubMs != null
     val buffering = np.playing && !np.advancing
@@ -327,12 +404,20 @@ private fun PlayDisc(
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         when {
-            scrubbing -> 1.04f
-            pressed -> 0.94f
+            scrubbing -> 1.06f
+            pressed -> 0.90f
             else -> 1f
         },
-        label = "discPress",
+        spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMedium),
+        label = "press",
     )
+    val face = size * 0.86f
+    val corner by animateDpAsState(
+        if (np.playing) face * 0.30f else face / 2f,
+        spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow),
+        label = "morph",
+    )
+    val glyph = onAccent(accent)
     // Read by the gesture blocks, which live across recompositions.
     val latestScrubbing by rememberUpdatedState(scrubbing)
     val latestDuration by rememberUpdatedState(np.durationMs)
@@ -346,25 +431,12 @@ private fun PlayDisc(
                 scaleY = scale
             }
             .drawBehind {
-                val stroke = (if (scrubMs != null) 5.dp else 3.5.dp).toPx()
+                val stroke = (if (scrubMs != null) 4.dp else 2.5.dp).toPx()
                 val inset = stroke / 2f
                 val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
                 val topLeft = Offset(inset, inset)
-                drawArc(
-                    color = Color.White.copy(alpha = 0.22f),
-                    startAngle = 0f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = Stroke(stroke),
-                )
                 val turning = spin?.value
-                val fraction = if (scrubMs != null && np.durationMs > 0) {
-                    scrubMs.toFloat() / np.durationMs
-                } else {
-                    progress.value
-                }
+                val fraction = if (scrubMs != null && np.durationMs > 0) scrubMs.toFloat() / np.durationMs else 0f
                 if (turning != null) {
                     drawArc(
                         color = Color.White,
@@ -377,7 +449,7 @@ private fun PlayDisc(
                     )
                 } else if (fraction * 360f > 0.5f) {
                     drawArc(
-                        color = if (scrubMs != null) AccentRed else Color.White,
+                        color = Color.White,
                         startAngle = -90f,
                         sweepAngle = 360f * fraction.coerceIn(0f, 1f),
                         useCenter = false,
@@ -434,54 +506,34 @@ private fun PlayDisc(
     ) {
         Box(
             Modifier
-                .padding(size * 0.065f)
-                .fillMaxSize()
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f)),
+                .size(face)
+                .clip(RoundedCornerShape(corner))
+                .background(accent),
             contentAlignment = Alignment.Center,
         ) {
-            if (artwork != null) {
-                Image(
-                    bitmap = artwork,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            Spacer(
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Color.Black.copy(
-                            alpha = when {
-                                scrubbing -> 0.62f
-                                artwork != null -> 0.30f
-                                else -> 0f
-                            },
-                        ),
-                    ),
-            )
             if (scrubMs != null) {
                 val from = remember(np) { np.positionAt(System.currentTimeMillis()) }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = formatTime(scrubMs),
                         style = WearType.title.copy(fontFeatureSettings = "tnum"),
-                        color = Color.White,
+                        color = glyph,
                     )
                     Text(
                         text = formatDelta(scrubMs - from),
                         style = WearType.caption.copy(fontFeatureSettings = "tnum"),
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = glyph.copy(alpha = 0.7f),
                     )
                 }
             } else {
-                Icon(
-                    painter = painterResource(if (np.playing) R.drawable.ic_pause else R.drawable.ic_play),
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(size * 0.38f),
-                )
+                Crossfade(targetState = np.playing, animationSpec = tween(140), label = "glyph") { playing ->
+                    Icon(
+                        painter = painterResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play),
+                        contentDescription = null,
+                        tint = glyph,
+                        modifier = Modifier.size(face * 0.42f),
+                    )
+                }
             }
         }
     }
@@ -520,50 +572,6 @@ private fun rememberProgress(np: NowPlaying): State<Float> {
         }
     }
     return progress
-}
-
-/** A round glyph button that dips when pressed instead of rippling. */
-@Composable
-fun GlyphButton(
-    @DrawableRes icon: Int,
-    description: String,
-    size: Dp,
-    iconSize: Dp,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    tint: Color = Color.White,
-    background: Color = Color.Transparent,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.88f else 1f, label = "glyphPress")
-    Box(
-        modifier = modifier
-            .size(size)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(CircleShape)
-            .background(if (pressed) background.copy(alpha = (background.alpha + 0.12f).coerceAtMost(1f)) else background)
-            .clickable(
-                enabled = enabled,
-                interactionSource = interaction,
-                indication = null,
-                role = Role.Button,
-                onClickLabel = description,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = description,
-            tint = if (enabled) tint else tint.copy(alpha = 0.35f),
-            modifier = Modifier.size(iconSize),
-        )
-    }
 }
 
 /**
@@ -642,6 +650,7 @@ private fun BoxScope.VolumeReadout(volume: Volume?, nudge: Int, edgeInset: Dp) {
 /** Crown travel per volume step, for crowns that report a stream of small events. */
 private const val ROTARY_STEP_PX = 48f
 private const val PROGRESS_TICK_MS = 500L
+
 private const val VOLUME_SHOWN_MS = 1_400L
 private const val VOLUME_ARC = 64f
 private const val SCRUB_STEP_MS = 5_000L

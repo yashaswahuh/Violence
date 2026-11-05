@@ -1,7 +1,6 @@
 package com.music.violence.ui.player
 
 import com.music.violence.ui.violencestyle.violencePlayerGlow
-import com.music.violence.ui.violencestyle.LocalViolenceShared
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.constrainHeight
@@ -3574,11 +3573,9 @@ fun NowPlayingScreen(
                                     Column {
                                         MarqueeText(
                                             text = song.title,
-                                            // Violence Style: the title in the heading serif (not upper-cased: song titles stay readable).
-                                            style = LocalViolenceShared.current?.displayCaps?.copy(fontSize = 22.sp, lineHeight = 26.sp)
-                                                ?: MaterialTheme.typography.titleLarge.copy(
-                                                    fontSize = 20.sp,
-                                                ),
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                fontSize = 20.sp,
+                                            ),
                                             color = Color.White,
                                             enabled = scrolling,
                                             // Before the title, in the artist line's

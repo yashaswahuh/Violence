@@ -1,7 +1,7 @@
 # Build commands (active targets only)
 
 Active: Android phone (`:app`), Android TV (`:tv`), web (`/web`), desktop (`:desktopApp`, `:desktopUi` unfrozen 2026-11-04 for DW parity project), plus the shared code they use (`:shared`, `:sharedUi`, `/native`, `/backend`).
-Dormant (strictly frozen): Wear OS (`:wearos`). See `FROZEN_TARGETS.md`.
+Wear OS (`:wearos`) was unfrozen on 2026-11-05 (see `FROZEN_TARGETS.md`). Build it with an explicit task: `.\gradlew.bat :wearos:assembleDevDebug` (APK in `wearos/build/outputs/apk/dev/debug/`). It pairs only with a phone build of the same flavor signed with the same key (README in `wearos/`).
 
 ## The rule
 **Root-level Gradle tasks are forbidden for routine work**: `build`, `assemble`, `assembleDevDebug`, `check`, `test`, `testDevDebugUnitTest`, `lint`, `clean`, or a bare `.\gradlew.bat`, with no `:module:` path. Gradle runs a task name in EVERY project that has it, so they would also build `:wearos` (it has `dev`/`prod` flavors too) and `:desktopApp`/`:desktopUi`. Always write the module path.

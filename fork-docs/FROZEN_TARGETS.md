@@ -1,7 +1,8 @@
 # Frozen (dormant) targets
 
 Status since Phase 3 (2026-11-01): **Wear OS and desktop are DORMANT.**
-Status update (2026-11-04): **The owner explicitly UNFROZE DESKTOP (`:desktopApp`, `:desktopUi`) for the Desktop and Web parity project (DW-0 to DW-6).** Wear OS (`:wearos`) **REMAINS FROZEN** (do not edit, build, test, or lint `:wearos`).
+Status update (2026-11-04): **The owner explicitly UNFROZE DESKTOP (`:desktopApp`, `:desktopUi`) for the Desktop and Web parity project (DW-0 to DW-6).** Wear OS (`:wearos`) remained frozen then.
+Status update (2026-11-05): **The owner explicitly UNFROZE WEAR OS (`:wearos`)** to change its application ID to match the phone (`com.yashaswahuh.violencemusic` / `.dev`), replace the BitChord launcher icon with the Violence V mark, and give the watch a new Violence UI (Voltage violet palette, bezel progress ring). Edit and build `:wearos` with explicit tasks only (`:wearos:assembleDevDebug`); never a root-level task.
 
 ## (a) The dormant modules
 | Module | Gradle path / dir | What it is | Status |
