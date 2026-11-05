@@ -30,7 +30,8 @@ declare const __DISCORD_PRESENCE__: boolean;
 export const APPLICATION_ID = '1566782172302413885';
 const GATEWAY = 'wss://gateway.discord.gg/?v=9&encoding=json';
 const API = 'https://discord.com/api/v9';
-const PROJECT_URL = 'https://github.com/yashaswahuh/Violence';
+const PROJECT_URL = 'https://yashaswahuh.is-a.dev/Violence';
+const LOGO_URL = 'https://cdn.discordapp.com/app-assets/1566782172302413885/1566796182469091338.png';
 const DEFAULT_BUTTON_1 = 'Listen on YouTube Music';
 const DEFAULT_BUTTON_2 = 'Visit Violence';
 const APP_NAME = 'Violence';
@@ -424,7 +425,12 @@ export async function buildPresence(token: string, track: DiscordNowPlaying, opt
           start: Math.round(now - track.positionMs / rate),
           end: Math.round(now + Math.max(0, track.durationMs - track.positionMs) / rate),
         },
-        assets: { large_image: largeImage, small_image: null, large_text: null, small_text: null },
+        assets: {
+          large_image: largeImage ?? LOGO_URL,
+          small_image: art ? LOGO_URL : null,
+          large_text: null,
+          small_text: art ? APP_NAME : null,
+        },
         ...(buttons.length && {
           buttons: buttons.map(([label]) => label),
           metadata: { button_urls: buttons.map(([, url]) => url) },

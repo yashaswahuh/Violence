@@ -123,10 +123,10 @@ class DiscordRPC(
             details = songTitleWithRate,
             state = stateText,
             detailsUrl = watchUrl(song),
-            largeImage = artwork?.let { RpcImage.ExternalImage(it) },
-            smallImage = null,
+            largeImage = RpcImage.ExternalImage(artwork ?: DiscordApplication.LOGO_URL),
+            smallImage = artwork?.let { RpcImage.ExternalImage(DiscordApplication.LOGO_URL) },
             largeText = audioQuality,
-            smallText = null,
+            smallText = if (artwork != null) name else null,
             buttons = if (buttonsList.isNotEmpty()) buttonsList else null,
             type = type,
             statusDisplayType = if (useDetails) StatusDisplayType.DETAILS else StatusDisplayType.STATE,
@@ -148,7 +148,7 @@ class DiscordRPC(
         context.getString(R.string.app_name).removeSuffix(" Dev")
 
     companion object {
-        const val PROJECT_URL = "https://github.com/yashaswahuh/Violence"
+        const val PROJECT_URL = "https://yashaswahuh.is-a.dev/Violence"
 
         const val DEFAULT_BUTTON_1 = "Listen on YouTube Music"
         const val DEFAULT_BUTTON_2 = "Visit Violence"

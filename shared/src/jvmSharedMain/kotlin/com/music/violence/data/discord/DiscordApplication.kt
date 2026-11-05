@@ -22,7 +22,7 @@ object DiscordApplication {
      * icon, which still has to be replaced there to change what Discord shows
      * next to the application name.
      */
-    const val LOGO_URL = "https://raw.githubusercontent.com/yashaswahuh/Violence/main/Logo.png"
+    const val LOGO_URL = "https://cdn.discordapp.com/app-assets/1566782172302413885/1566796182469091338.png"
 
     /** Discord refuses a button label longer than this. */
     const val BUTTON_LABEL_MAX = 32

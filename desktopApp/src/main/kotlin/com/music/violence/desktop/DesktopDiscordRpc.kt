@@ -241,9 +241,9 @@ internal object DesktopDiscordRpc {
                     details = title,
                     state = stateText,
                     detailsUrl = watchUrl(song),
-                    largeImage = artwork?.let { RpcImage.ExternalImage(it) },
-                    smallImage = null,
-                    smallText = null,
+                    largeImage = RpcImage.ExternalImage(artwork ?: DiscordApplication.LOGO_URL),
+                    smallImage = artwork?.let { RpcImage.ExternalImage(DiscordApplication.LOGO_URL) },
+                    smallText = if (artwork != null) DesktopDiscordSettings.APP_NAME else null,
                     largeText = quality,
                     buttons = buttonLabels(song).takeIf { it.isNotEmpty() },
                     type = when (DesktopDiscordSettings.activityType.value) {
@@ -306,8 +306,10 @@ internal object DesktopDiscordRpc {
         }
         putJsonObject("assets") {
             val artwork = song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }
+            put("large_image", artwork ?: DiscordApplication.LOGO_URL)
             if (artwork != null) {
-                put("large_image", artwork)
+                put("small_image", DiscordApplication.LOGO_URL)
+                put("small_text", DesktopDiscordSettings.APP_NAME)
             }
             quality?.let { put("large_text", it) }
         }
@@ -386,7 +388,7 @@ internal object DesktopDiscordRpc {
 
     /** How long a scan that found no local Discord holds off the next one. */
     private const val PROBE_BACKOFF_MS = 10_000L
-    private const val PROJECT_URL = "https://github.com/yashaswahuh/Violence"
+    private const val PROJECT_URL = "https://yashaswahuh.is-a.dev/Violence"
     private const val ART_PX = 480
     private const val CLIENT_VERSION = "0.0.83"
     private const val CLIENT_BUILD = "352675"
