@@ -88,6 +88,7 @@ private fun ViolenceStyleOptions() {
     val forcedTransparency by ViolenceStyleSettings.reduceTransparency.collectAsStateWithLifecycle()
     val detailGlow by ViolenceStyleSettings.detailGlow.collectAsStateWithLifecycle()
     val accountLiquidGlass by ViolenceStyleSettings.accountLiquidGlass.collectAsStateWithLifecycle()
+    val fullCoverPages by ViolenceStyleSettings.fullCoverPages.collectAsStateWithLifecycle()
     val style = LocalViolenceStyle.current
 
     OptionDivider()
@@ -140,6 +141,12 @@ private fun ViolenceStyleOptions() {
         subtitle = stringResource(R.string.vs_account_liquid_glass_subtitle),
         trailing = { IosSwitch(checked = accountLiquidGlass, onCheckedChange = ViolenceStyleSettings::setAccountLiquidGlass) },
         onClick = { ViolenceStyleSettings.setAccountLiquidGlass(!accountLiquidGlass) },
+    )
+    SettingsRow(
+        title = stringResource(R.string.vs_full_cover),
+        subtitle = stringResource(R.string.vs_full_cover_subtitle),
+        trailing = { IosSwitch(checked = fullCoverPages, onCheckedChange = ViolenceStyleSettings::setFullCoverPages) },
+        onClick = { ViolenceStyleSettings.setFullCoverPages(!fullCoverPages) },
     )
     Text(
         text = if (style.capability == StyleCapability.FULL) {

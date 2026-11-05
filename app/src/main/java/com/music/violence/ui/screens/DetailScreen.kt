@@ -1,5 +1,6 @@
 package com.music.violence.ui.screens
 
+import com.music.violence.ui.violencestyle.ViolenceStyleSettings
 import com.music.violence.ui.violencestyle.violenceDetailGlow
 import com.music.violence.ui.components.trackArtSize
 import android.os.Build
@@ -192,6 +193,9 @@ private const val ARTIST_ROW_MAX_ITEMS = 5
 
 /** The artist photo, very slightly taller than it is wide. */
 private const val ARTIST_PHOTO_RATIO = 0.95f
+
+/** Room the title, credit, meta and buttons need at the foot of a full-screen cover. */
+private val FULL_COVER_TEXT_BLOCK = 210.dp
 
 /** The framed sleeve on a release page, as a fraction of the page width. */
 private const val SLEEVE_FRACTION = 0.76f
@@ -418,6 +422,7 @@ fun DetailScreen(
             if (signature != null) return@LaunchedEffect
         }
     }
+    val fullCoverPages by ViolenceStyleSettings.fullCoverPages.collectAsStateWithLifecycle()
     val palette = rememberArtworkPalette(
         imageUrl = appleArt?.heroUrl ?: page.thumbnailUrl,
         keyColors = appleArt?.keyColors(),
@@ -537,6 +542,10 @@ fun DetailScreen(
                 // the narrow one it was written for.
                 val artHeight = (maxWidth / ARTIST_PHOTO_RATIO).coerceAtMost(maxHeight * 0.6f)
                 val sleeveSize = (maxWidth * SLEEVE_FRACTION).coerceAtMost(maxHeight * SLEEVE_MAX_HEIGHT)
+                // Experimental: an album or playlist with a cover gets the player's
+                // full-width, square artwork instead of the framed sleeve.
+                val fullCover = !isArtist && fullCoverPages && page.thumbnailUrl != null
+                val coverHeight = maxWidth.coerceAtMost(maxHeight * 0.6f)
                 // A folder's grid view: the same column count the Library's
                 // "Show all" grids reach at this width.
                 val gridColumns = libraryGrid(maxWidth - PAGE_GUTTER * 2).columns
@@ -545,14 +554,14 @@ fun DetailScreen(
                 // both need to agree on its height without being able to ask each
                 // other — see [artHeight]. A release has no such layer: its sleeve
                 // is an ordinary item at the top of the list.
-                if (isArtist) {
+                if (isArtist || fullCover) {
                     PageBackground(
                         page = page,
                         palette = palette,
                         canvas = canvas,
-                        artHeight = artHeight,
+                        artHeight = if (fullCover) coverHeight else artHeight,
                         listState = listState,
-                        heroUrl = appleArt?.heroUrl,
+                        heroUrl = appleArt?.heroUrl.takeIf { isArtist },
                         modifier = Modifier.matchParentSize(),
                     )
                 }
@@ -574,6 +583,7 @@ fun DetailScreen(
                         page = page,
                         palette = palette,
                         sleeveSize = sleeveSize,
+                        fullCoverHeight = coverHeight.takeIf { fullCover },
                         canvas = canvas,
                         songs = songs,
                         onPlay = { onSongClick(songs, 0) },
@@ -898,6 +908,8 @@ private fun ReleaseHeader(
     page: DetailPage,
     palette: ArtworkPalette,
     sleeveSize: Dp,
+    /** Experimental full-screen cover: the page draws the cover behind the list, this only leaves room for it. */
+    fullCoverHeight: Dp?,
     canvas: CanvasArtwork?,
     songs: List<Song>,
     onPlay: () -> Unit,
@@ -917,10 +929,14 @@ private fun ReleaseHeader(
         modifier = Modifier
             .fillMaxWidth()
             // Clear of the floating bar, which the sleeve no longer runs under.
-            .padding(top = topBarContentPadding(), bottom = 18.dp),
+            .padding(top = if (fullCoverHeight == null) topBarContentPadding() else 0.dp, bottom = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
+        if (fullCoverHeight != null) {
+            // The cover fills the top; the title, credit and buttons sit on its
+            // dissolved foot (see [PageBackground]).
+            Spacer(Modifier.height((fullCoverHeight - FULL_COVER_TEXT_BLOCK).coerceAtLeast(topBarContentPadding())))
+        } else Box(
             Modifier
                 .size(sleeveSize)
                 .shadow(SLEEVE_SHADOW, SLEEVE_SHAPE)

@@ -37,7 +37,6 @@ import com.music.violence.ui.components.backdrop.Backdrop
 import com.music.violence.ui.components.backdrop.drawBackdrop
 import com.music.violence.ui.components.backdrop.effects.blur
 import com.music.violence.ui.components.backdrop.effects.colorControls
-import com.music.violence.ui.components.backdrop.effects.lens
 import com.music.violence.ui.components.backdrop.highlight.Highlight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -94,7 +93,7 @@ fun AccountProfileSelector(
     val panelSolid = violencePanelSolid()
     // Style on: the menu drops from the avatar (top end), just under the top bar.
     val menuTop = if (styled) topBarHeight() + 4.dp else 56.dp
-    // Violence Style, "Liquid Glass account menu" switch: the bars' glass (blur and lens over the live page).
+    // Violence Style, "Liquid Glass account menu" switch: the bars' glass (blur over the live page, no lens).
     // Needs Liquid Glass on, Android 12+ and transparency not reduced; otherwise the frosted look above.
     val accountGlass by ViolenceStyleSettings.accountLiquidGlass.collectAsStateWithLifecycle()
     val liquid = styled && accountGlass && LocalLiquidGlassEnabled.current && isGlassSupported() &&
@@ -235,31 +234,22 @@ fun AccountProfileSelector(
 }
 
 /**
- * The account menu as Liquid Glass: the live page blurred, lensed at the edges (Android 13+; Android 12
- * gets the blur) and a light-catching highlight, under a thin accent-tinted fill. The same pipeline as the
+ * The account menu as Liquid Glass: the live page blurred, with a light-catching highlight, under a thin accent-tinted fill. The same pipeline as the
  * bars and the song menu.
  */
 @Composable
 private fun Modifier.accountLiquidGlass(backdrop: Backdrop, shape: androidx.compose.ui.graphics.Shape, tint: Color): Modifier {
     val density = LocalDensity.current
     val blurPx = with(density) { 20.dp.toPx() } * ACCOUNT_GLASS_SCALE
-    val lensPx = with(density) { 22.dp.toPx() } * ACCOUNT_GLASS_SCALE
     val fill = remember(tint) { tint.copy(alpha = 0.30f) }
-    val glass = remember(backdrop, shape, blurPx, lensPx, fill) {
+    val glass = remember(backdrop, shape, blurPx, fill) {
         Modifier.drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
             effects = {
                 colorControls(saturation = 1.8f)
+                // No lens: the refraction bent the page into a curved blob near the edges.
                 blur(blurPx)
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                    lens(
-                        refractionHeight = lensPx,
-                        refractionAmount = lensPx,
-                        depthEffect = true,
-                        chromaticAberration = true,
-                    )
-                }
             },
             highlight = { Highlight.Default },
             shadow = null,

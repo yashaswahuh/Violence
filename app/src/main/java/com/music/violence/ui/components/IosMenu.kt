@@ -7,7 +7,6 @@ import com.music.violence.ui.components.backdrop.Backdrop
 import com.music.violence.ui.components.backdrop.drawBackdrop
 import com.music.violence.ui.components.backdrop.effects.blur
 import com.music.violence.ui.components.backdrop.effects.colorControls
-import com.music.violence.ui.components.backdrop.effects.lens
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -169,12 +168,12 @@ fun Modifier.iosMenuPanel(
         colors.fill
     }
     val shadowed = if (castsShadow) iosMenuShadow() else this
-    // Liquid Glass on: the panel is the same glass the bars are (blur, lens, light-catching rim),
+    // Liquid Glass on: the panel is the same glass the bars are (blur and the light-catching rim),
     // sampling the player's still where there is one, else the page.
     val glass = LocalLiquidGlassEnabled.current && isGlassSupported() && blurs
     val glassBackdrop = if (glass) (backdrop ?: LocalAppBackdrop.current) else null
     val surface = if (glassBackdrop != null) {
-        // Thinner than the frosted fill, so the page and the lens at the edges read through it.
+        // Thinner than the frosted fill, so the page reads through it.
         val glassFill = remember(fill, fillOverride, colors.dark) {
             if (fillOverride != null) fill else fill.copy(alpha = if (colors.dark) 0.46f else 0.42f)
         }
@@ -225,27 +224,19 @@ fun Modifier.menuBackdropFrost(backdrop: Backdrop, shape: Shape, fill: Color): M
 /** [IosMenuShape]'s rounded-rect twin: the lens effect cannot take the continuous-corner shape. */
 private val IosMenuGlassShape = RoundedCornerShape(30.dp)
 
-/** The menu panel as Liquid Glass: the frost of [menuBackdropFrost] plus the lens and the rim. */
+/** The menu panel as Liquid Glass: the frost of [menuBackdropFrost] plus the rim. */
 @Composable
 private fun Modifier.menuGlass(backdrop: Backdrop, fill: Color): Modifier {
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val lensPx = with(density) { MENU_LENS.toPx() } * MENU_BACKDROP_SCALE
     val blurPx = with(density) { MENU_BLUR.toPx() } * MENU_BACKDROP_SCALE
-    val glass = remember(backdrop, fill, lensPx, blurPx) {
+    val glass = remember(backdrop, fill, blurPx) {
         Modifier.drawBackdrop(
             backdrop = backdrop,
             shape = { IosMenuGlassShape },
             effects = {
                 colorControls(saturation = 1.8f)
+                // No lens: the refraction bent the page into a curved blob near the edges.
                 blur(blurPx)
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                    lens(
-                        refractionHeight = lensPx,
-                        refractionAmount = lensPx,
-                        depthEffect = true,
-                        chromaticAberration = true,
-                    )
-                }
             },
             highlight = { com.music.violence.ui.components.backdrop.highlight.Highlight.Default },
             shadow = null,
@@ -256,7 +247,6 @@ private fun Modifier.menuGlass(backdrop: Backdrop, fill: Color): Modifier {
     return then(glass)
 }
 
-private val MENU_LENS = 20.dp
 private val MENU_BLUR = 24.dp
 private const val MENU_BACKDROP_SCALE = 0.25f
 

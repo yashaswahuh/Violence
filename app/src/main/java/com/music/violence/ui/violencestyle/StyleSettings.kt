@@ -30,6 +30,7 @@ object ViolenceStyleSettings {
     private const val KEY_REDUCE_TRANSPARENCY = P + "reduce_transparency"
     private const val KEY_DETAIL_GLOW = P + "detail_glow"
     private const val KEY_ACCOUNT_LIQUID_GLASS = P + "account_liquid_glass"
+    private const val KEY_FULL_COVER = P + "full_cover_pages"
     internal const val KEY_PENDING = P + "startup_pending"
     internal const val KEY_NOTICE = P + "safe_mode_notice"
 
@@ -50,6 +51,9 @@ object ViolenceStyleSettings {
     /** The account menu drawn as Liquid Glass (the bars' lens and blur). Off by default. */
     val accountLiquidGlass = MutableStateFlow(false)
 
+    /** Album and playlist pages open with the cover filling the top of the page, like the player. Off by default. */
+    val fullCoverPages = MutableStateFlow(false)
+
     /** True after safe mode switched the style off; cleared when the user turns it on again. */
     val safeModeTriggered = MutableStateFlow(false)
 
@@ -66,6 +70,7 @@ object ViolenceStyleSettings {
         reduceTransparency.value = p.getBoolean(KEY_REDUCE_TRANSPARENCY, false)
         detailGlow.value = p.getBoolean(KEY_DETAIL_GLOW, StyleDefaults.DETAIL_GLOW)
         accountLiquidGlass.value = p.getBoolean(KEY_ACCOUNT_LIQUID_GLASS, false)
+        fullCoverPages.value = p.getBoolean(KEY_FULL_COVER, false)
         safeModeTriggered.value = p.getBoolean(KEY_NOTICE, false)
     }
 
@@ -104,6 +109,11 @@ object ViolenceStyleSettings {
     fun setAccountLiquidGlass(value: Boolean) {
         accountLiquidGlass.value = value
         prefs?.edit()?.putBoolean(KEY_ACCOUNT_LIQUID_GLASS, value)?.apply()
+    }
+
+    fun setFullCoverPages(value: Boolean) {
+        fullCoverPages.value = value
+        prefs?.edit()?.putBoolean(KEY_FULL_COVER, value)?.apply()
     }
 
     private fun put(key: String, value: String) {
