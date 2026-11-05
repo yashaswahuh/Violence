@@ -232,9 +232,9 @@ internal fun DrawScope.drawViolenceGlow(
 }
 
 /**
- * The background clock, in nanoseconds of frame time. Ticks at 30 fps while [running]; steps down to 20,
+ * The background clock, in nanoseconds of elapsed animation time. Ticks at 30 fps while [running]; steps down to 20,
  * 10 fps and then stops if the real tick interval overruns the intended one (the device cannot hold it).
- * Stopped, the picture is simply not invalidated: an idle screen costs nothing.
+ * Pausing preserves the accumulated animation time, resuming without teleportation when unpaused.
  */
 @Composable
 private fun rememberBackgroundClock(running: Boolean): State<Long> {
@@ -248,27 +248,42 @@ private fun rememberBackgroundClock(running: Boolean): State<Long> {
         while (level < StyleFrameThrottle.STATIC_LEVEL) {
             val interval = StyleFrameThrottle.intervalNanos(level)
             withFrameNanos { now ->
-                if (last == 0L) {
-                    last = now
-                    time.longValue = now
-                } else {
-                    val d = now - last
-                    if (d >= interval - TICK_TOLERANCE_NANOS) {
+                val tick = computeClockTick(last, now, interval)
+                if (tick != null) {
+                    val (newLast, delta) = tick
+                    if (last != 0L) {
+                        val d = now - last
                         sum += d
                         count++
-                        last = now
-                        time.longValue = now
                         if (count >= StyleFrameThrottle.SAMPLE_COUNT) {
                             level = StyleFrameThrottle.nextLevel(level, sum / count)
                             sum = 0L
                             count = 0
                         }
                     }
+                    last = newLast
+                    time.longValue += delta
                 }
             }
         }
     }
     return time
+}
+
+internal fun computeClockTick(
+    last: Long,
+    now: Long,
+    interval: Long,
+    toleranceNanos: Long = TICK_TOLERANCE_NANOS,
+): Pair<Long, Long>? {
+    if (last == 0L) {
+        return Pair(now, 0L)
+    }
+    val d = now - last
+    if (d >= interval - toleranceNanos) {
+        return Pair(now, minOf(d, interval * 2L))
+    }
+    return null
 }
 
 private const val TICK_TOLERANCE_NANOS = 4_000_000L

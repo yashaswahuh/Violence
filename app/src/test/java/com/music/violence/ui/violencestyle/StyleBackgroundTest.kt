@@ -244,4 +244,45 @@ class StyleBackgroundRulesTest {
         assertEquals(StyleFrameThrottle.STATIC_LEVEL, StyleFrameThrottle.nextLevel(StyleFrameThrottle.STATIC_LEVEL, 1L))
         assertEquals(0L, StyleFrameThrottle.intervalNanos(StyleFrameThrottle.STATIC_LEVEL))
     }
+
+    @Test fun clockResumesWithoutTeleportingAfterPause() {
+        val interval = StyleFrameThrottle.intervalNanos(0) // 33_333_333L
+        var last = 0L
+        var accumulated = 0L
+
+        // Initial frame when clock starts
+        val tick1 = computeClockTick(last, 1_000_000_000L, interval)
+        assertTrue(tick1 != null)
+        last = tick1!!.first
+        accumulated += tick1.second
+        assertEquals(1_000_000_000L, last)
+        assertEquals(0L, accumulated)
+
+        // Subsequent frame: advances by interval
+        val tick2 = computeClockTick(last, 1_033_333_333L, interval)
+        assertTrue(tick2 != null)
+        last = tick2!!.first
+        accumulated += tick2.second
+        assertEquals(1_033_333_333L, last)
+        assertEquals(33_333_333L, accumulated)
+
+        // Player is opened: clock pauses for 20 seconds.
+        // When player is closed, coroutine restarts with last = 0L at wall-clock time 21_033_333_333L.
+        last = 0L
+        val tickResume = computeClockTick(last, 21_033_333_333L, interval)
+        assertTrue(tickResume != null)
+        last = tickResume!!.first
+        accumulated += tickResume.second
+        assertEquals(21_033_333_333L, last)
+        // CRUCIAL: accumulated time must not jump 20 seconds ahead
+        assertEquals(33_333_333L, accumulated)
+
+        // Next frame after resume: smoothly advances by interval from paused point
+        val tickNext = computeClockTick(last, 21_066_666_666L, interval)
+        assertTrue(tickNext != null)
+        last = tickNext!!.first
+        accumulated += tickNext.second
+        assertEquals(21_066_666_666L, last)
+        assertEquals(66_666_666L, accumulated)
+    }
 }
