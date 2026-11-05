@@ -70,6 +70,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.music.violence.desktop.DesktopArtwork
 import com.music.violence.desktop.DesktopMiniPlayerManager
 import com.music.violence.desktop.DesktopPlatform
+import com.music.violence.desktop.platform.WindowsNativeDrag
 import org.jetbrains.compose.resources.painterResource
 import violence.desktopapp.generated.resources.Res
 import violence.desktopapp.generated.resources.logo
@@ -166,6 +167,13 @@ private fun Modifier.miniPlayerDrag(composeWindow: ComposeWindow): Modifier =
             }
             lastPressAt = down.uptimeMillis
             lastPressPosition = down.position
+
+            // Native Windows DWM drag (supports Windhawk, Aero Snap, FancyZones natively without feedback loops)
+            if (WindowsNativeDrag.startDrag(composeWindow)) {
+                down.consume()
+                DesktopMiniPlayerManager.savePosition(composeWindow.location.x, composeWindow.location.y)
+                return@awaitEachGesture
+            }
 
             val windowAtStart = composeWindow.location
             val pointerAtStart = MouseInfo.getPointerInfo()?.location ?: return@awaitEachGesture
