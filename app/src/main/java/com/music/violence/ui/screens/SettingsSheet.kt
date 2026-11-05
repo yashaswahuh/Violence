@@ -285,6 +285,9 @@ fun SettingsScreen(
     val wifiOnlyDownloads by AppSettings.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val exportDownloads by AppSettings.exportDownloads.collectAsStateWithLifecycle()
     val syncDownloadedPlaylists by AppSettings.syncDownloadedPlaylists.collectAsStateWithLifecycle()
+    val saveSyncedLyricsWithDownloads by AppSettings.saveSyncedLyricsWithDownloads.collectAsStateWithLifecycle()
+    val pauseBackgroundVisualsWhenHidden by AppSettings.pauseBackgroundVisualsWhenHidden.collectAsStateWithLifecycle()
+    val constrainImageCacheMemory by AppSettings.constrainImageCacheMemory.collectAsStateWithLifecycle()
     val stopOnTaskRemoved by AppSettings.stopOnTaskRemoved.collectAsStateWithLifecycle()
     val hideVolumeBar by AppSettings.hideVolumeBar.collectAsStateWithLifecycle()
     val hideStatusBarInPlayer by AppSettings.hideStatusBarInPlayer.collectAsStateWithLifecycle()
@@ -660,6 +663,15 @@ fun SettingsScreen(
                     checked = syncDownloadedPlaylists,
                     onCheckedChange = AppSettings::setSyncDownloadedPlaylists,
                     subtitle = stringResource(R.string.sync_downloaded_playlists_subtitle),
+                )
+            }
+            val saveLyricsTitle = stringResource(R.string.save_synced_lyrics_with_downloads)
+            row(saveLyricsTitle, "lyrics", "synced", "offline", "cache") {
+                SettingsSubRow(
+                    title = saveLyricsTitle,
+                    checked = saveSyncedLyricsWithDownloads,
+                    onCheckedChange = AppSettings::setSaveSyncedLyricsWithDownloads,
+                    subtitle = stringResource(R.string.save_synced_lyrics_with_downloads_subtitle),
                 )
             }
         }
@@ -1605,6 +1617,36 @@ fun SettingsScreen(
                         )
                     },
                     onClick = { AppSettings.setShowNerdStats(!nerdStats) },
+                )
+            }
+            val pauseVisualsTitle = stringResource(R.string.pause_background_visuals)
+            row(pauseVisualsTitle, "visuals", "battery", "performance", "screen off", "experimental") {
+                SettingsRow(
+                    icon = SfIcons.Performance,
+                    title = pauseVisualsTitle,
+                    subtitle = stringResource(R.string.pause_background_visuals_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = pauseBackgroundVisualsWhenHidden,
+                            onCheckedChange = AppSettings::setPauseBackgroundVisualsWhenHidden,
+                        )
+                    },
+                    onClick = { AppSettings.setPauseBackgroundVisualsWhenHidden(!pauseBackgroundVisualsWhenHidden) },
+                )
+            }
+            val constrainImageCacheTitle = stringResource(R.string.constrain_image_cache_memory)
+            row(constrainImageCacheTitle, "image", "cache", "memory", "ram", "heap") {
+                SettingsRow(
+                    icon = SfIcons.Storage,
+                    title = constrainImageCacheTitle,
+                    subtitle = stringResource(R.string.constrain_image_cache_memory_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = constrainImageCacheMemory,
+                            onCheckedChange = AppSettings::setConstrainImageCacheMemory,
+                        )
+                    },
+                    onClick = { AppSettings.setConstrainImageCacheMemory(!constrainImageCacheMemory) },
                 )
             }
             val appIconTitle = stringResource(R.string.app_icon)

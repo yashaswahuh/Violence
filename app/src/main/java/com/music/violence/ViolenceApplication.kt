@@ -107,6 +107,12 @@ class ViolenceApplication : Application(), SingletonImageLoader.Factory, Configu
         Innertube.appLanguage = { AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag() }
         migrateScriptOnlyAppLocale()
         LyricsTranslation.cacheDir = cacheDir
+        com.music.violence.data.lyrics.OfflineLyricsStorage.baseDirectory = cacheDir.resolve("lyrics")
+        com.music.violence.data.lyrics.OfflineLyricsStorage.registerDirectory(filesDir.resolve("downloads"))
+        com.music.violence.data.lyrics.OfflineLyricsStorage.registerDirectory(
+            java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MUSIC), com.music.violence.download.DownloadStore.FOLDER),
+        )
+        com.music.violence.ui.performance.BackgroundVisualsController.init(this)
         // PlaybackService shares this process, so seeding the cookie here means
         // stream resolution is authenticated from the first play onwards.
         authStore = AuthStore(this)
@@ -263,8 +269,9 @@ class ViolenceApplication : Application(), SingletonImageLoader.Factory, Configu
                 add(OkHttpNetworkFetcherFactory(callFactory = { coilHttpClient }))
             }
             .memoryCache {
+                val maxPercent = if (AppSettings.constrainImageCacheMemory.value) 0.08 else 0.20
                 MemoryCache.Builder()
-                    .maxSizePercent(context, 0.20)
+                    .maxSizePercent(context, maxPercent)
                     .build()
             }
             .diskCache {

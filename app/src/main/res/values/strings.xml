@@ -1036,6 +1036,12 @@
     <string name="export_compatible_downloads">Export compatible downloads</string>
     <string name="sync_downloaded_playlists">Keep playlists updated</string>
     <string name="sync_downloaded_playlists_subtitle">Checks twice a day and downloads songs newly added to your downloaded playlists</string>
+    <string name="save_synced_lyrics_with_downloads">Save synced lyrics with downloads</string>
+    <string name="save_synced_lyrics_with_downloads_subtitle">Saves .lyrics.json alongside downloaded audio files for instant offline sync</string>
+    <string name="pause_background_visuals">Pause background visuals when hidden / screen off</string>
+    <string name="pause_background_visuals_subtitle">Halts Skia animations, canvas video and shaders when the screen is off or app is in background</string>
+    <string name="constrain_image_cache_memory">Constrain image cache memory</string>
+    <string name="constrain_image_cache_memory_subtitle">Downsamples decoded album art strictly to widget dimensions and caps memory allocation</string>
     <string name="playlist_sync_ask_title">New songs in %1$s: %2$d</string>
     <string name="playlist_sync_ask_text">Tap to download</string>
     <string name="playlist_sync_done_title">Added to %1$s: %2$d</string>

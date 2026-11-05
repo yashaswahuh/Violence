@@ -53,7 +53,7 @@ internal object LyricsTag {
      * [toEnhancedLrc][com.music.violence.data.lyrics.toEnhancedLrc] for why
      * they are two fields rather than one.
      */
-    internal class Embeddable(val plain: String, val enhanced: String?)
+    internal class Embeddable(val plain: String, val enhanced: String?, val lines: List<com.music.violence.data.lyrics.LyricLine>? = null)
 
     suspend fun forTrack(track: Song): Embeddable? {
         val sources = if (AppSettings.syncedLyrics.value) {
@@ -121,7 +121,7 @@ internal object LyricsTag {
             "embedding ${found.source.label} lyrics for ${track.videoId}" +
                 if (enhanced != null) " (word-synced)" else "",
         )
-        return Embeddable(plain = lrc, enhanced = enhanced)
+        return Embeddable(plain = lrc, enhanced = enhanced, lines = found.lines)
     }
 
     /**

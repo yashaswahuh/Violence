@@ -47,6 +47,10 @@ fun main(args: Array<String> = emptyArray()) {
         DesktopTrackLog.log("$tag/$level: $message" + (error?.let { " (${it.message})" } ?: ""))
     }
     LyricsTranslation.cacheDir = DesktopMediaCache.directory.toFile()
+    com.music.violence.data.lyrics.OfflineLyricsStorage.baseDirectory = DesktopMediaCache.directory.resolve("lyrics").toFile()
+    com.music.violence.data.lyrics.OfflineLyricsStorage.registerDirectory(
+        java.nio.file.Path.of(System.getProperty("user.home"), "Music", "Violence").toFile(),
+    )
     // The Spotify library both apps share, on the tokens the web player mints in JavaFX.
     SpotifyLibrary.auth = SpotifyLibrary.Auth {
         DesktopSpotifyToken.accessToken()?.let { SpotifyLibrary.Tokens(it, DesktopSpotifyToken.clientToken()) }
@@ -84,6 +88,9 @@ private fun desktopMain() = application {
         if (visible && state.isMinimized) {
             state.isMinimized = false
         }
+    }
+    LaunchedEffect(state.isMinimized, visible) {
+        DesktopWindowVisibility.setOccludedOrMinimized(state.isMinimized || !visible)
     }
     // Hoisted so the player can fill the screen and the caption buttons can maximize — see
     // [DesktopWindowMode]. Fullscreen on Windows is a native borderless window that covers the

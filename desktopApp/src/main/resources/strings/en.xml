@@ -870,4 +870,10 @@
     <string name="listen_together_open_count">Listening together · %1$d</string>
     <string name="miscellaneous_footer">When enabled, closing the app from the recent apps screen will also stop music playback.</string>
     <string name="translate">Translate</string>
+    <string name="save_synced_lyrics_with_downloads">Save synced lyrics with downloads</string>
+    <string name="save_synced_lyrics_with_downloads_subtitle">Save .lyrics.json alongside downloaded audio files for instant offline sync</string>
+    <string name="pause_background_visuals">Pause background visuals when hidden</string>
+    <string name="pause_background_visuals_subtitle">Pause Skia animation clock and canvas video decoders when window is minimized or hidden in tray</string>
+    <string name="constrain_image_cache_memory">Constrain image cache memory</string>
+    <string name="constrain_image_cache_memory_subtitle">Downsample decoded album art to widget dimensions and cap memory allocation</string>
 </resources>

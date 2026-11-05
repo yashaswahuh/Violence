@@ -1796,12 +1796,13 @@ class DesktopPlaybackEngine(
         } else {
             duration - transitionSecondsFor(song) * 1_000L
         }
-        if (startMs - positionMs > ADDON_ARM_LEAD_MS) return
+        val is85Percent = duration > 0 && positionMs >= (duration * 0.85f)
+        if (startMs - positionMs > ADDON_ARM_LEAD_MS && !is85Percent) return
         // Whichever of this thread and a newer [prepareNext] gets there first owns it.
         if (!awaitingArm.compareAndSet(song, null)) return
         DesktopTrackLog.log(
             "arming '${song.title}' ${"%.1f".format((startMs - positionMs).coerceAtLeast(0) / 1_000.0)}s " +
-                "before its transition",
+                "before its transition (predictive 85%: $is85Percent)",
         )
         resolveUpcoming(song, race = true)
     }

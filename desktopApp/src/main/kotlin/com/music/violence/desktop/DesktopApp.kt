@@ -7040,6 +7040,13 @@ private fun DesktopSettingsScreen(
                         }
                     }
                     }
+                    val saveLyricsWithDownloads by DesktopAppearanceSettings.saveSyncedLyricsWithDownloads.collectAsState()
+                    SettingsToggle(
+                        DesktopStrings["save_synced_lyrics_with_downloads", "Save synced lyrics with downloads"],
+                        DesktopStrings["save_synced_lyrics_with_downloads_subtitle", "Save .lyrics.json alongside downloaded audio files for instant offline sync"],
+                        saveLyricsWithDownloads,
+                        DesktopAppearanceSettings::setSaveSyncedLyricsWithDownloads,
+                    )
                 }
             }
             if (section == DesktopSettingsSection.SOURCES) item {
@@ -7106,6 +7113,20 @@ private fun DesktopSettingsScreen(
                         DesktopStrings["show_nerd_stats_subtitle", "Codec, bitrate and sample rate on the player"],
                         showNerdStats,
                         onShowNerdStatsChange,
+                    )
+                    val pauseVisualsWhenHidden by DesktopAppearanceSettings.pauseBackgroundVisualsWhenHidden.collectAsState()
+                    SettingsToggle(
+                        DesktopStrings["pause_background_visuals", "Pause background visuals when hidden"],
+                        DesktopStrings["pause_background_visuals_subtitle", "Pause Skia animation clock and canvas video decoders when window is minimized or hidden in tray"],
+                        pauseVisualsWhenHidden,
+                        DesktopAppearanceSettings::setPauseBackgroundVisualsWhenHidden,
+                    )
+                    val constrainImageCache by DesktopAppearanceSettings.constrainImageCacheMemory.collectAsState()
+                    SettingsToggle(
+                        DesktopStrings["constrain_image_cache_memory", "Constrain image cache memory"],
+                        DesktopStrings["constrain_image_cache_memory_subtitle", "Downsample decoded album art to widget dimensions and cap memory allocation"],
+                        constrainImageCache,
+                        DesktopAppearanceSettings::setConstrainImageCacheMemory,
                     )
                 }
             }

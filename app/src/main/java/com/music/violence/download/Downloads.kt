@@ -405,6 +405,7 @@ object Downloads {
     suspend fun delete(context: Context, videoId: String): Boolean = withContext(Dispatchers.IO) {
         val uri = _saved.value[videoId]?.toUri() ?: return@withContext false
         val deleted = DownloadStore.delete(context, uri)
+        com.music.violence.data.lyrics.OfflineLyricsStorage.remove(videoId)
         forget(videoId)
         deleted
     }
@@ -1105,8 +1106,12 @@ object Downloads {
                 // download it was only meant to decorate.
                 // HLS has no tag container, but its private offline package has
                 // sidecars for exactly the same lyrics and full-resolution cover.
-                if (route.taggable && (route.offlineHls != null || MediaTagger.carriesTags(route.extension))) {
+                val wantLyrics = AppSettings.saveSyncedLyricsWithDownloads.value ||
+                    (route.taggable && (route.offlineHls != null || MediaTagger.carriesTags(route.extension)))
+                if (wantLyrics) {
                     lyrics = async { LyricsTag.forTrack(track) }
+                }
+                if (route.taggable && (route.offlineHls != null || MediaTagger.carriesTags(route.extension))) {
                     artwork = async { MediaTagger.artworkFor(context, track) }
                 }
 
@@ -1148,6 +1153,13 @@ object Downloads {
                             artwork = artwork?.await(),
                         )
                     }
+                    val words = lyrics?.await()
+                    if (words?.lines != null && AppSettings.saveSyncedLyricsWithDownloads.value) {
+                        val sidecar = if (savedUri.scheme == "file") {
+                            savedUri.path?.let { java.io.File(it) }?.parentFile?.let { java.io.File(it, "${track.videoId}.lyrics.json") }
+                        } else null
+                        com.music.violence.data.lyrics.OfflineLyricsStorage.save(track.videoId, words.lines, destinationFile = sidecar)
+                    }
                     remember(song, track, savedUri, route.downloadFormat)
                     DownloadSession.done(id)
                     clear(id)
@@ -1172,6 +1184,12 @@ object Downloads {
                 val artworkUri = MediaTagger.persistArtwork(context, track.thumbnailUrl, cover)
                 val savedUri = destination.commit()
                 pending = null
+                if (words?.lines != null && AppSettings.saveSyncedLyricsWithDownloads.value) {
+                    val sidecar = if (savedUri.scheme == "file") {
+                        savedUri.path?.let { java.io.File(it) }?.parentFile?.let { java.io.File(it, "${track.videoId}.lyrics.json") }
+                    } else null
+                    com.music.violence.data.lyrics.OfflineLyricsStorage.save(track.videoId, words.lines, destinationFile = sidecar)
+                }
                 remember(song, track, savedUri, route.downloadFormat, artworkUri)
                 DownloadSession.done(id)
                 clear(id)

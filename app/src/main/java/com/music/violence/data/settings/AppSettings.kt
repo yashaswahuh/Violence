@@ -250,6 +250,15 @@ object AppSettings {
      */
     val syncDownloadedPlaylists = MutableStateFlow(false)
 
+    /** Save synced lyrics alongside downloads (.lyrics.json) for instant offline lyrics. Default ON. */
+    val saveSyncedLyricsWithDownloads = MutableStateFlow(true)
+
+    /** Pause background visuals (Skia animations / canvas video) when screen is off or app is in background. Default OFF. */
+    val pauseBackgroundVisualsWhenHidden = MutableStateFlow(false)
+
+    /** Downsample decoded artwork and cap heap memory cache in Coil. Default OFF. */
+    val constrainImageCacheMemory = MutableStateFlow(false)
+
     /** Whether the active network charges for data. `null` while offline. */
     val meteredConnection = MutableStateFlow<Boolean?>(null)
 
@@ -929,6 +938,9 @@ object AppSettings {
         wifiOnlyDownloads.value = prefs.getBoolean(KEY_WIFI_ONLY_DOWNLOADS, true)
         exportDownloads.value = prefs.getBoolean(KEY_EXPORT_DOWNLOADS, false)
         syncDownloadedPlaylists.value = prefs.getBoolean(KEY_SYNC_DOWNLOADED_PLAYLISTS, false)
+        saveSyncedLyricsWithDownloads.value = prefs.getBoolean(KEY_SAVE_SYNCED_LYRICS_WITH_DOWNLOADS, true)
+        pauseBackgroundVisualsWhenHidden.value = prefs.getBoolean(KEY_PAUSE_BACKGROUND_VISUALS_WHEN_HIDDEN, false)
+        constrainImageCacheMemory.value = prefs.getBoolean(KEY_CONSTRAIN_IMAGE_CACHE_MEMORY, false)
         crossfadeSeconds.value = prefs.getInt(KEY_CROSSFADE, 0)
         smartFadeEnabled.value = prefs.getBoolean(KEY_SMART_FADE, false)
         automixPerformanceMode.value = runCatching {
@@ -1753,6 +1765,21 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_SYNC_DOWNLOADED_PLAYLISTS, value).apply()
     }
 
+    fun setSaveSyncedLyricsWithDownloads(value: Boolean) {
+        saveSyncedLyricsWithDownloads.value = value
+        prefs.edit().putBoolean(KEY_SAVE_SYNCED_LYRICS_WITH_DOWNLOADS, value).apply()
+    }
+
+    fun setPauseBackgroundVisualsWhenHidden(value: Boolean) {
+        pauseBackgroundVisualsWhenHidden.value = value
+        prefs.edit().putBoolean(KEY_PAUSE_BACKGROUND_VISUALS_WHEN_HIDDEN, value).apply()
+    }
+
+    fun setConstrainImageCacheMemory(value: Boolean) {
+        constrainImageCacheMemory.value = value
+        prefs.edit().putBoolean(KEY_CONSTRAIN_IMAGE_CACHE_MEMORY, value).apply()
+    }
+
     fun setLastfmPrimaryArtistOnly(value: Boolean) {
         lastfmPrimaryArtistOnly.value = value
         prefs.edit().putBoolean(KEY_LASTFM_PRIMARY_ARTIST_ONLY, value).apply()
@@ -2171,6 +2198,9 @@ object AppSettings {
     private const val KEY_WIFI_ONLY_DOWNLOADS = "wifi_only_downloads"
     private const val KEY_EXPORT_DOWNLOADS = "export_downloads"
     private const val KEY_SYNC_DOWNLOADED_PLAYLISTS = "sync_downloaded_playlists"
+    private const val KEY_SAVE_SYNCED_LYRICS_WITH_DOWNLOADS = "save_synced_lyrics_with_downloads"
+    private const val KEY_PAUSE_BACKGROUND_VISUALS_WHEN_HIDDEN = "pause_background_visuals_when_hidden"
+    private const val KEY_CONSTRAIN_IMAGE_CACHE_MEMORY = "constrain_image_cache_memory"
     private const val KEY_CROSSFADE = "crossfade_seconds"
     private const val KEY_SMART_FADE = "smart_fade_enabled"
     private const val KEY_AUTOMIX_PERFORMANCE_MODE = "automix_performance_mode"

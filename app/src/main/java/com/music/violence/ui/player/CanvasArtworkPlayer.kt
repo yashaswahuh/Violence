@@ -43,6 +43,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.annotation.RequiresApi
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -341,8 +342,9 @@ internal fun AndroidCanvasArtworkPlayer(
     // regardless of playback state, so coming back from background always has
     // a surface ready and `onRenderedFirstFrame()` fires naturally.
     val foreground = rememberIsForeground()
-    LaunchedEffect(foreground, pausedForTransition) {
-        val play = foreground && !pausedForTransition
+    val visualsSuspended by com.music.violence.ui.performance.BackgroundVisualsController.isSuspended.collectAsStateWithLifecycle()
+    LaunchedEffect(foreground, pausedForTransition, visualsSuspended) {
+        val play = foreground && !pausedForTransition && !visualsSuspended
         val afterTransition = gate.heldForTransition
         gate.heldForTransition = pausedForTransition
         // Held a moment longer on the way out of a transition, if asked: the

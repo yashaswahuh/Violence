@@ -79,8 +79,9 @@ fun ViolenceBackground() {
     if (!style.showsBackground()) return
     val tokens = LocalViolenceAccent.current
     val foreground = rememberIsForeground()
+    val visualsSuspended by com.music.violence.ui.performance.BackgroundVisualsController.isSuspended.collectAsStateWithLifecycle()
     val playerOpen by ViolenceStyleSong.playerOpen.collectAsStateWithLifecycle()
-    val running = StyleCapabilityRules.backgroundClockMayRun(style, foreground, playerOpen)
+    val running = StyleCapabilityRules.backgroundClockMayRun(style, foreground, playerOpen) && !visualsSuspended
     val time = rememberBackgroundClock(running)
 
     val glow = tokens.glowColor

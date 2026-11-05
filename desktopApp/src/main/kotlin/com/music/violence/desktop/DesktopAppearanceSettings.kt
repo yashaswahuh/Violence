@@ -35,6 +35,9 @@ internal object DesktopAppearanceSettings {
     private val _reduceDynamicBlur = flag(KEY_REDUCE_DYNAMIC_BLUR, false)
     private val _hideVolumeBar = flag(KEY_HIDE_VOLUME_BAR, false)
     private val _ambientBackdrop = flag(KEY_AMBIENT_BACKDROP, false)
+    private val _saveSyncedLyricsWithDownloads = flag(KEY_SAVE_SYNCED_LYRICS_WITH_DOWNLOADS, true)
+    private val _pauseBackgroundVisualsWhenHidden = flag(KEY_PAUSE_BACKGROUND_VISUALS_WHEN_HIDDEN, false)
+    private val _constrainImageCacheMemory = flag(KEY_CONSTRAIN_IMAGE_CACHE_MEMORY, false)
 
     // Violence Style settings
     private val _violenceStyleEnabled = flag(KEY_VIOLENCE_STYLE_ENABLED, false)
@@ -58,6 +61,15 @@ internal object DesktopAppearanceSettings {
     /** Diffuses current artwork colors under the window glass chrome like Apple Music. */
     val ambientBackdrop: StateFlow<Boolean> = _ambientBackdrop
 
+    /** Save synced lyrics alongside downloads (.lyrics.json). Default ON. */
+    val saveSyncedLyricsWithDownloads: StateFlow<Boolean> = _saveSyncedLyricsWithDownloads
+
+    /** Pauses animation clocks and video canvas decoders when window is minimized or closed to tray. Default OFF. */
+    val pauseBackgroundVisualsWhenHidden: StateFlow<Boolean> = _pauseBackgroundVisualsWhenHidden
+
+    /** Downsamples decoded artwork strictly to widget dimensions and caps memory allocation. Default OFF. */
+    val constrainImageCacheMemory: StateFlow<Boolean> = _constrainImageCacheMemory
+
     /** Master toggle for Violence Style (luminous dark skin). Default OFF. */
     val violenceStyleEnabled: StateFlow<Boolean> = _violenceStyleEnabled
     val styleBackground: StateFlow<StyleBackground> = _styleBackground
@@ -72,6 +84,9 @@ internal object DesktopAppearanceSettings {
     fun setReduceDynamicBlur(value: Boolean) = write(KEY_REDUCE_DYNAMIC_BLUR, value, _reduceDynamicBlur)
     fun setHideVolumeBar(value: Boolean) = write(KEY_HIDE_VOLUME_BAR, value, _hideVolumeBar)
     fun setAmbientBackdrop(value: Boolean) = write(KEY_AMBIENT_BACKDROP, value, _ambientBackdrop)
+    fun setSaveSyncedLyricsWithDownloads(value: Boolean) = write(KEY_SAVE_SYNCED_LYRICS_WITH_DOWNLOADS, value, _saveSyncedLyricsWithDownloads)
+    fun setPauseBackgroundVisualsWhenHidden(value: Boolean) = write(KEY_PAUSE_BACKGROUND_VISUALS_WHEN_HIDDEN, value, _pauseBackgroundVisualsWhenHidden)
+    fun setConstrainImageCacheMemory(value: Boolean) = write(KEY_CONSTRAIN_IMAGE_CACHE_MEMORY, value, _constrainImageCacheMemory)
 
     fun setViolenceStyleEnabled(value: Boolean) = write(KEY_VIOLENCE_STYLE_ENABLED, value, _violenceStyleEnabled)
     fun setStyleBackground(value: StyleBackground) = writeEnum(KEY_STYLE_BACKGROUND, value, _styleBackground)
@@ -121,6 +136,9 @@ internal object DesktopAppearanceSettings {
     internal const val KEY_REDUCE_DYNAMIC_BLUR = "reduce_dynamic_blur"
     internal const val KEY_HIDE_VOLUME_BAR = "hide_volume_bar"
     internal const val KEY_AMBIENT_BACKDROP = "ambient_backdrop"
+    internal const val KEY_SAVE_SYNCED_LYRICS_WITH_DOWNLOADS = "save_synced_lyrics_with_downloads"
+    internal const val KEY_PAUSE_BACKGROUND_VISUALS_WHEN_HIDDEN = "pause_background_visuals_when_hidden"
+    internal const val KEY_CONSTRAIN_IMAGE_CACHE_MEMORY = "constrain_image_cache_memory"
 
     internal const val KEY_VIOLENCE_STYLE_ENABLED = "violence_style.enabled"
     internal const val KEY_STYLE_BACKGROUND = "violence_style.background"
