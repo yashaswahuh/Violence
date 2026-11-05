@@ -831,8 +831,9 @@ private fun HeroCard(
                 .padding(start = 16.dp, end = 16.dp, top = 34.dp, bottom = 14.dp),
         ) {
             Text(
-                text = if (violence != null) item.title.uppercase() else item.title,
-                style = violence?.cardTitleCaps ?: MaterialTheme.typography.titleLarge,
+                // Song, album and playlist names keep the body font: the heading font is for headings only.
+                text = item.title,
+                style = MaterialTheme.typography.titleLarge,
                 color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
