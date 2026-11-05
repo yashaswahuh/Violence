@@ -136,13 +136,14 @@ fun AmbientPlayer(np: NowPlaying, ambient: Ambient) {
                 .align(Alignment.Center)
                 .offset(shift.x.dp, shift.y.dp),
         ) {
+            // The V, big: the logo is the centrepiece of the always-on screen.
             Icon(
-                painter = painterResource(if (np.playing) R.drawable.ic_play else R.drawable.ic_pause),
+                painter = painterResource(R.drawable.ic_logo),
                 contentDescription = null,
                 tint = if (ambient.lowBit) Color.White else accent,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(width = h * 0.20f * LOGO_ASPECT, height = h * 0.20f),
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = np.title,
                 style = WearType.display,
@@ -167,6 +168,14 @@ fun AmbientPlayer(np: NowPlaying, ambient: Ambient) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val tnum = WearType.caption.copy(fontFeatureSettings = "tnum")
+                // Play or pause, small: the one thing the V no longer says.
+                Icon(
+                    painter = painterResource(if (np.playing) R.drawable.ic_play else R.drawable.ic_pause),
+                    contentDescription = null,
+                    tint = secondary,
+                    modifier = Modifier.size(11.dp),
+                )
+                Spacer(Modifier.width(5.dp))
                 Text(text = ambientTime(position), style = tnum, color = primary)
                 if (np.durationMs > 0) {
                     Spacer(Modifier.width(4.dp))
@@ -174,17 +183,6 @@ fun AmbientPlayer(np: NowPlaying, ambient: Ambient) {
                 }
             }
         }
-        // The Home page's mark, at the foot of the always-on screen.
-        Icon(
-            painter = painterResource(R.drawable.ic_logo),
-            contentDescription = null,
-            tint = secondary,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(shift.x.dp, shift.y.dp)
-                .padding(bottom = h * 0.085f)
-                .size(width = h * 0.10f * LOGO_ASPECT, height = h * 0.10f),
-        )
     }
 }
 

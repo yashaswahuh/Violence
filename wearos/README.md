@@ -6,7 +6,7 @@ song's own accent colour, a wavy progress line along the bezel that ripples
 while music plays and goes flat on pause, a play button that morphs between a
 circle and a rounded square (hold it to seek), skip, Love where the phone offers
 it, Up Next, shuffle, repeat, the phone's volume on the crown or bezel, an
-outline-only always-on player (ring in the accent colour, title, time), and an
+outline-only always-on player (the V logo big in the accent colour, a ring, title, time), and an
 Output picker covering the phone's outputs and **this watch**. Lists use
 `TransformingLazyColumn` and M3 buttons; the connection screens use `EdgeButton`.
 The blurred cover is made once per track on the watch (`PhoneLink.blurred`, a
