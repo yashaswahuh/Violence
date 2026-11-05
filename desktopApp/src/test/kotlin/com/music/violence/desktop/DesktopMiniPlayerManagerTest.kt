@@ -97,5 +97,19 @@ class DesktopMiniPlayerManagerTest {
         assertTrue(prevCalled)
         assertEquals(42_000L, seekPosition)
     }
+
+    @Test
+    fun testPositionClampingAndSaving() {
+        val initial = DesktopMiniPlayerManager.getInitialPosition(340, 96)
+        assertTrue(initial.x >= 0 || java.awt.GraphicsEnvironment.isHeadless())
+        assertTrue(initial.y >= 0 || java.awt.GraphicsEnvironment.isHeadless())
+
+        DesktopMiniPlayerManager.savePosition(450, 320)
+        val clamped = DesktopMiniPlayerManager.clampToScreen(450, 320, 340, 96)
+        if (!java.awt.GraphicsEnvironment.isHeadless()) {
+            assertTrue(clamped.x >= 0)
+            assertTrue(clamped.y >= 0)
+        }
+    }
 }
 

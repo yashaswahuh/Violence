@@ -6,8 +6,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -35,11 +37,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -59,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
 import com.music.violence.desktop.DesktopArtwork
 import com.music.violence.desktop.DesktopMiniPlayerManager
@@ -66,7 +71,7 @@ import com.music.violence.desktop.DesktopPlatform
 import org.jetbrains.compose.resources.painterResource
 import violence.desktopapp.generated.resources.Res
 import violence.desktopapp.generated.resources.logo
-import kotlin.math.roundToInt
+import java.awt.MouseInfo
 
 private val ViolenceRimRed = Color(0xFFE22D4B)
 private val MiniBackground = Color(0xF2141417)
@@ -81,9 +86,13 @@ private val MiniSecondary = Color(0xFF9E9EA8)
 fun DesktopMiniPlayerWindow(
     onClose: () -> Unit,
 ) {
+    val initialPos = remember {
+        DesktopMiniPlayerManager.getInitialPosition(width = 340, height = 96)
+    }
     val state = rememberWindowState(
         width = 340.dp,
         height = 96.dp,
+        position = WindowPosition(initialPos.x.dp, initialPos.y.dp),
     )
 
     Window(
@@ -99,6 +108,16 @@ fun DesktopMiniPlayerWindow(
     ) {
         val composeWindow = window
 
+        LaunchedEffect(composeWindow) {
+            val clamped = DesktopMiniPlayerManager.clampToScreen(
+                composeWindow.location.x,
+                composeWindow.location.y,
+                composeWindow.width.takeIf { it > 0 } ?: 340,
+                composeWindow.height.takeIf { it > 0 } ?: 96,
+            )
+            composeWindow.setLocation(clamped.x, clamped.y)
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -111,18 +130,16 @@ fun DesktopMiniPlayerWindow(
                         }
                     }
                     false
-                }
-                .pointerInput(Unit) {
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        val currentLoc = composeWindow.location
-                        composeWindow.setLocation(
-                            currentLoc.x + dragAmount.x.roundToInt(),
-                            currentLoc.y + dragAmount.y.roundToInt(),
-                        )
-                    }
                 },
         ) {
+            // Sibling drag handle underneath: non-interactive areas drag the window with zero feedback loop
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .miniPlayerDrag(composeWindow),
+            )
+
+            // Interactive Mini-Player UI
             DesktopMiniPlayerCard(
                 onExpand = { DesktopMiniPlayerManager.exitMiniMode() },
                 onClose = onClose,
@@ -130,6 +147,49 @@ fun DesktopMiniPlayerWindow(
         }
     }
 }
+
+private fun Modifier.miniPlayerDrag(composeWindow: ComposeWindow): Modifier =
+    pointerInput(composeWindow) {
+        var lastPressAt = 0L
+        var lastPressPosition = Offset.Zero
+        awaitEachGesture {
+            val down = awaitFirstDown()
+            val double = down.uptimeMillis - lastPressAt <= viewConfiguration.doubleTapTimeoutMillis &&
+                (down.position - lastPressPosition).getDistance() <= viewConfiguration.touchSlop
+            if (double) {
+                lastPressAt = 0L
+                down.consume()
+                DesktopMiniPlayerManager.exitMiniMode()
+                return@awaitEachGesture
+            }
+            lastPressAt = down.uptimeMillis
+            lastPressPosition = down.position
+
+            val windowAtStart = composeWindow.location
+            val pointerAtStart = MouseInfo.getPointerInfo()?.location ?: return@awaitEachGesture
+            var lastClamped = windowAtStart
+
+            drag(down.id) { change ->
+                change.consume()
+                val pointer = MouseInfo.getPointerInfo()?.location ?: return@drag
+                val rawX = windowAtStart.x + pointer.x - pointerAtStart.x
+                val rawY = windowAtStart.y + pointer.y - pointerAtStart.y
+
+                val clamped = DesktopMiniPlayerManager.clampToScreen(
+                    rawX,
+                    rawY,
+                    composeWindow.width.takeIf { it > 0 } ?: 340,
+                    composeWindow.height.takeIf { it > 0 } ?: 96,
+                    pointer,
+                )
+                lastClamped = clamped
+                composeWindow.setLocation(clamped.x, clamped.y)
+            }
+
+            // Save last clamped position on drag release
+            DesktopMiniPlayerManager.savePosition(lastClamped.x, lastClamped.y)
+        }
+    }
 
 @Composable
 fun DesktopMiniPlayerCard(

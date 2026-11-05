@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 internal object DesktopMiniPlayerManager {
 
     private const val KEY_MINI_MODE = "pip_mini_player_mode"
+    private const val KEY_POS_X = "pip_mini_player_x"
+    private const val KEY_POS_Y = "pip_mini_player_y"
     private val persistence by lazy { DesktopPersistence() }
 
     private val _isMiniMode = MutableStateFlow(false)
@@ -73,5 +75,95 @@ internal object DesktopMiniPlayerManager {
         }
         val line = lines.lastOrNull { it.timeMs <= posMs && !it.isGap }
         activeLyricText.value = line?.text?.takeIf { it.isNotBlank() }
+    }
+
+    fun getInitialPosition(width: Int = 340, height: Int = 96): java.awt.Point {
+        if (java.awt.GraphicsEnvironment.isHeadless()) {
+            return java.awt.Point(100, 100)
+        }
+        return runCatching {
+            val savedX = persistence.int(KEY_POS_X, Int.MIN_VALUE)
+            val savedY = persistence.int(KEY_POS_Y, Int.MIN_VALUE)
+
+            val ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+            val devices = ge.screenDevices
+
+            if (savedX != Int.MIN_VALUE && savedY != Int.MIN_VALUE && devices.isNotEmpty()) {
+                val windowRect = java.awt.Rectangle(savedX, savedY, width, height)
+                val intersectsAny = devices.any { it.defaultConfiguration.bounds.intersects(windowRect) }
+                if (intersectsAny) {
+                    return@runCatching clampToScreen(savedX, savedY, width, height)
+                }
+            }
+
+            // Default: bottom-right corner of primary screen above taskbar
+            val gc = ge.defaultScreenDevice.defaultConfiguration
+            val bounds = gc.bounds
+            val insets = runCatching { java.awt.Toolkit.getDefaultToolkit().getScreenInsets(gc) }.getOrNull()
+                ?: java.awt.Insets(0, 0, 0, 0)
+
+            val usableX = bounds.x + insets.left
+            val usableY = bounds.y + insets.top
+            val usableWidth = bounds.width - insets.left - insets.right
+            val usableHeight = bounds.height - insets.top - insets.bottom
+
+            val margin = 24
+            val defaultX = (usableX + usableWidth - width - margin).coerceAtLeast(usableX)
+            val defaultY = (usableY + usableHeight - height - margin).coerceAtLeast(usableY)
+
+            java.awt.Point(defaultX, defaultY)
+        }.getOrDefault(java.awt.Point(100, 100))
+    }
+
+    fun clampToScreen(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        pointer: java.awt.Point? = null,
+    ): java.awt.Point {
+        if (java.awt.GraphicsEnvironment.isHeadless()) {
+            return java.awt.Point(x, y)
+        }
+        return runCatching {
+            val ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+            val devices = ge.screenDevices
+            if (devices.isEmpty()) return@runCatching java.awt.Point(x, y)
+
+            val pointerDevice = if (pointer != null) {
+                devices.firstOrNull { it.defaultConfiguration.bounds.contains(pointer) }
+            } else null
+
+            val windowRect = java.awt.Rectangle(x, y, width.coerceAtLeast(1), height.coerceAtLeast(1))
+            val intersectDevice = devices.firstOrNull {
+                it.defaultConfiguration.bounds.intersects(windowRect)
+            }
+
+            val targetDevice = pointerDevice ?: intersectDevice ?: ge.defaultScreenDevice
+            val gc = targetDevice.defaultConfiguration
+            val bounds = gc.bounds
+            val insets = runCatching { java.awt.Toolkit.getDefaultToolkit().getScreenInsets(gc) }.getOrNull()
+                ?: java.awt.Insets(0, 0, 0, 0)
+
+            val usableX = bounds.x + insets.left
+            val usableY = bounds.y + insets.top
+            val usableWidth = (bounds.width - insets.left - insets.right).coerceAtLeast(width)
+            val usableHeight = (bounds.height - insets.top - insets.bottom).coerceAtLeast(height)
+
+            val minX = usableX
+            val maxX = usableX + usableWidth - width
+            val minY = usableY
+            val maxY = usableY + usableHeight - height
+
+            val clampedX = if (maxX >= minX) x.coerceIn(minX, maxX) else minX
+            val clampedY = if (maxY >= minY) y.coerceIn(minY, maxY) else minY
+
+            java.awt.Point(clampedX, clampedY)
+        }.getOrDefault(java.awt.Point(x, y))
+    }
+
+    fun savePosition(x: Int, y: Int) {
+        persistence.saveInt(KEY_POS_X, x)
+        persistence.saveInt(KEY_POS_Y, y)
     }
 }
