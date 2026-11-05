@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.CircularProgressIndicator
+import androidx.wear.compose.material3.EdgeButton
+import androidx.wear.compose.material3.EdgeButtonSize
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
@@ -97,7 +99,7 @@ private fun PlayerRoute(link: PhoneLink, openQueue: () -> Unit, openMore: () -> 
     val state by link.link.collectAsStateWithLifecycle()
     val heard by link.heard.collectAsStateWithLifecycle()
     val np by link.nowPlaying.collectAsStateWithLifecycle()
-    val artwork by link.artwork.collectAsStateWithLifecycle()
+    val artworkBlur by link.artworkBlur.collectAsStateWithLifecycle()
     val volume by link.volume.collectAsStateWithLifecycle()
     val actions = remember(link) {
         PlayerActions(
@@ -118,7 +120,7 @@ private fun PlayerRoute(link: PhoneLink, openQueue: () -> Unit, openMore: () -> 
             // The last state the phone sent is still the best thing to show
             // while it is being asked again; only "no phone at all" replaces it.
             state == Link.NoPhone -> NoPhone(onRetry = link::retry)
-            playing != null -> NowPlayingScreen(np = playing, artwork = artwork, volume = volume, actions = actions)
+            playing != null -> NowPlayingScreen(np = playing, artworkBlur = artworkBlur, volume = volume, actions = actions)
             !heard -> Connecting()
             else -> NothingPlaying(onResume = link::togglePlay)
         }
@@ -158,16 +160,20 @@ private fun NothingPlaying(onResume: () -> Unit) {
     )
 }
 
+/**
+ * Connection and empty states. The one action is an Expressive EdgeButton: the
+ * wide button that hugs the bottom of the round screen.
+ */
 @Composable
 private fun Message(title: String, body: String, action: String, onAction: () -> Unit, mesh: Boolean) {
-    Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (mesh) MeshBackground(emptyList())
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 26.dp),
+                .fillMaxSize()
+                .padding(start = 26.dp, end = 26.dp, top = 22.dp, bottom = 58.dp),
         ) {
             if (!mesh) {
                 Icon(
@@ -176,33 +182,25 @@ private fun Message(title: String, body: String, action: String, onAction: () ->
                     tint = VoltageText,
                     modifier = Modifier.size(26.dp),
                 )
-                Spacer(Modifier.height(6.dp))
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.ic_logo),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(width = 34.dp, height = 22.dp),
+                )
             }
-            Text(title, style = WearType.title, color = Color.White, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(6.dp))
+            Text(title, style = WearType.header, color = Color.White, textAlign = TextAlign.Center)
             Spacer(Modifier.height(4.dp))
             Text(body, style = WearType.rowSub, color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
-            Spacer(Modifier.height(12.dp))
-            Pill(text = action, onClick = onAction)
         }
-    }
-}
-
-/** The primary button: Voltage fill, white label, fully rounded. */
-@Composable
-private fun Pill(text: String, onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    Box(
-        Modifier
-            .graphicsLayer {
-                scaleX = if (pressed) 0.95f else 1f
-                scaleY = if (pressed) 0.95f else 1f
-            }
-            .clip(CircleShape)
-            .background(Voltage)
-            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 22.dp, vertical = 9.dp),
-    ) {
-        Text(text, style = WearType.button, color = Color.White)
+        EdgeButton(
+            onClick = onAction,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            buttonSize = EdgeButtonSize.Medium,
+        ) {
+            Text(action, style = WearType.button)
+        }
     }
 }

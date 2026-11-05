@@ -1,10 +1,17 @@
 # Violence for Wear OS
 
-A watch remote for the Violence phone app: now playing over the player's mesh
-backdrop, play/pause on the cover with a progress ring (hold it to seek), skip,
-Love where the phone offers it, Up Next, shuffle, repeat, the phone's volume on
-the crown or bezel, an always-on player, and an Output picker covering the
-phone's outputs and **this watch**.
+A watch remote for the Violence phone app, in Material 3 Expressive: now
+playing over a blurred copy of the cover that fills the screen, controls in the
+song's own accent colour, a wavy progress line along the bezel that ripples
+while music plays and goes flat on pause, a play button that morphs between a
+circle and a rounded square (hold it to seek), skip, Love where the phone offers
+it, Up Next, shuffle, repeat, the phone's volume on the crown or bezel, an
+outline-only always-on player (ring in the accent colour, title, time), and an
+Output picker covering the phone's outputs and **this watch**. Lists use
+`TransformingLazyColumn` and M3 buttons; the connection screens use `EdgeButton`.
+The blurred cover is made once per track on the watch (`PhoneLink.blurred`, a
+64 px box blur drawn scaled up), so it needs no GPU blur and works on every
+Wear OS version this app supports.
 
 The watch is never a second player with a queue of its own. As the speaker it
 is a receiver, exactly like a Cast device: the phone keeps the queue (paused)

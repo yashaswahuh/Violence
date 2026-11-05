@@ -1,6 +1,7 @@
 package com.music.violence.wear.data
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
@@ -65,6 +66,14 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) :
 
     private val _artwork = MutableStateFlow<ImageBitmap?>(null)
     val artwork: StateFlow<ImageBitmap?> = _artwork.asStateFlow()
+
+    /**
+     * The same cover, shrunk and blurred, for the player's backdrop. Made once
+     * per cover on a background thread, so drawing it costs nothing extra and
+     * it works on every Wear OS version (no GPU blur needed).
+     */
+    private val _artworkBlur = MutableStateFlow<ImageBitmap?>(null)
+    val artworkBlur: StateFlow<ImageBitmap?> = _artworkBlur.asStateFlow()
 
     private val _volume = MutableStateFlow<Volume?>(null)
     val volume: StateFlow<Volume?> = _volume.asStateFlow()
@@ -339,11 +348,17 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) :
         val asset = map.getAsset(P.KEY_ART)
         if (asset == null) {
             _artwork.value = null
+            _artworkBlur.value = null
             return
         }
         artJob = scope.launch {
-            val bitmap = decode(asset)
-            if (artId == id) _artwork.value = bitmap
+            val raw = decodeBitmap(asset)
+            val sharp = raw?.let { withContext(Dispatchers.IO) { it.prepareToDraw(); it.asImageBitmap() } }
+            val soft = raw?.let { withContext(Dispatchers.Default) { blurred(it) } }
+            if (artId == id) {
+                _artwork.value = sharp
+                _artworkBlur.value = soft
+            }
         }
     }
 
@@ -388,9 +403,13 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) :
     }
 
     private suspend fun decode(asset: Asset): ImageBitmap? = withContext(Dispatchers.IO) {
+        decodeBitmap(asset)?.also { it.prepareToDraw() }?.asImageBitmap()
+    }
+
+    private suspend fun decodeBitmap(asset: Asset): Bitmap? = withContext(Dispatchers.IO) {
         runCatching {
             dataClient.getFdForAsset(asset).await().inputStream.use { stream ->
-                BitmapFactory.decodeStream(stream)?.also { it.prepareToDraw() }?.asImageBitmap()
+                BitmapFactory.decodeStream(stream)
             }
         }.getOrNull()
     }
@@ -405,5 +424,52 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) :
         const val REPEAT_OFF = 0
         const val REPEAT_ONE = 1
         const val REPEAT_ALL = 2
+    }
+}
+
+private const val BLUR_SIDE = 64
+private const val BLUR_RADIUS = 3
+
+/**
+ * A blur that needs no GPU: shrink the cover to a tiny bitmap, smooth it with
+ * two box-blur passes, and let the Image scale it back up (bilinear) when it
+ * is drawn. Runs once per cover, off the main thread.
+ */
+private fun blurred(src: Bitmap): ImageBitmap {
+    val side = BLUR_SIDE
+    val small = Bitmap.createScaledBitmap(src, side, side, true).copy(Bitmap.Config.ARGB_8888, true)
+    val px = IntArray(side * side)
+    small.getPixels(px, 0, side, 0, 0, side, side)
+    repeat(2) {
+        boxBlur(px, side, horizontal = true)
+        boxBlur(px, side, horizontal = false)
+    }
+    small.setPixels(px, 0, side, 0, 0, side, side)
+    return small.asImageBitmap()
+}
+
+private fun boxBlur(px: IntArray, side: Int, horizontal: Boolean) {
+    val out = IntArray(side)
+    for (line in 0 until side) {
+        for (i in 0 until side) {
+            var a = 0
+            var r = 0
+            var g = 0
+            var b = 0
+            var n = 0
+            for (k in -BLUR_RADIUS..BLUR_RADIUS) {
+                val j = (i + k).coerceIn(0, side - 1)
+                val c = if (horizontal) px[line * side + j] else px[j * side + line]
+                a += c ushr 24
+                r += (c shr 16) and 0xFF
+                g += (c shr 8) and 0xFF
+                b += c and 0xFF
+                n++
+            }
+            out[i] = ((a / n) shl 24) or ((r / n) shl 16) or ((g / n) shl 8) or (b / n)
+        }
+        for (i in 0 until side) {
+            if (horizontal) px[line * side + i] = out[i] else px[i * side + line] = out[i]
+        }
     }
 }

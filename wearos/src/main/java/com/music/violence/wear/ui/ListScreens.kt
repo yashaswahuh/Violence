@@ -3,53 +3,59 @@ package com.music.violence.wear.ui
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope
 import androidx.wear.compose.foundation.lazy.items
-import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
+import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.ButtonColors
+import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.lazy.TransformationSpec
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
+import androidx.wear.compose.material3.lazy.transformedHeight
 import com.music.violence.wear.R
 import com.music.violence.wear.data.NowPlaying
-import com.music.violence.wear.data.PhoneOutput
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.platform.LocalContext
 import com.music.violence.wear.data.PhoneLink
+import com.music.violence.wear.data.PhoneOutput
 import com.music.violence.wear.data.Queue
 import com.music.violence.wear.data.QueueRow
+
+/*
+ * The list screens are Material 3 Expressive's TransformingLazyColumn: rows
+ * shrink, fade and morph as they near the curved edge of the screen, and each
+ * row is a real M3 Button with a label, a secondary label and an icon. The
+ * playing row, and any toggle that is on, takes the Voltage fill.
+ */
+
+/** The fill for a row that is "on": Voltage, white label. Everything else is a quiet tonal row. */
+@Composable
+private fun rowColors(on: Boolean): ButtonColors =
+    if (on) ButtonDefaults.buttonColors() else ButtonDefaults.filledTonalButtonColors()
 
 /**
  * Up Next. Text first, thumbnails a beat later — see PhoneLink.applyQueue —
@@ -64,25 +70,26 @@ fun QueueScreen(
     onPlay: (Int) -> Unit,
 ) {
     LaunchedEffect(playingId) { onRequest() }
-    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
+    val state = rememberTransformingLazyColumnState()
+    val spec = rememberTransformationSpec()
     val live = queue?.takeIf { playingId == null || it.mediaId == playingId } ?: queue
 
     ScreenScaffold(scrollState = state) { padding ->
-        ScalingLazyColumn(
+        TransformingLazyColumn(
             state = state,
             contentPadding = padding,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.background(Color.Black),
         ) {
-            item(key = "header") { Header(stringResource(R.string.up_next)) }
+            item(key = "header") { Header(stringResource(R.string.up_next), spec) }
             when {
                 live == null -> item(key = "loading") { Hint(stringResource(R.string.loading)) }
                 live.rows.isEmpty() -> item(key = "empty") { Hint(stringResource(R.string.queue_empty)) }
                 else -> items(live.rows, key = { it.index }) { row ->
-                    QueueCell(
+                    QueueButton(
                         row = row,
                         isCurrent = row.index == live.currentIndex,
                         isPast = row.index < live.currentIndex,
+                        spec = spec,
                         onClick = { onPlay(row.index) },
                     )
                 }
@@ -92,83 +99,81 @@ fun QueueScreen(
 }
 
 @Composable
-private fun QueueCell(row: QueueRow, isCurrent: Boolean, isPast: Boolean, onClick: () -> Unit) {
-    Cell(onClick = onClick, dimmed = isPast, highlighted = isCurrent) {
-        Box(
-            Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(7.dp))
-                .background(Color.White.copy(alpha = 0.10f)),
-        ) {
-            row.art?.let {
-                Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(34.dp))
+private fun TransformingLazyColumnItemScope.QueueButton(
+    row: QueueRow,
+    isCurrent: Boolean,
+    isPast: Boolean,
+    spec: TransformationSpec,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .transformedHeight(this, spec)
+            .alpha(if (isPast) 0.55f else 1f),
+        transformation = SurfaceTransformation(spec),
+        colors = rowColors(isCurrent),
+        icon = {
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White.copy(alpha = 0.10f)),
+            ) {
+                row.art?.let {
+                    Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(34.dp))
+                }
             }
-        }
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f)) {
-            if (isCurrent) {
-                Text(
-                    text = stringResource(R.string.playing_now).uppercase(),
-                    style = WearType.caption,
-                    color = VoltageText,
-                    maxLines = 1,
-                )
-            }
-            Text(
-                text = row.title,
-                style = WearType.row,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = row.artist,
-                style = WearType.rowSub,
-                color = Secondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
+        },
+        secondaryLabel = {
+            Text(text = row.artist, maxLines = 1, overflow = TextOverflow.Ellipsis, style = WearType.rowSub)
+        },
+        label = {
+            Text(text = row.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = WearType.row)
+        },
+    )
 }
 
 /** Shuffle, repeat and love, with the state each is in on the phone. */
 @Composable
 fun MoreScreen(np: NowPlaying?, link: PhoneLink, onOpenOutput: () -> Unit) {
-    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
+    val state = rememberTransformingLazyColumnState()
+    val spec = rememberTransformationSpec()
     val onWatch by link.watchSpeaker.collectAsStateWithLifecycle()
     ScreenScaffold(scrollState = state) { padding ->
-        ScalingLazyColumn(
+        TransformingLazyColumn(
             state = state,
             contentPadding = padding,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.background(Color.Black),
         ) {
-            item(key = "header") { Header(stringResource(R.string.more)) }
+            item(key = "header") { Header(stringResource(R.string.more), spec) }
             item(key = "output") {
-                ToggleCell(
+                ToggleRow(
                     icon = if (onWatch) R.drawable.ic_watch else R.drawable.ic_phone,
                     label = stringResource(R.string.output),
                     value = stringResource(if (onWatch) R.string.this_watch else R.string.on_phone_output),
-                    active = false,
+                    on = false,
+                    spec = spec,
                     onClick = onOpenOutput,
                 )
             }
             if (np == null) {
                 item(key = "none") { Hint(stringResource(R.string.nothing_playing)) }
-                return@ScalingLazyColumn
+                return@TransformingLazyColumn
             }
             item(key = "shuffle") {
-                ToggleCell(
+                ToggleRow(
                     icon = R.drawable.ic_shuffle,
                     label = stringResource(R.string.shuffle),
                     value = stringResource(if (np.shuffle) R.string.on else R.string.off),
-                    active = np.shuffle,
+                    on = np.shuffle,
+                    spec = spec,
                     onClick = link::toggleShuffle,
                 )
             }
             item(key = "repeat") {
-                ToggleCell(
+                ToggleRow(
                     icon = R.drawable.ic_repeat,
                     label = stringResource(R.string.repeat),
                     value = stringResource(
@@ -178,18 +183,24 @@ fun MoreScreen(np: NowPlaying?, link: PhoneLink, onOpenOutput: () -> Unit) {
                             else -> R.string.repeat_off
                         },
                     ),
-                    active = np.repeatMode != PhoneLink.REPEAT_OFF,
-                    badge = if (np.repeatMode == PhoneLink.REPEAT_ONE) "1" else null,
+                    on = np.repeatMode != PhoneLink.REPEAT_OFF,
+                    spec = spec,
                     onClick = link::cycleRepeat,
                 )
             }
             if (np.canLike) item(key = "love") {
-                ToggleCell(
+                ToggleRow(
                     icon = if (np.liked) R.drawable.ic_heart_filled else R.drawable.ic_heart,
                     label = stringResource(if (np.liked) R.string.loved else R.string.love),
                     value = null,
-                    active = np.liked,
-                    activeTint = Ember,
+                    on = np.liked,
+                    spec = spec,
+                    // Love is Ember, not Voltage.
+                    colors = if (np.liked) {
+                        ButtonDefaults.buttonColors(containerColor = Ember, contentColor = Color(0xFF14101F))
+                    } else {
+                        null
+                    },
                     onClick = link::toggleLike,
                 )
             }
@@ -197,112 +208,37 @@ fun MoreScreen(np: NowPlaying?, link: PhoneLink, onOpenOutput: () -> Unit) {
     }
 }
 
+/** One row of the More list: an icon, a label and, where there is one, its current value. */
 @Composable
-private fun ToggleCell(
+private fun TransformingLazyColumnItemScope.ToggleRow(
     @DrawableRes icon: Int,
     label: String,
     value: String?,
-    active: Boolean,
+    on: Boolean,
+    spec: TransformationSpec,
     onClick: () -> Unit,
-    activeTint: Color? = null,
-    badge: String? = null,
+    colors: ButtonColors? = null,
 ) {
-    Cell(onClick = onClick) {
-        // On: a Voltage disc with a white glyph; off: a quiet grey one.
-        val disc = when {
-            !active -> Color.White.copy(alpha = 0.12f)
-            activeTint != null -> activeTint.copy(alpha = 0.20f)
-            else -> Voltage
-        }
-        val glyph = when {
-            !active -> Color.White
-            activeTint != null -> activeTint
-            else -> Color.White
-        }
-        Box(
-            Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(disc),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(painterResource(icon), contentDescription = null, tint = glyph, modifier = Modifier.size(18.dp))
-            if (badge != null) {
-                Text(
-                    text = badge,
-                    style = WearType.caption.copy(fontSize = WearType.caption.fontSize * 0.8f),
-                    color = glyph,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
-        }
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = label,
-            style = WearType.row,
-            color = Color.White,
-            maxLines = 1,
-            modifier = Modifier.weight(1f),
-        )
-        if (value != null) {
-            Text(text = value, style = WearType.rowSub, color = Secondary, maxLines = 1)
-        }
-    }
-}
-
-/** A grouped cell, rounded for a round screen, with a hairline edge. The playing row is Voltage-tinted. */
-@Composable
-private fun Cell(
-    onClick: () -> Unit,
-    dimmed: Boolean = false,
-    highlighted: Boolean = false,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val shape = RoundedCornerShape(22.dp)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer { alpha = if (dimmed) 0.5f else 1f }
-            .clip(shape)
-            .background(
-                when {
-                    pressed -> CellPressed
-                    highlighted -> Voltage.copy(alpha = 0.26f)
-                    else -> Cell
-                },
-            )
-            .border(1.dp, if (highlighted) Voltage.copy(alpha = 0.7f) else CellEdge, shape)
-            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
-            .padding(PaddingValues(horizontal = 12.dp, vertical = 9.dp)),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+        transformation = SurfaceTransformation(spec),
+        colors = colors ?: rowColors(on),
+        icon = { Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(20.dp)) },
+        secondaryLabel = value?.let { v ->
+            { Text(text = v, maxLines = 1, style = WearType.rowSub) }
+        },
+        label = { Text(text = label, maxLines = 1, style = WearType.row) },
     )
 }
 
 @Composable
-private fun Header(text: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 6.dp),
+private fun TransformingLazyColumnItemScope.Header(text: String, spec: TransformationSpec) {
+    ListHeader(
+        modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+        transformation = SurfaceTransformation(spec),
     ) {
-        Text(
-            text = text,
-            style = WearType.header,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(3.dp))
-        Box(
-            Modifier
-                .width(18.dp)
-                .height(3.dp)
-                .clip(CircleShape)
-                .background(Voltage),
-        )
+        Text(text = text, style = WearType.header, textAlign = TextAlign.Center)
     }
 }
 
@@ -330,21 +266,22 @@ fun OutputScreen(link: PhoneLink, onDone: () -> Unit) {
     val outputs by link.outputs.collectAsStateWithLifecycle()
     val onWatch by link.watchSpeaker.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
+    val state = rememberTransformingLazyColumnState()
+    val spec = rememberTransformationSpec()
     ScreenScaffold(scrollState = state) { padding ->
-        ScalingLazyColumn(
+        TransformingLazyColumn(
             state = state,
             contentPadding = padding,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.background(Color.Black),
         ) {
-            item(key = "header") { Header(stringResource(R.string.output)) }
+            item(key = "header") { Header(stringResource(R.string.output), spec) }
             item(key = "watch") {
-                OutputCell(
+                OutputRow(
                     icon = R.drawable.ic_watch,
                     label = stringResource(R.string.this_watch),
                     detail = stringResource(R.string.watch_speaker),
                     selected = onWatch,
+                    spec = spec,
                     onClick = {
                         link.playOnWatch(context)
                         onDone()
@@ -356,7 +293,7 @@ fun OutputScreen(link: PhoneLink, onDone: () -> Unit) {
                 item(key = "loading") { Hint(stringResource(R.string.loading)) }
             } else {
                 items(list, key = { "out-${it.id}" }) { output ->
-                    OutputCell(
+                    OutputRow(
                         icon = when (output.kind) {
                             "PHONE" -> R.drawable.ic_speaker
                             "WIRED", "BLUETOOTH", "USB" -> R.drawable.ic_headphones
@@ -365,6 +302,7 @@ fun OutputScreen(link: PhoneLink, onDone: () -> Unit) {
                         label = outputLabel(output),
                         detail = stringResource(R.string.on_phone_output),
                         selected = output.active && !onWatch,
+                        spec = spec,
                         onClick = {
                             link.playOnPhone(output)
                             onDone()
@@ -388,40 +326,23 @@ private fun outputLabel(output: PhoneOutput): String = output.name.takeIf(String
 )
 
 @Composable
-private fun OutputCell(
+private fun TransformingLazyColumnItemScope.OutputRow(
     @DrawableRes icon: Int,
     label: String,
     detail: String,
     selected: Boolean,
+    spec: TransformationSpec,
     onClick: () -> Unit,
 ) {
-    Cell(onClick = onClick) {
-        Box(
-            Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(if (selected) Voltage else Color.White.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painterResource(icon),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f)) {
-            Text(label, style = WearType.row, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(detail, style = WearType.rowSub, color = Secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        if (selected) {
-            Icon(
-                painterResource(R.drawable.ic_check),
-                contentDescription = null,
-                tint = VoltageText,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-    }
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+        transformation = SurfaceTransformation(spec),
+        colors = rowColors(selected),
+        icon = { Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(20.dp)) },
+        secondaryLabel = {
+            Text(text = detail, maxLines = 1, overflow = TextOverflow.Ellipsis, style = WearType.rowSub)
+        },
+        label = { Text(text = label, maxLines = 1, overflow = TextOverflow.Ellipsis, style = WearType.row) },
+    )
 }
