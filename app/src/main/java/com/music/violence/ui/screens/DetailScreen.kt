@@ -530,7 +530,9 @@ fun DetailScreen(
             // release's sleeve sits framed on one flat colour with nothing to
             // dissolve, so it takes the same [ArtworkPalette.background] the
             // bars at either end of the screen are already fading into.
-            val pageColor = if (isArtist) palette.wash else palette.background
+            // A full-screen cover fades into the colour of its own foot, so the
+            // list below carries the cover's tint like an artist page does.
+            val pageColor = if (isArtist || (fullCoverPages && page.thumbnailUrl != null)) palette.wash else palette.background
             BoxWithConstraints(Modifier.fillMaxSize().background(pageColor).violenceDetailGlow()) {
                 // Measured rather than read off the window. The player runs
                 // full-screen at every window size, so this page's own width in
@@ -545,7 +547,7 @@ fun DetailScreen(
                 // Experimental: an album or playlist with a cover gets the player's
                 // full-width, square artwork instead of the framed sleeve.
                 val fullCover = !isArtist && fullCoverPages && page.thumbnailUrl != null
-                val coverHeight = maxWidth.coerceAtMost(maxHeight * 0.6f)
+                val coverHeight = (maxWidth * 1.2f).coerceAtMost(maxHeight * 0.62f)
                 // A folder's grid view: the same column count the Library's
                 // "Show all" grids reach at this width.
                 val gridColumns = libraryGrid(maxWidth - PAGE_GUTTER * 2).columns
