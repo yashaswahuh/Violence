@@ -4,7 +4,6 @@ import com.music.violence.ui.violencestyle.violenceGlassRim
 import com.music.violence.ui.violencestyle.violenceButtonColor
 import com.music.violence.ui.violencestyle.violencePanelSolid
 import com.music.violence.ui.violencestyle.violencePanelTint
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.animation.core.animateFloatAsState
@@ -33,7 +32,6 @@ import com.music.violence.ui.components.backdrop.backdrops.SnapshotBackdrop
 import com.music.violence.ui.components.backdrop.drawBackdrop
 import com.music.violence.ui.components.backdrop.effects.blur
 import com.music.violence.ui.components.backdrop.effects.colorControls
-import com.music.violence.ui.components.backdrop.effects.lens
 import com.music.violence.ui.components.backdrop.highlight.Highlight
 import com.music.violence.ui.components.backdrop.shadow.Shadow
 
@@ -72,8 +70,6 @@ val LocalAppStill = staticCompositionLocalOf<AppStill?> { null }
 /** Same pipeline as the bars, tuned for panels: a lot of surface, so a wide bevel and more body. */
 private const val PANEL_SCALE = 0.33f
 private const val PANEL_BLUR_DP = 18f
-private const val PANEL_LENS_HEIGHT_DP = 26f
-private const val PANEL_LENS_AMOUNT_DP = 40f
 
 /** The scrim behind a dialog or sheet darkens the page; the glass sits above it, so it is dimmed too. */
 private const val SCRIM_ALPHA = 0.30f
@@ -109,28 +105,19 @@ private fun rememberPanelGlass(shape: CornerBasedShape): Modifier? {
     )
     val density = LocalDensity.current
     val blurPx = with(density) { PANEL_BLUR_DP.dp.toPx() } * PANEL_SCALE
-    val lensHeightPx = with(density) { PANEL_LENS_HEIGHT_DP.dp.toPx() } * PANEL_SCALE
-    val lensAmountPx = with(density) { PANEL_LENS_AMOUNT_DP.dp.toPx() } * PANEL_SCALE
     // The tint's alpha is read where it is drawn (a state read inside the draw lambda), so the
     // fade from the near-solid opening frame to the glass re-draws without rebuilding the chain.
     val tint = violencePanelTint() ?: panelTint(dark)
     val alphaState = rememberAlphaHolder()
     alphaState.value = tintAlpha
-    return remember(still, shape, blurPx, lensHeightPx, lensAmountPx, tint) {
+    return remember(still, shape, blurPx, tint) {
         Modifier.drawBackdrop(
             backdrop = still.backdrop,
             shape = { shape },
             effects = {
                 colorControls(saturation = 1.7f)
                 blur(blurPx)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    lens(
-                        refractionHeight = lensHeightPx,
-                        refractionAmount = lensAmountPx,
-                        depthEffect = true,
-                        chromaticAberration = true,
-                    )
-                }
+                // No lens: the refraction bent the page into a curved blob near the edges; the panel is blur and tint only.
             },
             highlight = { Highlight.Default },
             shadow = { Shadow.Default },
@@ -206,24 +193,14 @@ fun Modifier.snapshotGlassDisc(
     val ready = backdrop.hasStill
     val density = LocalDensity.current
     val blurPx = with(density) { DISC_BLUR_DP.dp.toPx() } * DISC_SCALE
-    val lensHeightPx = with(density) { DISC_LENS_HEIGHT_DP.dp.toPx() } * DISC_SCALE
-    val lensAmountPx = with(density) { DISC_LENS_AMOUNT_DP.dp.toPx() } * DISC_SCALE
     val tint = if (ready) Color(0xFF121214).copy(alpha = 0.22f) else fallback
-    val glass = remember(backdrop, shape, blurPx, lensHeightPx, lensAmountPx, tint) {
+    val glass = remember(backdrop, shape, blurPx, tint) {
         Modifier.drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
             effects = {
                 colorControls(saturation = 1.6f)
                 blur(blurPx)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    lens(
-                        refractionHeight = lensHeightPx,
-                        refractionAmount = lensAmountPx,
-                        depthEffect = true,
-                        chromaticAberration = false,
-                    )
-                }
             },
             highlight = null,
             shadow = null,
@@ -236,5 +213,3 @@ fun Modifier.snapshotGlassDisc(
 
 private const val DISC_SCALE = 0.5f
 private const val DISC_BLUR_DP = 6f
-private const val DISC_LENS_HEIGHT_DP = 9f
-private const val DISC_LENS_AMOUNT_DP = 12f
