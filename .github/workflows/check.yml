@@ -12,7 +12,7 @@ concurrency:
 jobs:
   android:
     name: Android
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,7 +64,7 @@ jobs:
 
   backend:
     name: Backend · Go
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-latest' }}
     defaults:
       run:
         working-directory: backend

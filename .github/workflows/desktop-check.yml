@@ -13,7 +13,7 @@ concurrency:
 jobs:
   desktop-linux:
     name: Desktop · Linux
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@v4
 

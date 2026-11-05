@@ -16,7 +16,7 @@ concurrency:
 jobs:
   linux:
     name: Linux · AppImage, deb, rpm
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -228,7 +228,7 @@ jobs:
   release:
     name: Publish
     needs: [linux, windows, macos]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-latest' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
