@@ -395,13 +395,13 @@ internal object WindowsTaskbarToolbar {
         val g = img.createGraphics()
         configureG2D(g)
         g.color = Color.WHITE
-        // Left bar
-        g.fillRect(3, 4, 3, 12)
+        // Left rounded bar
+        g.fillRoundRect(3, 4, 3, 12, 2, 2)
         // Left triangle
         val path = Path2D.Float()
-        path.moveTo(16f, 4f)
+        path.moveTo(16f, 4.5f)
         path.lineTo(7f, 10f)
-        path.lineTo(16f, 16f)
+        path.lineTo(16f, 15.5f)
         path.closePath()
         g.fill(path)
         g.dispose()
@@ -415,13 +415,13 @@ internal object WindowsTaskbarToolbar {
         g.color = Color.WHITE
         // Right triangle
         val path = Path2D.Float()
-        path.moveTo(4f, 4f)
+        path.moveTo(4f, 4.5f)
         path.lineTo(13f, 10f)
-        path.lineTo(4f, 16f)
+        path.lineTo(4f, 15.5f)
         path.closePath()
         g.fill(path)
-        // Right bar
-        g.fillRect(14, 4, 3, 12)
+        // Right rounded bar
+        g.fillRoundRect(14, 4, 3, 12, 2, 2)
         g.dispose()
         return img
     }
@@ -431,11 +431,11 @@ internal object WindowsTaskbarToolbar {
         val g = img.createGraphics()
         configureG2D(g)
         g.color = Color.WHITE
-        // Play triangle
+        // Centered play triangle
         val path = Path2D.Float()
-        path.moveTo(6f, 4f)
-        path.lineTo(16f, 10f)
-        path.lineTo(6f, 16f)
+        path.moveTo(6.5f, 4.5f)
+        path.lineTo(15.5f, 10f)
+        path.lineTo(6.5f, 15.5f)
         path.closePath()
         g.fill(path)
         g.dispose()
@@ -447,9 +447,9 @@ internal object WindowsTaskbarToolbar {
         val g = img.createGraphics()
         configureG2D(g)
         g.color = Color.WHITE
-        // Two vertical bars
-        g.fillRect(5, 4, 3, 12)
-        g.fillRect(12, 4, 3, 12)
+        // Two rounded vertical bars
+        g.fillRoundRect(5, 4, 3, 12, 2, 2)
+        g.fillRoundRect(12, 4, 3, 12, 2, 2)
         g.dispose()
         return img
     }

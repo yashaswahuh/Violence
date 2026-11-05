@@ -46,8 +46,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
@@ -74,8 +76,8 @@ import violence.desktopapp.generated.resources.logo
 import java.awt.MouseInfo
 
 private val ViolenceRimRed = Color(0xFFE22D4B)
-private val MiniBackground = Color(0xF2141417)
-private val MiniBorder = Color.White.copy(alpha = 0.12f)
+private val ViolenceGradientStart = Color(0xFFFF3B5C)
+private val ViolenceGradientEnd = Color(0xFFE22D4B)
 private val MiniSecondary = Color(0xFF9E9EA8)
 
 /**
@@ -208,45 +210,72 @@ fun DesktopMiniPlayerCard(
     }
     val animatedProgress by animateFloatAsState(targetValue = progressFraction)
 
+    val cardShape = remember { RoundedCornerShape(18.dp) }
+    val rimBrush = remember {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.28f),
+                ViolenceRimRed.copy(alpha = 0.40f),
+            ),
+        )
+    }
+    val bgBrush = remember {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xF517171F),
+                Color(0xF80E0E13),
+            ),
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MiniBackground)
-            .border(1.dp, MiniBorder, RoundedCornerShape(14.dp)),
+            .clip(cardShape)
+            .background(bgBrush)
+            .border(0.75.dp, rimBrush, cardShape)
+            .drawBehind {
+                // Top inner specular highlight sheen
+                drawLine(
+                    color = Color.White.copy(alpha = 0.16f),
+                    start = Offset(18.dp.toPx(), 1.dp.toPx()),
+                    end = Offset(size.width - 18.dp.toPx(), 1.dp.toPx()),
+                    strokeWidth = 1.dp.toPx(),
+                )
+            },
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 10.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 9.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Album Thumbnail with glowing Violence rim
+            // Album Thumbnail with Violence glowing rim
             Box(
                 modifier = Modifier
-                    .size(62.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(1.5.dp, ViolenceRimRed.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
-                    .background(Color(0xFF202026)),
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF1E1E24))
+                    .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 if (!song?.thumbnailUrl.isNullOrBlank()) {
                     DesktopArtwork(
                         url = song?.thumbnailUrl,
-                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(7.dp)),
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(11.dp)),
                         px = 128,
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Rounded.MusicNote,
                         contentDescription = "No Artwork",
-                        tint = MiniSecondary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(28.dp),
+                        tint = ViolenceRimRed.copy(alpha = 0.85f),
+                        modifier = Modifier.size(26.dp),
                     )
                 }
             }
 
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(11.dp))
 
             // Metadata & Controls Column
             Column(
@@ -261,7 +290,7 @@ fun DesktopMiniPlayerCard(
                     Text(
                         text = song?.title?.ifBlank { "Nothing Playing" } ?: "Nothing Playing",
                         color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -276,27 +305,51 @@ fun DesktopMiniPlayerCard(
                         icon = Icons.Rounded.OpenInFull,
                         description = "Restore Full Player (Ctrl+M)",
                         onClick = onExpand,
-                        iconSize = 13.dp,
+                        iconSize = 12.dp,
                     )
 
                     MiniIconButton(
                         icon = Icons.Rounded.Close,
                         description = "Close",
                         onClick = onClose,
-                        iconSize = 14.dp,
+                        iconSize = 13.dp,
                     )
                 }
 
                 // Middle: Word-synced Lyric line OR Artist
-                Text(
-                    text = activeLyric ?: song?.artist ?: "Violence",
-                    color = if (activeLyric != null) ViolenceRimRed else MiniSecondary,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (activeLyric != null) FontWeight.Medium else FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (activeLyric != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(ViolenceRimRed),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = activeLyric!!,
+                            color = Color(0xFFFF4D6D),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        Text(
+                            text = song?.artist ?: "Violence",
+                            color = MiniSecondary,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
 
                 // Bottom: Playback Controls & Time Stamp
                 Row(
@@ -307,55 +360,45 @@ fun DesktopMiniPlayerCard(
                         icon = Icons.Rounded.SkipPrevious,
                         description = "Previous",
                         onClick = { DesktopMiniPlayerManager.onPrevious() },
-                        size = 20.dp,
+                        size = 18.dp,
                     )
 
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(6.dp))
 
-                    // Play/Pause button with circular highlight
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.12f))
-                            .clickable { DesktopMiniPlayerManager.onPlayPause() },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = Color.White,
-                            modifier = Modifier.size(17.dp),
-                        )
-                    }
+                    // Hero Play/Pause button with signature Violence red gradient
+                    HeroPlayButton(
+                        isPlaying = isPlaying,
+                        onClick = { DesktopMiniPlayerManager.onPlayPause() },
+                    )
 
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(6.dp))
 
                     MiniControlButton(
                         icon = Icons.Rounded.SkipNext,
                         description = "Next",
                         onClick = { DesktopMiniPlayerManager.onNext() },
-                        size = 20.dp,
+                        size = 18.dp,
                     )
 
                     Spacer(Modifier.weight(1f))
 
                     Text(
                         text = "${formatTime(positionMs)} / ${formatTime(durationMs)}",
-                        color = MiniSecondary.copy(alpha = 0.8f),
-                        fontSize = 10.sp,
+                        color = MiniSecondary.copy(alpha = 0.85f),
+                        fontSize = 10.5.sp,
                         maxLines = 1,
                     )
                 }
             }
         }
 
-        // Slim interactive progress bar pinned along the bottom edge
+        // Inset interactive seekbar along bottom edge
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(6.dp)
+                .padding(horizontal = 14.dp, vertical = 3.dp)
+                .height(8.dp)
                 .pointerInput(durationMs) {
                     detectTapGestures { offset ->
                         if (durationMs > 0L) {
@@ -365,19 +408,81 @@ fun DesktopMiniPlayerCard(
                     }
                 }
                 .drawBehind {
-                    // Gray track
-                    drawRect(
-                        color = Color.White.copy(alpha = 0.12f),
-                        topLeft = Offset(0f, size.height - 2.5.dp.toPx()),
-                        size = Size(size.width, 2.5.dp.toPx()),
+                    val trackHeight = 2.5.dp.toPx()
+                    val trackY = size.height - trackHeight
+                    // Inset dark track
+                    drawRoundRect(
+                        color = Color.White.copy(alpha = 0.10f),
+                        topLeft = Offset(0f, trackY),
+                        size = Size(size.width, trackHeight),
+                        cornerRadius = CornerRadius(trackHeight / 2, trackHeight / 2),
                     )
-                    // Active accent fill
-                    drawRect(
-                        color = ViolenceRimRed,
-                        topLeft = Offset(0f, size.height - 2.5.dp.toPx()),
-                        size = Size(size.width * animatedProgress, 2.5.dp.toPx()),
-                    )
+                    // Active Violence gradient fill
+                    val filledWidth = size.width * animatedProgress
+                    if (filledWidth > 0f) {
+                        drawRoundRect(
+                            brush = Brush.horizontalGradient(
+                                listOf(
+                                    Color(0xFFFF3B5C),
+                                    Color(0xFFE22D4B),
+                                ),
+                            ),
+                            topLeft = Offset(0f, trackY),
+                            size = Size(filledWidth, trackHeight),
+                            cornerRadius = CornerRadius(trackHeight / 2, trackHeight / 2),
+                        )
+                        // Playhead glowing dot
+                        drawCircle(
+                            color = Color.White,
+                            radius = 3.5.dp.toPx(),
+                            center = Offset(filledWidth.coerceIn(3.5.dp.toPx(), size.width - 3.5.dp.toPx()), trackY + trackHeight / 2),
+                        )
+                    }
                 },
+        )
+    }
+}
+
+@Composable
+private fun HeroPlayButton(
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+
+    val gradient = remember(hovered) {
+        if (hovered) {
+            Brush.linearGradient(
+                listOf(
+                    Color(0xFFFF5270),
+                    Color(0xFFF03555),
+                ),
+            )
+        } else {
+            Brush.linearGradient(
+                listOf(
+                    Color(0xFFFF3B5C),
+                    Color(0xFFE22D4B),
+                ),
+            )
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(CircleShape)
+            .background(gradient)
+            .border(0.75.dp, Color.White.copy(alpha = 0.35f), CircleShape)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+            contentDescription = if (isPlaying) "Pause" else "Play",
+            tint = Color.White,
+            modifier = Modifier.size(18.dp),
         )
     }
 }
@@ -442,4 +547,3 @@ private fun formatTime(ms: Long): String {
     val seconds = totalSeconds % 60
     return "$minutes:${seconds.toString().padStart(2, '0')}"
 }
-
