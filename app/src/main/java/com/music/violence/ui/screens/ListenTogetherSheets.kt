@@ -53,6 +53,7 @@ import coil3.compose.AsyncImage
 import com.music.violence.ui.profile.ProfileAvatar
 import com.music.violence.R
 import com.music.violence.data.listentogether.ListenTogether
+import com.music.violence.ui.player.NearbyJamCard
 import com.music.violence.data.listentogether.PartyPreview
 import com.music.violence.ui.components.PillTextField
 import com.music.violence.ui.components.QrCode
@@ -481,7 +482,20 @@ internal fun JoinPartySheet(
             title = stringResource(R.string.listen_together_join),
             subtitle = stringResource(R.string.listen_together_code_hint),
         )
-        Spacer(Modifier.height(22.dp))
+        Spacer(Modifier.height(16.dp))
+        val nearbyJams by ListenTogether.discoveredJams.collectAsStateWithLifecycle()
+        if (nearbyJams.isNotEmpty()) {
+            nearbyJams.forEach { jam ->
+                NearbyJamCard(
+                    jam = jam,
+                    onJoin = {
+                        onCodeChange(it)
+                        onSubmit()
+                    },
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
+            }
+        }
         PartyCodeField(
             code = code,
             onCodeChange = onCodeChange,

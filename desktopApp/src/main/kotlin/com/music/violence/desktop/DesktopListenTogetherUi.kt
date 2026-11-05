@@ -41,6 +41,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import com.music.violence.data.listentogether.DiscoveredJam
+import com.music.violence.ui.player.JamReactionBurstOverlay
+import com.music.violence.ui.player.JamReactionChips
+import com.music.violence.ui.player.NearbyJamCard
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -79,6 +84,14 @@ internal fun DesktopListenTogetherDialog(
     val serverStatus by DesktopListenTogether.serverStatus.collectAsState()
     val serverWaking by DesktopListenTogether.serverWaking.collectAsState()
     val stalledTrack by DesktopListenTogether.stalledTrack.collectAsState()
+    val discoveredJams by DesktopListenTogether.discoveredJams.collectAsState()
+
+    DisposableEffect(Unit) {
+        DesktopListenTogether.startLanDiscovery()
+        onDispose {
+            DesktopListenTogether.stopLanDiscovery()
+        }
+    }
     val scope = rememberCoroutineScope()
     var code by remember { mutableStateOf("") }
     val initialNickname = remember {
@@ -99,7 +112,9 @@ internal fun DesktopListenTogetherDialog(
 
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 920) {
         Column(desktopPanelBody(cardMax = 760.dp, cardMin = 560.dp, fill = true)) {
-            Row(
+            Box(Modifier.fillMaxSize()) {
+                Column(Modifier.fillMaxSize()) {
+                    Row(
                 Modifier.fillMaxWidth().padding(start = panelInset(28.dp), end = panelInset(18.dp), top = 22.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -159,6 +174,18 @@ internal fun DesktopListenTogetherDialog(
                 )
                 else -> PartyLanding(
                     signedIn = DesktopListenTogether.canJoin(),
+                    discoveredJams = discoveredJams,
+                    onJoinNearby = { targetCode ->
+                        code = targetCode
+                        busy = true
+                        localError = null
+                        scope.launch {
+                            DesktopListenTogether.previewParty(targetCode)
+                                .onSuccess { preview = it }
+                                .onFailure { localError = it.message }
+                            busy = false
+                        }
+                    },
                     enabled = DesktopListenTogether.canJoin() && DesktopListenTogether.hasServer,
                     avatarUrl = DesktopListenTogether.myAvatarUrl(),
                     nickname = nickname,
@@ -217,6 +244,13 @@ internal fun DesktopListenTogetherDialog(
                 )
             }
         }
+
+        JamReactionBurstOverlay(
+            reactions = DesktopListenTogether.reactions,
+            modifier = Modifier.matchParentSize(),
+        )
+    }
+    }
     }
 }
 
@@ -224,6 +258,8 @@ internal fun DesktopListenTogetherDialog(
 private fun PartyLanding(
     signedIn: Boolean,
     enabled: Boolean,
+    discoveredJams: List<DiscoveredJam> = emptyList(),
+    onJoinNearby: (String) -> Unit = {},
     avatarUrl: String?,
     nickname: String,
     onNicknameChange: (String) -> Unit,
@@ -248,6 +284,17 @@ private fun PartyLanding(
         contentPadding = PaddingValues(28.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
+        if (discoveredJams.isNotEmpty()) {
+            discoveredJams.forEach { jam ->
+                item {
+                    NearbyJamCard(
+                        jam = jam,
+                        onJoin = { onJoinNearby(it) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                 PartyChoiceCard(
@@ -418,6 +465,12 @@ private fun PartyRoom(
             item { QueueCard(state) }
         }
         LazyColumn(Modifier.weight(.85f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            item {
+                JamReactionChips(
+                    onReaction = { DesktopListenTogether.sendReaction(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             item { MembersCard(state) }
             if (state.you?.isHost == true) item { HostControls(state) }
             if (activity.isNotEmpty()) item { ActivityCard(activity) }

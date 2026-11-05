@@ -43,6 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -253,6 +254,29 @@ object ListenTogether {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val clock = ServerClock(SystemClock::elapsedRealtime)
     private val switchMutex = Mutex()
+
+    val jamLan = JamLanManager(scope)
+    val discoveredJams: StateFlow<List<DiscoveredJam>> = jamLan.discoveredJams
+    val reactions: SharedFlow<JamReaction> = jamLan.reactions
+    private var appContext: Context? = null
+
+    fun startLanDiscovery() {
+        jamLan.startDiscovery()
+        appContext?.let { ctx ->
+            AndroidNsdDiscovery.startDiscovery(ctx) { jam ->
+                jamLan.recordDiscoveredJam(jam)
+            }
+        }
+    }
+
+    fun stopLanDiscovery() {
+        jamLan.stopDiscovery()
+        appContext?.let { ctx ->
+            AndroidNsdDiscovery.stopDiscovery(ctx)
+        }
+    }
+
+    fun sendReaction(emoji: JamEmoji): Boolean = jamLan.sendReaction(emoji)
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
@@ -675,6 +699,28 @@ object ListenTogether {
 
     fun init(context: Context) {
         prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        appContext = context.applicationContext
+        scope.launch {
+            _state.collect { s ->
+                val code = s.code
+                if (code != null) {
+                    val host = s.you?.displayName ?: nickname()
+                    val track = s.playback.track?.let { "${it.title} - ${it.artist}" } ?: ""
+                    jamLan.startHosting(code, host, track)
+                    appContext?.let { ctx ->
+                        AndroidNsdDiscovery.registerService(
+                            ctx,
+                            DiscoveredJam(code, host, track)
+                        )
+                    }
+                } else {
+                    jamLan.stopHosting()
+                    appContext?.let { ctx ->
+                        AndroidNsdDiscovery.unregisterService(ctx)
+                    }
+                }
+            }
+        }
         val rawSaved = prefs.getString(KEY_SERVER, null)?.trim().orEmpty()
         val normalizedSaved = when (val res = parseAndNormalizeServerUrl(rawSaved)) {
             is ServerUrlValidationResult.Valid -> res.normalizedUrl

@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.music.violence.data.canvas.CanvasArtwork
+import com.music.violence.data.listentogether.JamEmoji
+import com.music.violence.data.listentogether.JamReaction
 import com.music.violence.data.lyrics.LyricLine
 import com.music.violence.data.lyrics.LyricsSource
 import com.music.violence.data.lyrics.LyricsTranslation
@@ -32,6 +34,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -132,6 +135,13 @@ internal object DesktopPlayerHost : PlayerHost {
             )
         }
         .stateIn(scope, SharingStarted.Eagerly, PartyUi())
+
+    override val partyReactions: SharedFlow<JamReaction>
+        get() = DesktopListenTogether.reactions
+
+    override fun sendPartyReaction(emoji: JamEmoji) {
+        DesktopListenTogether.sendReaction(emoji)
+    }
 
     override suspend fun translateLyrics(
         trackId: String,

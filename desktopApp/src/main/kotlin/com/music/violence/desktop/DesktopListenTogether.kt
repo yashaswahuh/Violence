@@ -11,6 +11,10 @@ import com.music.violence.data.listentogether.PartyPreview
 import com.music.violence.data.listentogether.PartyQueue
 import com.music.violence.data.listentogether.PartySnapshot
 import com.music.violence.data.listentogether.PartyTrack
+import com.music.violence.data.listentogether.DiscoveredJam
+import com.music.violence.data.listentogether.JamEmoji
+import com.music.violence.data.listentogether.JamLanManager
+import com.music.violence.data.listentogether.JamReaction
 import com.music.violence.data.listentogether.ServerClock
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -43,6 +47,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -143,6 +148,28 @@ internal object DesktopListenTogether {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val clock = ServerClock()
+    val jamLan = JamLanManager(scope)
+    val discoveredJams: StateFlow<List<DiscoveredJam>> = jamLan.discoveredJams
+    val reactions: SharedFlow<JamReaction> = jamLan.reactions
+
+    fun startLanDiscovery() = jamLan.startDiscovery()
+    fun stopLanDiscovery() = jamLan.stopDiscovery()
+    fun sendReaction(emoji: JamEmoji): Boolean = jamLan.sendReaction(emoji)
+
+    init {
+        scope.launch {
+            _state.collect { s ->
+                val code = s.code
+                if (code != null) {
+                    val host = s.you?.displayName ?: nickname()
+                    val track = s.playback.track?.let { "${it.title} - ${it.artist}" } ?: ""
+                    jamLan.startHosting(code, host, track)
+                } else {
+                    jamLan.stopHosting()
+                }
+            }
+        }
+    }
     private val persistence by lazy { DesktopPersistence() }
 
     private val _state = MutableStateFlow(State())

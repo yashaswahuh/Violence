@@ -58,23 +58,36 @@ internal fun ListenTogetherMembersSheet(
 ) {
     val state by PlayerPlatform.host.party.collectAsStateWithLifecycle()
 
-    PlayerDrawer(
-        hazeState = hazeState,
-        title = stringResource(Res.string.listen_together),
-        onDismiss = onDismiss,
-        modifier = modifier,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+    Box(modifier = modifier) {
+        PlayerDrawer(
+            hazeState = hazeState,
+            title = stringResource(Res.string.listen_together),
+            onDismiss = onDismiss,
         ) {
-            state.members.forEach { member ->
-                MemberDrawerRow(member = member, isYou = member.memberId == state.you?.memberId)
+            if (state.inParty) {
+                JamReactionChips(
+                    onReaction = { PlayerPlatform.host.sendPartyReaction(it) },
+                )
+                Spacer(Modifier.height(10.dp))
             }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                state.members.forEach { member ->
+                    MemberDrawerRow(member = member, isYou = member.memberId == state.you?.memberId)
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+            ManageRow(code = state.code, onClick = onManage)
         }
 
-        Spacer(Modifier.height(10.dp))
-        ManageRow(code = state.code, onClick = onManage)
+        JamReactionBurstOverlay(
+            reactions = PlayerPlatform.host.partyReactions,
+            modifier = Modifier.matchParentSize(),
+        )
     }
 }
 
