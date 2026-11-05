@@ -173,7 +173,7 @@ private fun Message(title: String, body: String, action: String, onAction: () ->
                 Icon(
                     painter = painterResource(R.drawable.ic_phone),
                     contentDescription = null,
-                    tint = Secondary,
+                    tint = VoltageText,
                     modifier = Modifier.size(26.dp),
                 )
                 Spacer(Modifier.height(6.dp))
@@ -187,7 +187,7 @@ private fun Message(title: String, body: String, action: String, onAction: () ->
     }
 }
 
-/** The phone app's primary button: white, black label, fully rounded. */
+/** The primary button: Voltage fill, white label, fully rounded. */
 @Composable
 private fun Pill(text: String, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
@@ -199,10 +199,10 @@ private fun Pill(text: String, onClick: () -> Unit) {
                 scaleY = if (pressed) 0.95f else 1f
             }
             .clip(CircleShape)
-            .background(Color.White)
+            .background(Voltage)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
             .padding(horizontal = 22.dp, vertical = 9.dp),
     ) {
-        Text(text, style = WearType.button, color = Color.Black)
+        Text(text, style = WearType.button, color = Color.White)
     }
 }

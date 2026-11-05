@@ -3,6 +3,7 @@ package com.music.violence.wear.ui
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -91,7 +93,7 @@ fun QueueScreen(
 
 @Composable
 private fun QueueCell(row: QueueRow, isCurrent: Boolean, isPast: Boolean, onClick: () -> Unit) {
-    Cell(onClick = onClick, dimmed = isPast) {
+    Cell(onClick = onClick, dimmed = isPast, highlighted = isCurrent) {
         Box(
             Modifier
                 .size(34.dp)
@@ -108,7 +110,7 @@ private fun QueueCell(row: QueueRow, isCurrent: Boolean, isPast: Boolean, onClic
                 Text(
                     text = stringResource(R.string.playing_now).uppercase(),
                     style = WearType.caption,
-                    color = AccentRed,
+                    color = VoltageText,
                     maxLines = 1,
                 )
             }
@@ -187,7 +189,7 @@ fun MoreScreen(np: NowPlaying?, link: PhoneLink, onOpenOutput: () -> Unit) {
                     label = stringResource(if (np.liked) R.string.loved else R.string.love),
                     value = null,
                     active = np.liked,
-                    activeTint = AccentRed,
+                    activeTint = Ember,
                     onClick = link::toggleLike,
                 )
             }
@@ -206,16 +208,16 @@ private fun ToggleCell(
     badge: String? = null,
 ) {
     Cell(onClick = onClick) {
-        // On: a filled disc, as the phone's player highlights shuffle and repeat.
+        // On: a Voltage disc with a white glyph; off: a quiet grey one.
         val disc = when {
             !active -> Color.White.copy(alpha = 0.12f)
             activeTint != null -> activeTint.copy(alpha = 0.20f)
-            else -> Color.White
+            else -> Voltage
         }
         val glyph = when {
             !active -> Color.White
             activeTint != null -> activeTint
-            else -> Color.Black
+            else -> Color.White
         }
         Box(
             Modifier
@@ -248,21 +250,30 @@ private fun ToggleCell(
     }
 }
 
-/** A grouped cell: the phone's settings rows, rounded for a round screen. */
+/** A grouped cell, rounded for a round screen, with a hairline edge. The playing row is Voltage-tinted. */
 @Composable
 private fun Cell(
     onClick: () -> Unit,
     dimmed: Boolean = false,
+    highlighted: Boolean = false,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val shape = RoundedCornerShape(22.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer { alpha = if (dimmed) 0.5f else 1f }
-            .clip(RoundedCornerShape(22.dp))
-            .background(if (pressed) Color(0xFF2C2C2E) else Cell)
+            .clip(shape)
+            .background(
+                when {
+                    pressed -> CellPressed
+                    highlighted -> Voltage.copy(alpha = 0.26f)
+                    else -> Cell
+                },
+            )
+            .border(1.dp, if (highlighted) Voltage.copy(alpha = 0.7f) else CellEdge, shape)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
             .padding(PaddingValues(horizontal = 12.dp, vertical = 9.dp)),
         verticalAlignment = Alignment.CenterVertically,
@@ -272,15 +283,27 @@ private fun Cell(
 
 @Composable
 private fun Header(text: String) {
-    Text(
-        text = text,
-        style = WearType.header,
-        color = Color.White,
-        textAlign = TextAlign.Center,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 4.dp),
-    )
+            .padding(bottom = 6.dp),
+    ) {
+        Text(
+            text = text,
+            style = WearType.header,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(3.dp))
+        Box(
+            Modifier
+                .width(18.dp)
+                .height(3.dp)
+                .clip(CircleShape)
+                .background(Voltage),
+        )
+    }
 }
 
 @Composable
@@ -377,13 +400,13 @@ private fun OutputCell(
             Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(if (selected) Color.White else Color.White.copy(alpha = 0.12f)),
+                .background(if (selected) Voltage else Color.White.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painterResource(icon),
                 contentDescription = null,
-                tint = if (selected) Color.Black else Color.White,
+                tint = Color.White,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -396,7 +419,7 @@ private fun OutputCell(
             Icon(
                 painterResource(R.drawable.ic_check),
                 contentDescription = null,
-                tint = Color.White,
+                tint = VoltageText,
                 modifier = Modifier.size(16.dp),
             )
         }

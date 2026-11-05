@@ -97,10 +97,11 @@ class PlayerActions(
 /**
  * The phone's player, on a round screen.
  *
- * The cover *is* the play button: a disc with the progress ring round it, the
- * way a watch reads progress, and the glyph over it. That is what lets title,
- * transport and the three actions all fit a 40mm Galaxy Watch without anything
- * shrinking past legible — every size below is a fraction of the screen.
+ * The cover *is* the play button: a disc with the glyph over it. Progress runs
+ * along the bezel ([EdgeProgress]) rather than round the disc, which frees the
+ * middle for a larger cover and lets title, transport and the three actions all
+ * fit a 40mm Galaxy Watch without anything shrinking past legible — every size
+ * below is a fraction of the screen.
  *
  * The crown is the phone's volume, as on every watch media app.
  */
@@ -113,6 +114,8 @@ fun NowPlayingScreen(
 ) {
     val view = LocalView.current
     var rotary by remember { mutableFloatStateOf(0f) }
+    // The playhead, drawn along the bezel. Read only in the draw pass.
+    val progress = rememberProgress(np)
     // Bumped on every crown step; the readout shows while it keeps changing.
     var volumeNudge by remember { mutableIntStateOf(0) }
 
@@ -177,6 +180,7 @@ fun NowPlayingScreen(
         val h = maxHeight
 
         MeshBackground(np.colors)
+        EdgeProgress(progress = progress, scrubMs = scrubMs, durationMs = np.durationMs)
 
         Column(
             Modifier.fillMaxSize(),
@@ -216,6 +220,7 @@ fun NowPlayingScreen(
                     description = stringResource(R.string.previous),
                     size = w * 0.2f,
                     iconSize = w * 0.105f,
+                    background = Color.White.copy(alpha = 0.10f),
                     onClick = actions.previous,
                 )
                 Spacer(Modifier.width(w * 0.015f))
@@ -244,6 +249,7 @@ fun NowPlayingScreen(
                     size = w * 0.2f,
                     iconSize = w * 0.105f,
                     enabled = np.hasNext,
+                    background = Color.White.copy(alpha = 0.10f),
                     onClick = actions.next,
                 )
             }
@@ -259,8 +265,8 @@ fun NowPlayingScreen(
                     description = stringResource(if (np.liked) R.string.loved else R.string.love),
                     size = chip,
                     iconSize = glyph,
-                    tint = if (np.liked) AccentRed else Color.White,
-                    background = Color.White.copy(alpha = 0.14f),
+                    tint = if (np.liked) Ember else Color.White,
+                    background = if (np.liked) Ember.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.14f),
                     onClick = actions.toggleLike,
                 )
                 GlyphButton(
@@ -283,6 +289,46 @@ fun NowPlayingScreen(
         }
 
         VolumeReadout(volume = volume, nudge = volumeNudge, edgeInset = 5.dp)
+    }
+}
+
+/**
+ * The playhead as an arc along the bezel, the way Wear OS media apps read
+ * progress. A gap at twelve o'clock keeps it clear of the curved clock. While
+ * the disc is a scrubber it shows the target in white instead.
+ */
+@Composable
+private fun EdgeProgress(progress: State<Float>, scrubMs: Long?, durationMs: Long) {
+    val scrubFraction = if (scrubMs != null && durationMs > 0) scrubMs.toFloat() / durationMs else null
+    Canvas(Modifier.fillMaxSize()) {
+        val stroke = 3.dp.toPx()
+        val inset = 2.dp.toPx() + stroke / 2f
+        val side = minOf(size.width, size.height) - inset * 2f
+        val topLeft = Offset((size.width - side) / 2f, (size.height - side) / 2f)
+        val arcSize = Size(side, side)
+        val start = -90f + EDGE_GAP / 2f
+        val span = 360f - EDGE_GAP
+        drawArc(
+            color = Color.White.copy(alpha = 0.14f),
+            startAngle = start,
+            sweepAngle = span,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(stroke, cap = StrokeCap.Round),
+        )
+        val fraction = (scrubFraction ?: progress.value).coerceIn(0f, 1f)
+        if (fraction * span > 0.5f) {
+            drawArc(
+                color = if (scrubFraction != null) Color.White else VoltageText,
+                startAngle = start,
+                sweepAngle = span * fraction,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(stroke, cap = StrokeCap.Round),
+            )
+        }
     }
 }
 
@@ -310,7 +356,6 @@ private fun PlayDisc(
 ) {
     val view = LocalView.current
     val density = LocalDensity.current
-    val progress = rememberProgress(np)
     val ambient = LocalAmbient.current.active
     val scrubbing = scrubMs != null
     val buffering = np.playing && !np.advancing
@@ -346,12 +391,12 @@ private fun PlayDisc(
                 scaleY = scale
             }
             .drawBehind {
-                val stroke = (if (scrubMs != null) 5.dp else 3.5.dp).toPx()
+                val stroke = (if (scrubMs != null) 5.dp else 2.dp).toPx()
                 val inset = stroke / 2f
                 val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
                 val topLeft = Offset(inset, inset)
                 drawArc(
-                    color = Color.White.copy(alpha = 0.22f),
+                    color = Color.White.copy(alpha = 0.12f),
                     startAngle = 0f,
                     sweepAngle = 360f,
                     useCenter = false,
@@ -363,7 +408,9 @@ private fun PlayDisc(
                 val fraction = if (scrubMs != null && np.durationMs > 0) {
                     scrubMs.toFloat() / np.durationMs
                 } else {
-                    progress.value
+                    // Progress lives on the bezel (EdgeProgress); this ring is
+                    // only the buffering spinner and the scrubber.
+                    0f
                 }
                 if (turning != null) {
                     drawArc(
@@ -377,7 +424,7 @@ private fun PlayDisc(
                     )
                 } else if (fraction * 360f > 0.5f) {
                     drawArc(
-                        color = if (scrubMs != null) AccentRed else Color.White,
+                        color = if (scrubMs != null) VoltageText else Color.White,
                         startAngle = -90f,
                         sweepAngle = 360f * fraction.coerceIn(0f, 1f),
                         useCenter = false,
@@ -642,6 +689,9 @@ private fun BoxScope.VolumeReadout(volume: Volume?, nudge: Int, edgeInset: Dp) {
 /** Crown travel per volume step, for crowns that report a stream of small events. */
 private const val ROTARY_STEP_PX = 48f
 private const val PROGRESS_TICK_MS = 500L
+
+/** Degrees left open at the top of the bezel ring, under the clock. */
+private const val EDGE_GAP = 44f
 private const val VOLUME_SHOWN_MS = 1_400L
 private const val VOLUME_ARC = 64f
 private const val SCRUB_STEP_MS = 5_000L

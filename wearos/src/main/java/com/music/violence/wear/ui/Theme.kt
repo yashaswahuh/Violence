@@ -24,14 +24,26 @@ val SFPro = FontFamily(
     Font(R.font.sf_pro_display_bold, FontWeight.W700),
 )
 
-/** The phone's AccentRed: Love, and nothing much else. */
-val AccentRed = Color(0xFFFA2D48)
+/** Violence "Voltage": the accent fill (white on it is 5.7:1). */
+val Voltage = Color(0xFF7C3AED)
 
-/** Secondary text on the mesh and on black: the phone's onSurfaceVariant. */
-val Secondary = Color(0xFF8E8E93)
+/** Voltage as text, icons and progress on black (9.7:1). */
+val VoltageText = Color(0xFFC4A8FF)
 
-/** Grouped cells on black, iOS's secondarySystemBackground in dark. */
-val Cell = Color(0xFF1C1C1E)
+/** Love, and the heart only: "Ember" on the phone. */
+val Ember = Color(0xFFFF6B8A)
+
+/** Secondary text on the mesh and on black: the phone's Ink-2 (8:1 on black). */
+val Secondary = Color(0xFFA7A5B8)
+
+/** Grouped cells on black: a violet-tinted surface, a step above Void. */
+val Cell = Color(0xFF15131F)
+
+/** A cell while a finger is on it. */
+val CellPressed = Color(0xFF221E30)
+
+/** The hairline round a cell, so it reads on black without a shadow. */
+val CellEdge = Color.White.copy(alpha = 0.07f)
 
 object WearType {
     val title = TextStyle(fontFamily = SFPro, fontWeight = FontWeight.W600, fontSize = 15.sp, letterSpacing = (-0.2).sp)
@@ -47,8 +59,8 @@ object WearType {
 fun ViolenceWearTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = ColorScheme(
-            primary = Color.White,
-            onPrimary = Color.Black,
+            primary = Voltage,
+            onPrimary = Color.White,
             background = Color.Black,
             onBackground = Color.White,
             onSurface = Color.White,

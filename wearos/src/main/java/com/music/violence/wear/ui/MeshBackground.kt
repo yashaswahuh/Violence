@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 
-/** Violence's own colours, for when there is no cover to take them from. */
-val BrandMesh = listOf(Color(0xFFFA2D48), Color(0xFF7B2FF7), Color(0xFFFF7A45), Color(0xFF2E1A8A))
+/** Violence's own colours (Voltage, indigo, fuchsia, deep violet), for when there is no cover to take them from. */
+val BrandMesh = listOf(Color(0xFF7C3AED), Color(0xFF4F46E5), Color(0xFFC026D3), Color(0xFF2E1A8A))
 
 /**
  * The phone player's backdrop, sized for a watch.
