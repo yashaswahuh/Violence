@@ -106,7 +106,16 @@ object VolumeHud {
 fun handleDacVolumeKey(event: KeyEvent): Boolean {
     val code = event.keyCode
     if (code != KeyEvent.KEYCODE_VOLUME_UP && code != KeyEvent.KEYCODE_VOLUME_DOWN) return false
-    if (DacVolume.level.value == null || CastController.state.value.casting || WearBridge.watchOutput.value.active) {
+    // Casting: the keys move the receiver, not the phone. Left to Android they
+    // would change the phone's own music volume, which nobody is listening to.
+    if (CastController.state.value.casting && !WearBridge.watchOutput.value.active) {
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            val delta = if (code == KeyEvent.KEYCODE_VOLUME_UP) CAST_KEY_STEP else -CAST_KEY_STEP
+            CastController.setVolume(CastController.volume.value + delta)
+        }
+        return true
+    }
+    if (DacVolume.level.value == null || WearBridge.watchOutput.value.active) {
         return false
     }
     if (event.action == KeyEvent.ACTION_DOWN) {
@@ -137,6 +146,9 @@ fun DacVolumeKeys() {
 }
 
 private const val HIDE_AFTER_MS = 1500L
+
+/** One press of a volume key while casting, as a fraction of the receiver's range. */
+private const val CAST_KEY_STEP = 0.05f
 private val HUD_HEIGHT = 156.dp
 private val COMPACT_WIDTH = 14.dp
 private val EXPANDED_WIDTH = 50.dp

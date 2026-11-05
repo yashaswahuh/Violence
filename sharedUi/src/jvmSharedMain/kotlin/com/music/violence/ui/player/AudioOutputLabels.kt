@@ -1,6 +1,8 @@
 package com.music.violence.ui.player
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.violence.sharedui.resources.*
 import org.jetbrains.compose.resources.stringResource
 
@@ -35,6 +37,9 @@ internal fun outputLabel(device: AudioOutputDevice, accountName: String?): Strin
 @Composable
 internal fun rememberAudioOutputName(accountName: String?): String {
     val outputs = rememberAudioOutputs()
+    // Casting: the receiver is what is playing ("Living Room speaker"), not this phone.
+    val cast by PlayerPlatform.host.castState.collectAsStateWithLifecycle()
+    cast.connectedName?.takeIf { it.isNotBlank() }?.let { return it }
     val active = outputs.firstOrNull { it.isActive }
         ?: return if (accountName.isNullOrBlank()) {
             stringResource(Res.string.this_phone)
