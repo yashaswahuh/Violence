@@ -23,9 +23,8 @@ import java.util.Locale
  * ```
  *   Listening to Violence          <- activityName, or the app's own name
  *   ┌────┐  Song title             <- details
- *   │art │  Artist                 <- state
- *   └────┘  Hi-Res Lossless · FLAC · 4608 kbps · 24-bit · 96 kHz
- *           ▁▁▁▁▁▁ 1:04 / 3:47     <- from the timestamps
+ *   │art │  Artist · Hi-Res...     <- state (includes audio quality when present)
+ *   └────┘  ▁▁▁▁▁▁ 1:04 / 3:47     <- from the timestamps
  *   [ Listen on YouTube Music ]    <- button 1
  *   [ Visit Violence           ]   <- button 2
  * ```
@@ -87,9 +86,9 @@ class DiscordRPC(
         val buttonsList = mutableListOf<Pair<String, String>>()
         if (!partyCode.isNullOrBlank()) {
             val jamUrl = if (!partyServer.isNullOrBlank()) {
-                "violence://party/$partyCode?server=" + java.net.URLEncoder.encode(partyServer, "UTF-8")
+                "$partyServer/invite/${partyCode.uppercase()}"
             } else {
-                "violence://party/$partyCode"
+                "https://yashaswahuh.is-a.dev/Violence/party/$partyCode"
             }
             buttonsList.add("Listen Together (Jam)" to jamUrl)
         }
@@ -117,26 +116,17 @@ class DiscordRPC(
 
         val name = activityName.ifEmpty { appName() }
         val artwork = song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }
+        val stateText = if (audioQuality != null) "${song.artist} · $audioQuality" else song.artist
 
         setActivity(
             name = name,
             details = songTitleWithRate,
-            state = song.artist,
+            state = stateText,
             detailsUrl = watchUrl(song),
-            // Asked for at a size Discord's own card actually draws — the row
-            // thumbnail our lists use is 160px and reads soft blown up to the
-            // 96dp sleeve in a presence card.
-            //
-            // A track with no artwork — or with artwork Discord can't reach,
-            // which is anything that isn't an http URL — sends none, and Discord
-            // is replaced by the Violence logo.
-            largeImage = RpcImage.ExternalImage(artwork ?: DiscordApplication.LOGO_URL),
-            smallImage = artwork?.let { RpcImage.ExternalImage(DiscordApplication.LOGO_URL) },
-            // The card's optional third information line. Kept absent for
-            // ordinary lossy streams so Discord only calls attention to a
-            // measured premium format.
+            largeImage = artwork?.let { RpcImage.ExternalImage(it) },
+            smallImage = null,
             largeText = audioQuality,
-            smallText = if (artwork != null) name else null,
+            smallText = null,
             buttons = if (buttonsList.isNotEmpty()) buttonsList else null,
             type = type,
             statusDisplayType = if (useDetails) StatusDisplayType.DETAILS else StatusDisplayType.STATE,

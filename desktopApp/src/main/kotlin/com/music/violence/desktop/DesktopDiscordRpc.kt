@@ -224,6 +224,7 @@ internal object DesktopDiscordRpc {
             }
             if (_token.value.isBlank()) return@launch
             val artwork = song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }
+            val stateText = if (quality != null) "${song.artist} · $quality" else song.artist
             val gatewayFailure = runCatching {
                 val client = rpc ?: KizzyRPC(
                     token = _token.value,
@@ -238,11 +239,11 @@ internal object DesktopDiscordRpc {
                     name = DesktopDiscordSettings.activityName.value
                         .ifBlank { DesktopDiscordSettings.APP_NAME },
                     details = title,
-                    state = song.artist,
+                    state = stateText,
                     detailsUrl = watchUrl(song),
-                        largeImage = RpcImage.ExternalImage(artwork ?: DiscordApplication.LOGO_URL),
-                    smallImage = artwork?.let { RpcImage.ExternalImage(DiscordApplication.LOGO_URL) },
-                    smallText = if (artwork != null) DesktopDiscordSettings.APP_NAME else null,
+                    largeImage = artwork?.let { RpcImage.ExternalImage(it) },
+                    smallImage = null,
+                    smallText = null,
                     largeText = quality,
                     buttons = buttonLabels(song).takeIf { it.isNotEmpty() },
                     type = when (DesktopDiscordSettings.activityType.value) {
@@ -294,7 +295,8 @@ internal object DesktopDiscordRpc {
         put("type", DesktopDiscordSettings.activityNumber(DesktopDiscordSettings.activityType.value))
         put("name", DesktopDiscordSettings.activityName.value.ifBlank { DesktopDiscordSettings.APP_NAME })
         put("details", title)
-        put("state", song.artist)
+        val stateText = if (quality != null) "${song.artist} · $quality" else song.artist
+        put("state", stateText)
         // Which line Discord bolds, and repeats beside the name in a member
         // list — the whole point of "Lead with the song".
         put("status_display_type", if (DesktopDiscordSettings.useDetails.value) 2 else 1)
@@ -304,10 +306,8 @@ internal object DesktopDiscordRpc {
         }
         putJsonObject("assets") {
             val artwork = song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }
-            put("large_image", artwork ?: DiscordApplication.LOGO_URL)
             if (artwork != null) {
-                put("small_image", DiscordApplication.LOGO_URL)
-                put("small_text", DesktopDiscordSettings.APP_NAME)
+                put("large_image", artwork)
             }
             quality?.let { put("large_text", it) }
         }
@@ -333,13 +333,7 @@ internal object DesktopDiscordRpc {
         val partyCode = partyState.code
         if (partyState.inParty && !partyCode.isNullOrBlank()) {
             val invite = DesktopListenTogether.inviteUrl(partyCode)
-            val server = invite.substringBefore("/invite/").takeIf { it.startsWith("http") }
-            val jamUrl = if (server != null) {
-                "violence://party/$partyCode?server=" + java.net.URLEncoder.encode(server, "UTF-8")
-            } else {
-                "violence://party/$partyCode"
-            }
-            add("Listen Together (Jam)" to jamUrl)
+            add("Listen Together (Jam)" to invite)
         }
         val settings = DesktopDiscordSettings
         if (size < 2 && settings.button1Visible.value) {
