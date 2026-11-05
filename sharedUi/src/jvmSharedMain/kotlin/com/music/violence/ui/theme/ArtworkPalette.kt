@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.ImageBitmap
 import coil3.compose.LocalPlatformContext
 import com.music.violence.ui.graphics.ColorUtils
+import com.music.violence.ui.graphics.Swatch
 import com.music.violence.ui.graphics.forPixelAccess
 import com.music.violence.ui.graphics.paletteSwatches
 import com.music.violence.ui.graphics.toImageBitmap
@@ -30,7 +31,6 @@ import com.music.violence.ui.player.PlayerPlatform
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.pow
-import kotlin.math.sqrt
 
 /**
  * The colours an album, playlist or artist page paints itself in.
@@ -245,29 +245,71 @@ private data class Seed(
     val topBandLuminance: Float,
 )
 
-private fun seedOf(bitmap: ImageBitmap): Seed? {
-    fun swatches(clearFilters: Boolean) =
-        paletteSwatches(bitmap, SWATCH_COUNT, clearFilters)
+/** Minimum swatch population ratio to be considered an accent candidate. */
+const val MIN_ACCENT_POPULATION_RATIO = 0.015f
 
-    // The default filter deliberately throws away near-black and near-white.
-    // That is useful while looking for an accent, but it is the wrong answer
-    // to "what colour is this page mostly made of?" A dark photograph would
-    // otherwise be reduced to whatever warm face or tiny coloured detail
-    // survived the filter, and a monochrome sleeve to an anti-aliased fringe.
-    // Both cases used to turn into the same maroon page.
-    val all = swatches(clearFilters = true)
+/**
+ * Purple/magenta hues (250°..315°) are frequent digital imaging artifacts
+ * (chromatic aberration / purple fringing on edges, compression noise in shadows)
+ * and have extreme contrast against warm tones and dark backgrounds. Require a
+ * much higher population presence and real chroma so accidental or negligible
+ * purple details do not hijack the app and glow accent.
+ */
+const val MIN_PURPLE_ACCENT_POPULATION_RATIO = 0.05f
+const val MIN_PURPLE_CHROMA = 0.18f
+
+fun selectVibrantSwatch(swatches: List<Swatch>, dominant: Swatch): Swatch {
+    val totalPopulation = swatches.sumOf { it.population }.coerceAtLeast(1)
+
+    val candidates = swatches.filter { swatch ->
+        val hsl = FloatArray(3).also { ColorUtils.colorToHSL(swatch.rgb, it) }
+        val h = hsl[0]
+        val s = hsl[1]
+        val l = hsl[2]
+
+        val r = (swatch.rgb shr 16) and 0xFF
+        val g = (swatch.rgb shr 8) and 0xFF
+        val b = swatch.rgb and 0xFF
+        val chroma = (maxOf(r, g, b) - minOf(r, g, b)) / 255f
+        val popRatio = swatch.population.toFloat() / totalPopulation
+
+        // Must not be near-black / shadow or near-white / highlight
+        if (l < 0.12f || l > 0.92f) return@filter false
+
+        // Must have perceptible chromaticity
+        if (chroma < 0.08f || s < 0.15f) return@filter false
+
+        val isPurpleOrMagenta = h in 250f..315f
+        if (isPurpleOrMagenta) {
+            popRatio >= MIN_PURPLE_ACCENT_POPULATION_RATIO && chroma >= MIN_PURPLE_CHROMA
+        } else {
+            popRatio >= MIN_ACCENT_POPULATION_RATIO
+        }
+    }
+
+    if (candidates.isEmpty()) {
+        return dominant
+    }
+
+    return candidates.maxBy { swatch ->
+        val hsl = FloatArray(3).also { ColorUtils.colorToHSL(swatch.rgb, it) }
+        val s = hsl[1]
+        val r = (swatch.rgb shr 16) and 0xFF
+        val g = (swatch.rgb shr 8) and 0xFF
+        val b = swatch.rgb and 0xFF
+        val chroma = (maxOf(r, g, b) - minOf(r, g, b)) / 255f
+        val popRatio = swatch.population.toFloat() / totalPopulation
+
+        (chroma * 0.65f + s * 0.35f) * popRatio.pow(0.75f)
+    }
+}
+
+private fun seedOf(bitmap: ImageBitmap): Seed? {
+    val all = paletteSwatches(bitmap, SWATCH_COUNT, clearFilters = true)
     if (all.isEmpty()) return null
-    val accentCandidates = swatches(clearFilters = false).ifEmpty { all }
 
     val dominant = all.maxBy { it.population }
-    // The accent has to earn its place twice over: a colour nobody sees enough
-    // of reads as arbitrary, and a grey one isn't an accent at all. Scoring on
-    // saturation against the *square root* of population is what stops a sleeve
-    // that is four-fifths black sky from accenting in black.
-    val vibrant = accentCandidates.maxBy { swatch ->
-        val hsl = FloatArray(3).also { ColorUtils.colorToHSL(swatch.rgb, it) }
-        hsl[1] * sqrt(swatch.population.toFloat())
-    }
+    val vibrant = selectVibrantSwatch(all, dominant)
     return Seed(
         dominant = Color(dominant.rgb),
         vibrant = Color(vibrant.rgb),
