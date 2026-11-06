@@ -1,5 +1,9 @@
 package com.music.violence.ui.tv.screens
 
+import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -104,6 +108,9 @@ fun TvSettingsScreen(
     var blurb by remember { mutableStateOf(DefaultBlurb) }
     var sheet by remember { mutableStateOf<SettingsSheet?>(null) }
     val update by AppUpdateChecker.available.collectAsState()
+    val context = LocalContext.current
+    val updateScope = rememberCoroutineScope()
+    var checkingForUpdate by remember { mutableStateOf(false) }
     val myProfile by ProfileManager.profile.collectAsState()
     val friendList by ProfileManager.friends.collectAsState()
     LaunchedEffect(jamInviteCode) {
@@ -383,6 +390,31 @@ fun TvSettingsScreen(
                         onClick = { sheet = SettingsSheet.Update },
                     )
                 }
+            }
+            item {
+                TvListRow(
+                    title = "Check for Updates",
+                    value = if (checkingForUpdate) "Checking..." else BuildConfig.VERSION_NAME,
+                    onFocused = { blurb = "Look for a newer version of Violence for TV." },
+                    onClick = {
+                        if (!checkingForUpdate) {
+                            checkingForUpdate = true
+                            updateScope.launch {
+                                val result = AppUpdateChecker.checkNow(context)
+                                checkingForUpdate = false
+                                when (result) {
+                                    is AppUpdateChecker.CheckResult.Available -> sheet = SettingsSheet.Update
+                                    AppUpdateChecker.CheckResult.UpToDate ->
+                                        Toast.makeText(context, "Violence is up to date.", Toast.LENGTH_SHORT).show()
+                                    AppUpdateChecker.CheckResult.Failed ->
+                                        Toast.makeText(context, "Couldn't check for updates. Try again later.", Toast.LENGTH_SHORT).show()
+                                    AppUpdateChecker.CheckResult.NotConfigured ->
+                                        Toast.makeText(context, "Updates aren't set up for this build.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                )
             }
             item {
                 TvListRow(

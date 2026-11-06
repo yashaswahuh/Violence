@@ -28,7 +28,7 @@ export default defineConfig({
   manifest: ({ browser }) => ({
     name: 'Violence',
     description: 'Connects the Violence web player to YouTube Music, Spotify and Discord.',
-    homepage_url: SITE_ORIGINS[0],
+    homepage_url: SITE_ORIGINS[0] ? `${SITE_ORIGINS[0]}/Violence` : undefined,
     // `cookies` reads the YouTube session for signed-in requests (phase 5);
     // the cookies themselves never leave the extension (lib/ytAuth.ts).
     // `scripting` reads the Discord token from a discord.com tab, and only on

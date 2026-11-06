@@ -163,6 +163,7 @@ import com.music.violence.ui.components.thumbnailBorder
 import com.music.violence.ui.performance.resolvePerformanceRefreshRate
 import com.music.violence.ui.performance.supportedPerformanceRefreshRates
 import com.music.violence.data.model.Account
+import com.music.violence.data.AppUpdateChecker
 import com.music.violence.data.LocalMediaRepository
 import com.music.violence.data.NerdStats
 import com.music.violence.data.scrobbling.LastFM
@@ -412,6 +413,9 @@ fun SettingsScreen(
     var showListenBrainzTokenDialog by remember { mutableStateOf(false) }
     var showLastfmLoginDialog by remember { mutableStateOf(false) }
     val scrobbleScope = rememberCoroutineScope()
+    var checkingForUpdate by remember { mutableStateOf(false) }
+    var showChangelog by remember { mutableStateOf(false) }
+    var showCredits by remember { mutableStateOf(false) }
 
     val version = remember(context) {
         runCatching {
@@ -1075,6 +1079,9 @@ fun SettingsScreen(
         }
 
         if (shows(SettingsCategory.APPEARANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.appearance)) {
+            row("violence", "style", "experimental", "skin", "glow", "font", "accent") {
+                com.music.violence.ui.violencestyle.ViolenceStyleSettingsBlock()
+            }
             val themeTitle = stringResource(R.string.theme)
             row(themeTitle, "dark mode", "light mode") {
                 SettingsRow(icon = Icons.Rounded.Brightness4, title = themeTitle)
@@ -1725,9 +1732,6 @@ fun SettingsScreen(
         }
 
         if (shows(SettingsCategory.ADVANCED)) SearchableSettingsGroup(search, header = stringResource(R.string.advanced_options)) {
-            row("violence", "style", "experimental", "skin", "glow", "font", "accent") {
-                com.music.violence.ui.violencestyle.ViolenceStyleSettingsBlock()
-            }
             val smartAlignmentTitle = stringResource(R.string.smart_version_alignment)
             row(smartAlignmentTitle, "alignment", "sync", "waveform", "video", "audio", "skit", "intro") {
                 SettingsRow(
@@ -1851,6 +1855,56 @@ fun SettingsScreen(
             }
         }
 
+        if (shows(SettingsCategory.ABOUT)) SearchableSettingsGroup(search, header = stringResource(R.string.about_violence)) {
+            val checkTitle = stringResource(R.string.check_for_updates)
+            row(checkTitle, "update", "upgrade", "version", "new") {
+                SettingsRow(
+                    icon = SfIcons.Download,
+                    title = checkTitle,
+                    subtitle = if (checkingForUpdate) {
+                        stringResource(R.string.checking_for_updates)
+                    } else {
+                        stringResource(R.string.check_for_updates_version, version)
+                    },
+                    onClick = {
+                        if (!checkingForUpdate) {
+                            checkingForUpdate = true
+                            scrobbleScope.launch {
+                                val result = AppUpdateChecker.checkNow(context)
+                                checkingForUpdate = false
+                                // An update opens the update sheet on its own; the rest say so.
+                                val message = when (result) {
+                                    AppUpdateChecker.CheckResult.UpToDate -> R.string.update_up_to_date
+                                    AppUpdateChecker.CheckResult.Failed -> R.string.update_check_failed
+                                    AppUpdateChecker.CheckResult.NotConfigured -> R.string.update_not_set_up
+                                    is AppUpdateChecker.CheckResult.Available -> null
+                                }
+                                if (message != null) Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                )
+            }
+            val changelogTitle = stringResource(R.string.changelog)
+            row(changelogTitle, "changes", "what's new", "release notes", "history") {
+                SettingsRow(
+                    icon = SfIcons.Info,
+                    title = changelogTitle,
+                    subtitle = stringResource(R.string.changelog_subtitle),
+                    onClick = { showChangelog = true },
+                )
+            }
+            val creditsTitle = stringResource(R.string.credits)
+            row(creditsTitle, "thanks", "licenses", "licences", "attribution", "bitchord") {
+                SettingsRow(
+                    icon = SfIcons.Info,
+                    title = creditsTitle,
+                    subtitle = stringResource(R.string.credits_subtitle),
+                    onClick = { showCredits = true },
+                )
+            }
+        }
+
         // Read after every group above has had its turn at the query, which is
         // what makes this an accurate "nothing here" rather than a guess.
         if (searching && !search.anyMatch) {
@@ -1885,6 +1939,9 @@ fun SettingsScreen(
             )
         }
     }
+
+    if (showChangelog) ChangelogDialog(onDismiss = { showChangelog = false })
+    if (showCredits) CreditsDialog(onDismiss = { showCredits = false })
 
     // Everything in the Cached songs folder goes with it, so say so first.
     if (confirmClearSongCache) {
@@ -2869,6 +2926,7 @@ enum class SettingsCategory(@param:StringRes val title: Int) {
     MISCELLANEOUS(R.string.miscellaneous),
     LANGUAGE(R.string.language),
     ADVANCED(R.string.advanced_options),
+    ABOUT(R.string.about_violence),
     ;
 
     val icon: ImageVector
@@ -2883,6 +2941,7 @@ enum class SettingsCategory(@param:StringRes val title: Int) {
             MISCELLANEOUS -> SfIcons.Miscellaneous
             LANGUAGE -> SfIcons.Language
             ADVANCED -> SfIcons.Advanced
+            ABOUT -> SfIcons.Info
         }
 }
 

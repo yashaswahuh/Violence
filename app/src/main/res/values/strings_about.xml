@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_violence">About Violence</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="check_for_updates_version">Version %1$s</string>
+    <string name="checking_for_updates">Checking…</string>
+    <string name="update_up_to_date">Violence is up to date.</string>
+    <string name="update_check_failed">Couldn\'t check for updates. Try again later.</string>
+    <string name="update_not_set_up">Updates aren\'t set up for this build.</string>
+    <string name="changelog">Changelog</string>
+    <string name="changelog_subtitle">What changed in each release</string>
+    <string name="credits">Credits</string>
+    <string name="credits_subtitle">Everyone and everything Violence is built on</string>
+    <string name="credits_disclaimer">Violence is not affiliated with or endorsed by YouTube, Google, Spotify, Last.fm or Apple. All names and logos belong to their owners.</string>
+</resources>
