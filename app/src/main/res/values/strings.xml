@@ -325,7 +325,8 @@
     <string name="app_icon">App icon</string>
     <string name="app_icon_default">Default</string>
     <string name="app_icon_monochrome" translatable="false">Monochrome</string>
-    <string name="app_icon_resonant_core" translatable="false">Resonant Core</string>
+    <string name="app_icon_orb_yellow" translatable="false">Orb Yellow</string>
+    <string name="app_icon_orb_violet" translatable="false">Orb Violet</string>
     <string name="app_icon_liquid_glass" translatable="false">Liquid Glass</string>
     <string name="app_icon_liquid_glass_dark" translatable="false">Liquid Glass Dark</string>
     <string name="app_icon_liquid_glass_clear" translatable="false">Liquid Glass Clear</string>
