@@ -193,7 +193,8 @@ function setDiscord(state: DiscordState): void {
 
 document.getElementById('version')!.textContent = `v${browser.runtime.getManifest().version}`;
 const site = document.getElementById('site') as HTMLAnchorElement;
-site.href = __SITE_ORIGINS__[0] ?? '#';
+// The web player is served under /Violence, not at the site root.
+site.href = __SITE_ORIGINS__[0] ? `${__SITE_ORIGINS__[0]}/Violence` : '#';
 
 render();
 call('yt.authState', {})
