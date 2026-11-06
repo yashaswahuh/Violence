@@ -166,6 +166,7 @@ interface PlayerHost {
 }
 
 private val NoCast = MutableStateFlow(CastUi())
+private val NoAutomixCover = MutableStateFlow(false)
 
 private val DefaultVideoAspect = MutableStateFlow(16f / 9f)
 
@@ -281,6 +282,8 @@ interface PlayerSettingsSource {
     val smartMixView: StateFlow<MixTransitionView?>
     /** Progress through [smartMixView]'s blend, 0..1. */
     val smartMixProgress: StateFlow<Float>
+    /** Experimental: animate the cover art through an Automix blend. Off where the host has no switch. */
+    val automixCoverAnimation: StateFlow<Boolean> get() = NoAutomixCover
     val smartTransitionWindow: StateFlow<TransitionWindow?>
     val spotifyCanvasAutoHide: StateFlow<Boolean>
     val syncedLyrics: StateFlow<Boolean>

@@ -45,6 +45,8 @@
     <string name="vs_reduce_transparency_subtitle">Use solid fills instead of glass. It also follows Reduce dynamic blur.</string>
     <string name="vs_detail_glow">Glow on album and artist pages</string>
     <string name="vs_account_liquid_glass">Liquid Glass account menu</string>
+    <string name="vs_automix_cover">Automix cover animation</string>
+    <string name="vs_automix_cover_subtitle">When Automix blends one song into the next, the cover art glides from the old song to the new one in time with the mix. Experimental.</string>
     <string name="vs_full_cover">Full-screen cover on albums and playlists</string>
     <string name="vs_full_cover_subtitle">Album and playlist pages open with the cover art filling the top of the page, like the player. Experimental.</string>
     <string name="vs_account_liquid_glass_subtitle">Draws the account menu as Liquid Glass, like the navigation bar. Needs Liquid Glass on and Android 12 or later; otherwise it stays frosted.</string>

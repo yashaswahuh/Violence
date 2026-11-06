@@ -91,6 +91,7 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         override val smartMixBlend get() = AppSettings.smartMixBlend
         override val smartMixView get() = AppSettings.smartMixView
         override val smartMixProgress get() = AppSettings.smartMixProgress
+        override val automixCoverAnimation get() = com.music.violence.ui.violencestyle.ViolenceStyleSettings.automixCoverAnimation
         override val smartTransitionWindow get() = AppSettings.smartTransitionWindow
         override val spotifyCanvasAutoHide get() = AppSettings.spotifyCanvasAutoHide
         override val syncedLyrics get() = AppSettings.syncedLyrics

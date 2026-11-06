@@ -954,24 +954,17 @@ class PartySync(
     }
 
     private fun onLeftParty() {
-        Log.i(TAG, "left party, restoring personal queue if stashed")
+        Log.i(TAG, "left party, keeping the current queue and song")
         loadingVideoId = null
         focusLost = false
         rejoining = false
         clearUnplayable()
-        val stashed = PartyPersonalQueueStash.load()
-        if (stashed != null) {
-            val exo = player() ?: return
-            val items = stashed.songs.map { it.toMediaItem() }
-            exo.setMediaItems(items, stashed.index, stashed.positionMs)
-            exo.prepare()
-            if (stashed.wasPlaying) {
-                exo.play()
-            } else {
-                exo.pause()
-            }
-            PartyPersonalQueueStash.clear()
-        }
+        // Leaving a jam leaves the player exactly as it is: the queue, the song
+        // and whether it is playing all carry on. The queue saved when the jam
+        // was joined is dropped rather than put back; restoring it threw away
+        // the queue the listener had just been using and jumped back to the song
+        // from before the jam.
+        PartyPersonalQueueStash.clear()
     }
 
     private fun reconcileQueue(party: ListenTogether.State, exo: Player) {
