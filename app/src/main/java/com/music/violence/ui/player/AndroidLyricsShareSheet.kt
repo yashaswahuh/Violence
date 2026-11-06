@@ -1,5 +1,6 @@
 package com.music.violence.ui.player
 
+import androidx.compose.runtime.collectAsState
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -76,12 +77,17 @@ internal fun AndroidLyricsShareSheet(
     var saved by remember(request) { mutableStateOf(false) }
     // Same picture, cut to the 9:16 frame a story wants instead of to its lines.
     var story by remember(request) { mutableStateOf(false) }
+    // Test 1.0: the Quote design, offered only while its experimental switch is on.
+    val quoteAvailable by com.music.violence.ui.violencestyle.ViolenceStyleSettings.lyricsQuoteCard.collectAsState()
+    var quote by remember(request, quoteAvailable) { mutableStateOf(quoteAvailable) }
 
-    LaunchedEffect(request, story) {
+    LaunchedEffect(request, story, quote) {
         image = null
         failed = false
         saved = false
-        image = runCatching { renderLyricsShareCard(context, request, story) }
+        image = runCatching {
+            if (quote) renderLyricsQuoteCard(context, request, story) else renderLyricsShareCard(context, request, story)
+        }
             .onFailure { failed = true }
             .getOrNull()
     }
@@ -132,6 +138,20 @@ internal fun AndroidLyricsShareSheet(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = stringResource(R.string.your_lyrics_card),
                     modifier = preview,
+                )
+            }
+
+            if (quoteAvailable) {
+                ShareAction(
+                    label = stringResource(if (quote) R.string.lyrics_card_use_classic else R.string.lyrics_card_use_quote),
+                    icon = Icons.Rounded.Undo,
+                    accent = false,
+                    enabled = image != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        haptics.play(Haptic.Tap)
+                        quote = !quote
+                    },
                 )
             }
 

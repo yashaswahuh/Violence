@@ -206,10 +206,10 @@ private fun planAt(type: Fonts, lines: List<LyricsShareLine>, size: Float): Plan
             rows += Row(text, paint, height, gap)
             firstOfLine = false
         }
-        wrap(line.text, primary, CARD_CONTENT_W).forEach { add(it, primary, size * LEAD) }
+        wrapLyricsText(line.text, primary, CARD_CONTENT_W).forEach { add(it, primary, size * LEAD) }
         val sub = line.subText
         if (!sub.isNullOrBlank() && sub != line.text) {
-            wrap(sub, secondary, CARD_CONTENT_W).forEach { add(it, secondary, subSize * SUB_LEAD) }
+            wrapLyricsText(sub, secondary, CARD_CONTENT_W).forEach { add(it, secondary, subSize * SUB_LEAD) }
         }
     }
     return Plan(rows, -primary.ascent())
@@ -226,7 +226,7 @@ private fun planAt(type: Fonts, lines: List<LyricsShareLine>, size: Float): Plan
  * fits, and only then is the break walked back to a space — so scripts that keep
  * their words apart lose nothing, and scripts that don't still get several lines.
  */
-private fun wrap(text: String, paint: Paint, width: Float): List<String> {
+internal fun wrapLyricsText(text: String, paint: Paint, width: Float): List<String> {
     val source = text.trim()
     if (source.isEmpty()) return listOf("")
 

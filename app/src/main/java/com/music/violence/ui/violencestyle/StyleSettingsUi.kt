@@ -90,6 +90,7 @@ private fun ViolenceStyleOptions() {
     val accountLiquidGlass by ViolenceStyleSettings.accountLiquidGlass.collectAsStateWithLifecycle()
     val fullCoverPages by ViolenceStyleSettings.fullCoverPages.collectAsStateWithLifecycle()
     val automixCover by ViolenceStyleSettings.automixCoverAnimation.collectAsStateWithLifecycle()
+    val lyricsQuote by ViolenceStyleSettings.lyricsQuoteCard.collectAsStateWithLifecycle()
     val style = LocalViolenceStyle.current
 
     OptionDivider()
@@ -154,6 +155,12 @@ private fun ViolenceStyleOptions() {
         subtitle = stringResource(R.string.vs_automix_cover_subtitle),
         trailing = { IosSwitch(checked = automixCover, onCheckedChange = ViolenceStyleSettings::setAutomixCoverAnimation) },
         onClick = { ViolenceStyleSettings.setAutomixCoverAnimation(!automixCover) },
+    )
+    SettingsRow(
+        title = stringResource(R.string.vs_lyrics_quote),
+        subtitle = stringResource(R.string.vs_lyrics_quote_subtitle),
+        trailing = { IosSwitch(checked = lyricsQuote, onCheckedChange = ViolenceStyleSettings::setLyricsQuoteCard) },
+        onClick = { ViolenceStyleSettings.setLyricsQuoteCard(!lyricsQuote) },
     )
     Text(
         text = if (style.capability == StyleCapability.FULL) {
