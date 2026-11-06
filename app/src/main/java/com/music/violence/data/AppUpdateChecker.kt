@@ -8,7 +8,10 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import com.music.violence.BuildConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -120,6 +123,48 @@ object AppUpdateChecker {
                 _available.value = UpdateInfo(parsed.versionName, parsed.page, parsed.apkUrl, parsed.notes, parsed.sha256)
             }
         }
+    }
+
+    /** What a check the user asked for found. */
+    sealed interface CheckResult {
+        /** This build has no update address, so there is nothing to ask. */
+        data object NotConfigured : CheckResult
+        data object UpToDate : CheckResult
+        data class Available(val info: UpdateInfo) : CheckResult
+        /** The file could not be fetched or read. */
+        data object Failed : CheckResult
+    }
+
+    private val _showRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** Emits when a check the user asked for found an update, so the app opens its update sheet. */
+    val showRequests: SharedFlow<Unit> = _showRequests.asSharedFlow()
+
+    /**
+     * A check the user asked for: asks now, whatever the once-a-day limit of [check] says, and
+     * reports what it found. An update it finds is published the same way [check]'s is, and the
+     * app is asked to open its update sheet.
+     */
+    suspend fun checkNow(context: Context): CheckResult = withContext(Dispatchers.IO) {
+        val infoUrl = BuildConfig.UPDATE_INFO_URL.trim()
+        if (infoUrl.isBlank() || !infoUrl.startsWith("https://", ignoreCase = true)) {
+            return@withContext CheckResult.NotConfigured
+        }
+        runCatching {
+            val body = fetch(infoUrl) ?: return@runCatching CheckResult.Failed
+            context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putLong(KEY_LAST_CHECK, System.currentTimeMillis()).putString(KEY_LAST_BODY, body).apply()
+            val parsed = parseUpdate(body, infoUrl, BuildConfig.UPDATE_APK_KEY, Build.SUPPORTED_ABIS.toList())
+                ?: return@runCatching CheckResult.Failed
+            if (parsed.versionCode > BuildConfig.VERSION_CODE) {
+                val info = UpdateInfo(parsed.versionName, parsed.page, parsed.apkUrl, parsed.notes, parsed.sha256)
+                _available.value = info
+                _showRequests.tryEmit(Unit)
+                CheckResult.Available(info)
+            } else {
+                CheckResult.UpToDate
+            }
+        }.getOrDefault(CheckResult.Failed)
     }
 
     private fun fetch(url: String): String? {

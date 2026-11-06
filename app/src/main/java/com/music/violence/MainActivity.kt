@@ -917,6 +917,10 @@ private fun ViolenceApp(
      */
     val updateNotice = updateAvailable
 
+    // "Check for updates" in Settings found one: open the sheet now, whether or not it already had its turn this launch.
+    LaunchedEffect(Unit) {
+        AppUpdateChecker.showRequests.collect { showUpdateDialog = true }
+    }
     LaunchedEffect(updateNotice) {
         if (updateNotice != null && !updateDialogShown) {
             updateDialogShown = true
