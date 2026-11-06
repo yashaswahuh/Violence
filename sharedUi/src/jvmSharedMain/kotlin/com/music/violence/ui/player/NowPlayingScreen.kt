@@ -3288,6 +3288,10 @@ fun NowPlayingScreen(
                                         }
                                     },
                             )
+                            // Experimental: the covers of an Automix blend, glided
+                            // through it. Draws nothing unless that is switched on
+                            // and a blend is actually mixing.
+                            AutomixCoverTransition()
 
                             // Where the clip plays when it can't have the banner:
                             // inside the same clip as the still art, taking the
