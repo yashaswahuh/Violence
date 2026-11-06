@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.music.violence.R
 import com.music.violence.data.model.PlaylistPrivacy
 import com.music.violence.data.model.Song
+import com.music.violence.data.spotify.AppleMusicImporter
 import com.music.violence.data.spotify.SpotifyImportTrack
 import com.music.violence.data.spotify.SpotifyImporter
 import dev.chrisbanes.haze.HazeState
@@ -88,8 +89,10 @@ fun SpotifyImportAlert(
     var unmatched by remember { mutableStateOf<List<SpotifyImportTrack>?>(null) }
 
     fun start() {
-        val id = SpotifyImporter.extractPlaylistId(link)
-        if (id == null) {
+        // A Spotify or an Apple Music link; both end up as the same list of titles and artists.
+        val appleUrl = AppleMusicImporter.extractPlaylistUrl(link)
+        val id = if (appleUrl == null) SpotifyImporter.extractPlaylistId(link) else null
+        if (appleUrl == null && id == null) {
             status = context.getString(R.string.spotify_import_invalid)
             failed = true
             return
@@ -104,7 +107,11 @@ fun SpotifyImportAlert(
         status = context.getString(R.string.spotify_import_fetching)
         scope.launch {
             try {
-                val (name, tracks) = SpotifyImporter.fetchPlaylistTracks(id)
+                val (name, tracks) = if (appleUrl != null) {
+                    AppleMusicImporter.fetchPlaylistTracks(appleUrl)
+                } else {
+                    SpotifyImporter.fetchPlaylistTracks(id!!)
+                }
                 val (songs, missed) = SpotifyImporter.resolveToSongs(tracks, effectiveLanguage) { done, total ->
                     status = context.getString(R.string.spotify_import_matching, done, total)
                 }
