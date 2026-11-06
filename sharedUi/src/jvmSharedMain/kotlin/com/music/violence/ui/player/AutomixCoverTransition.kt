@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.music.violence.data.settings.MixDeck
 
 /**
  * The cover art of an Automix blend: the outgoing cover dissolves slowly into
@@ -31,18 +30,17 @@ import com.music.violence.data.settings.MixDeck
 internal fun AutomixCoverTransition(modifier: Modifier = Modifier) {
     val enabled by PlayerSettings.automixCoverAnimation.collectAsStateWithLifecycle()
     if (!enabled) return
-    val mixing by PlayerSettings.smartMixInProgress.collectAsStateWithLifecycle()
-    val view by PlayerSettings.smartMixView.collectAsStateWithLifecycle()
+    val covers by PlayerSettings.coverBlend.collectAsStateWithLifecycle()
     val still by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
-    val blend = view?.takeIf { mixing } ?: return
+    val blend = covers ?: return
     // One look per blend, chosen when it starts and held to its end.
     val style = remember(blend) { if (still) Style.DISSOLVE else nextStyle() }
     // Read in the draw layers below, not here: it changes on every tick of the blend.
     val progress = PlayerSettings.smartMixProgress.collectAsStateWithLifecycle()
 
     Box(modifier.fillMaxSize()) {
-        CoverCard(blend.outgoing, style, outgoing = true) { progress.value }
-        CoverCard(blend.incoming, style, outgoing = false) { progress.value }
+        CoverCard(blend.outgoingArtwork, style, outgoing = true) { progress.value }
+        CoverCard(blend.incomingArtwork, style, outgoing = false) { progress.value }
     }
 }
 
@@ -68,9 +66,9 @@ private var blendsSeen = 0
 private fun nextStyle(): Style = ROTATION[blendsSeen++ % ROTATION.size]
 
 @Composable
-private fun CoverCard(deck: MixDeck, style: Style, outgoing: Boolean, progress: () -> Float) {
+private fun CoverCard(artwork: String?, style: Style, outgoing: Boolean, progress: () -> Float) {
     AsyncImage(
-        model = deck.artworkUrl,
+        model = artwork,
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = Modifier

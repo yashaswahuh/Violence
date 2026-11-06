@@ -12,6 +12,7 @@ import com.music.violence.data.model.Song
 import com.music.violence.data.settings.AudioQuality
 import com.music.violence.data.settings.LastPlayerScreen
 import com.music.violence.data.settings.SmartAnalysis
+import com.music.violence.data.settings.CoverBlend
 import com.music.violence.data.settings.MixBlend
 import com.music.violence.data.settings.MixTransitionView
 import com.music.violence.data.settings.TransitionWindow
@@ -157,6 +158,7 @@ interface PlayerHost {
 
 private val NoCast = MutableStateFlow(CastUi())
 private val NoAutomixCover = MutableStateFlow(false)
+private val NoCoverBlend = MutableStateFlow<CoverBlend?>(null)
 
 private val DefaultVideoAspect = MutableStateFlow(16f / 9f)
 
@@ -274,6 +276,8 @@ interface PlayerSettingsSource {
     val smartMixProgress: StateFlow<Float>
     /** Experimental: animate the cover art through an Automix blend. Off where the host has no switch. */
     val automixCoverAnimation: StateFlow<Boolean> get() = NoAutomixCover
+    /** The covers of the song-to-song transition in flight, mixed or plain; null between. */
+    val coverBlend: StateFlow<CoverBlend?> get() = NoCoverBlend
     val smartTransitionWindow: StateFlow<TransitionWindow?>
     val spotifyCanvasAutoHide: StateFlow<Boolean>
     val syncedLyrics: StateFlow<Boolean>

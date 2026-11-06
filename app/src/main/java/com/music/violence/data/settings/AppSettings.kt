@@ -804,6 +804,9 @@ object AppSettings {
     /** How far through [smartMixView]'s blend playback is, 0..1. Read it in draw. */
     val smartMixProgress = MutableStateFlow(0f)
 
+    /** The covers of whatever song-to-song transition is in flight, mixed or plain; null between. */
+    val coverBlend = MutableStateFlow<CoverBlend?>(null)
+
     /**
      * True while a version switch is fetching and analysing the other cut
      * before playback actually moves. Drains into the loading bar drawn along
