@@ -324,6 +324,10 @@
     <string name="show_listen_together_button_subtitle">Off, the player shows only the audio output button between lyrics and the queue</string>
     <string name="app_icon">App icon</string>
     <string name="app_icon_default">Default</string>
+    <string name="app_icon_minimal">Minimal</string>
+    <string name="app_icon_blue" translatable="false">Blue</string>
+    <string name="app_icon_red" translatable="false">Red</string>
+    <string name="app_icon_pink" translatable="false">Pink</string>
     <string name="app_icon_monochrome" translatable="false">Monochrome</string>
     <string name="app_icon_resonant_core" translatable="false">Resonant Core</string>
     <string name="app_icon_liquid_glass" translatable="false">Liquid Glass</string>

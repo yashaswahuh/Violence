@@ -1622,7 +1622,7 @@ fun SettingsScreen(
                         .padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    AppIcon.entries.forEach { option ->
+                    AppIcon.selectable.forEach { option ->
                         val selected = option == selectedIcon
                         Column(
                             modifier = Modifier
