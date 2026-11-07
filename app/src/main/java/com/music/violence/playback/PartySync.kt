@@ -805,15 +805,11 @@ class PartySync(
             .map { exo.getMediaItemAt(it) }
             .filterNot { it.mediaId.startsWith("content://") || it.mediaId.startsWith("file://") }
 
-        val rawTrackIndex = rawLocalItems.indexOfFirst { it.mediaId == track.videoId }
-        val localItems = if (rawTrackIndex >= 0) {
-            val pastAndCurrent = rawLocalItems.subList(0, rawTrackIndex + 1)
-            val upcoming = rawLocalItems.subList(rawTrackIndex + 1, rawLocalItems.size)
-                .filter { it.queueTier != QueueTier.CONTEXT }
-            pastAndCurrent + upcoming
-        } else {
-            rawLocalItems.filter { it.queueTier != QueueTier.CONTEXT }
-        }
+        // Everything upcoming counts, including the songs that follow from the playlist or
+        // album being played (the context tier). Leaving those out is what used to empty the
+        // queue when a Jam started: the party was told about the current song alone, and
+        // [reconcileQueue] then trimmed this device's queue down to match.
+        val localItems = rawLocalItems
 
         val localIds = localItems.map { it.mediaId }
         val trackIndex = localIds.indexOf(track.videoId)
@@ -935,15 +931,8 @@ class PartySync(
         val song = exo.currentMediaItem?.toSong() ?: return
         if (song.isDeviceFile()) return
         Log.i(TAG, "seeding the new party with what this device is already playing")
-        val currentIndex = exo.currentMediaItemIndex
-        if (currentIndex >= 0 && currentIndex + 1 < exo.mediaItemCount) {
-            val toKeep = (currentIndex + 1 until exo.mediaItemCount)
-                .map { exo.getMediaItemAt(it) }
-                .filter { it.queueTier != QueueTier.CONTEXT }
-            if (toKeep.size != exo.mediaItemCount - (currentIndex + 1)) {
-                exo.replaceMediaItems(currentIndex + 1, exo.mediaItemCount, toKeep)
-            }
-        }
+        // The queue this device already has goes to the party as it is: what plays next in
+        // the playlist stays next, instead of being cut away before the party is told.
         publish()
     }
 

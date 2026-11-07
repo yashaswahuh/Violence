@@ -202,7 +202,7 @@
     <string name="your_listening_experience">Your listening experience</string>
     <string name="default_replay_holder">Violence listener</string>
     <string name="member_since">Member since</string>
-    <string name="import_spotify">Import Spotify</string>
+    <string name="import_spotify">Import Spotify/Apple Music Playlist</string>
     <string name="import_spotify_subtitle">From a playlist link</string>
     <string name="sign_in_with_google">Sign in with Google</string>
     <string name="top_picks_for_you">Top Picks for You</string>

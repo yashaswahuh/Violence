@@ -979,6 +979,10 @@ internal fun NewShelfCard(
     modifier: Modifier = Modifier.width(SHELF_CARD_WIDTH),
     /** A full-colour mark drawn in place of [icon], for a card that stands for a brand. */
     logo: DrawableResource? = null,
+    /** A second mark, drawn after [logo] and a slash, for a card that stands for two brands. */
+    secondLogo: DrawableResource? = null,
+    /** How many lines the label may take before it is cut short. */
+    labelMaxLines: Int = 1,
 ) {
     Column(
         modifier = modifier.clickable(onClick = onClick),
@@ -991,7 +995,30 @@ internal fun NewShelfCard(
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
-            if (logo != null) {
+            if (logo != null && secondLogo != null) {
+                // Two brands side by side with a slash between them, each a little smaller so the
+                // pair fits the tile.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(logo),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(34.dp),
+                    )
+                    Text(
+                        text = "/",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 6.dp),
+                    )
+                    Icon(
+                        painter = painterResource(secondLogo),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(34.dp),
+                    )
+                }
+            } else if (logo != null) {
                 // The mark is a disc with the bars cut out, so tinting it
                 // leaves the bars clear: white on dark, black on light.
                 Icon(
@@ -1014,7 +1041,7 @@ internal fun NewShelfCard(
             text = label,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
+            maxLines = labelMaxLines,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
