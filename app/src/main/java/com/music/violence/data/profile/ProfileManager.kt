@@ -118,8 +118,22 @@ object ProfileManager {
 
     // ------------------------------------------------------------- local photo --
 
+    private val _photoVersion = kotlinx.coroutines.flow.MutableStateFlow(0L)
+
+    /** Changes whenever the photo is picked or removed, so the screens showing it redraw. */
+    val photoVersion: kotlinx.coroutines.flow.StateFlow<Long> = _photoVersion
+
     /** The photo file if one was picked, else null. Local only: never uploaded, never in a card. */
-    fun photo(): File? = if (::photoFile.isInitialized && photoFile.isFile) photoFile else null
+    fun photo(): File? = if (::photoFile.isInitialized) photoFiles().maxByOrNull { it.lastModified() } else null
+
+    /**
+     * Every saved photo: `photo.jpg` from older versions and the `photo-<time>.jpg` files this one
+     * writes. A new name for each photo (rather than overwriting one file) is what makes the image
+     * loader fetch the new picture instead of showing the old one from its cache.
+     */
+    private fun photoFiles(): List<File> =
+        photoFile.parentFile?.listFiles { f -> f.isFile && f.name.startsWith("photo") && f.name.endsWith(".jpg") }
+            ?.toList().orEmpty()
 
     /**
      * Copies the picked image into private storage, centre-cropped to a small square JPEG.
@@ -145,12 +159,16 @@ object ProfileManager {
             val square = Bitmap.createBitmap(decoded, (decoded.width - edge) / 2, (decoded.height - edge) / 2, edge, edge)
             val scaled = Bitmap.createScaledBitmap(square, PHOTO_EDGE_PX, PHOTO_EDGE_PX, true)
             photoFile.parentFile?.mkdirs()
-            photoFile.outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+            val fresh = File(photoFile.parentFile, "photo-${System.currentTimeMillis()}.jpg")
+            fresh.outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+            photoFiles().filter { it != fresh }.forEach { it.delete() }
+            _photoVersion.value = System.nanoTime()
             true
         }.getOrDefault(false)
     }
 
     fun clearPhoto() {
-        if (::photoFile.isInitialized) photoFile.delete()
+        if (::photoFile.isInitialized) photoFiles().forEach { it.delete() }
+        _photoVersion.value = System.nanoTime()
     }
 }

@@ -1145,11 +1145,14 @@ private fun MemberRow(member: PartyMember, isYou: Boolean, canKick: Boolean = fa
             .padding(horizontal = ROW_INSET, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Your own row shows your own picked photo, on this device only: it is never sent to the party.
+        val myPhoto = if (isYou) com.music.violence.ui.profile.rememberMyPhoto() else null
         ProfileAvatar(
             avatarId = member.avatarId,
             color = member.avatarColor,
             name = member.displayName,
             size = 32.dp,
+            photo = myPhoto,
             imageUrl = member.avatarUrl,
         )
         Spacer(Modifier.width(14.dp))

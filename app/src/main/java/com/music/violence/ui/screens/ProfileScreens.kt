@@ -155,7 +155,7 @@ fun ProfileScreen(
 
         // What other people will see, large, so the choices below have an obvious effect.
         Box(Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 12.dp), contentAlignment = Alignment.Center) {
-            ProfileAvatar(avatarId = avatarId, color = color, name = name, size = 96.dp)
+            ProfileAvatar(avatarId = avatarId, color = color, name = name, size = 96.dp, photo = photo)
         }
 
         SettingsGroup(header = stringResource(R.string.profile_name_header), topSpacing = 8.dp) {
