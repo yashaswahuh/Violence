@@ -44,9 +44,9 @@ internal suspend fun renderLyricsQuoteCard(
 ): Bitmap = withContext(Dispatchers.Default) {
     val cover = card.artworkUrl?.let { loadBitmap(context, it) }
     val colors = quotePalette(cover)
-    val serif = typeface(context, R.font.vs_bodoni_moda_italic, Typeface.SERIF)
-    val serifUpright = typeface(context, R.font.vs_bodoni_moda, Typeface.SERIF)
-    val sans = typeface(context, R.font.vs_inter, Typeface.SANS_SERIF)
+    val serif = quoteTypeface(context, R.font.vs_bodoni_moda_italic, Typeface.SERIF)
+    val serifUpright = quoteTypeface(context, R.font.vs_bodoni_moda, Typeface.SERIF)
+    val sans = quoteTypeface(context, R.font.vs_inter, Typeface.SANS_SERIF)
 
     // ── Fit the words ───────────────────────────────────────────────────────
     val frameRoom = MAX_H - HEAD - FOOT
@@ -179,7 +179,7 @@ private fun planQuote(lines: List<LyricsShareLine>, serif: Typeface, sans: Typef
 
 // ── The record ─────────────────────────────────────────────────────────────
 
-private fun drawRecord(canvas: Canvas, cover: Bitmap?, colors: QuoteColors, cx: Float, cy: Float, radius: Float) {
+internal fun drawRecord(canvas: Canvas, cover: Bitmap?, colors: QuoteColors, cx: Float, cy: Float, radius: Float) {
     val disc = Path().apply { addCircle(cx, cy, radius, Path.Direction.CW) }
     canvas.save()
     canvas.clipPath(disc)
@@ -224,7 +224,7 @@ private fun drawRecord(canvas: Canvas, cover: Bitmap?, colors: QuoteColors, cx: 
 
 // ── Colour ─────────────────────────────────────────────────────────────────
 
-private class QuoteColors(val ground: Int, val accent: Int)
+internal class QuoteColors(val ground: Int, val accent: Int)
 
 /**
  * A deep ground and a bright accent, both from the cover.
@@ -234,7 +234,7 @@ private class QuoteColors(val ground: Int, val accent: Int)
  * a light tone, so white type sits on the one and the quotation mark shows on it.
  * With no cover the card falls back to a neutral dark and a warm white.
  */
-private fun quotePalette(cover: Bitmap?): QuoteColors {
+internal fun quotePalette(cover: Bitmap?): QuoteColors {
     if (cover == null || cover.width == 0 || cover.height == 0) {
         return QuoteColors(ground = 0xFF121214.toInt(), accent = 0xFFE8D9B5.toInt())
     }
@@ -264,9 +264,9 @@ private fun quotePalette(cover: Bitmap?): QuoteColors {
     return QuoteColors(ground, accent)
 }
 
-private fun withAlpha(color: Int, alpha: Int): Int = (alpha shl 24) or (color and 0x00FFFFFF)
+internal fun withAlpha(color: Int, alpha: Int): Int = (alpha shl 24) or (color and 0x00FFFFFF)
 
-private fun typeface(context: Context, id: Int, fallback: Typeface): Typeface =
+internal fun quoteTypeface(context: Context, id: Int, fallback: Typeface): Typeface =
     runCatching { ResourcesCompat.getFont(context, id) }.getOrNull() ?: fallback
 
 // ── Geometry ───────────────────────────────────────────────────────────────
