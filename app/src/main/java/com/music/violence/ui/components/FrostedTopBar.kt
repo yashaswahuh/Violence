@@ -613,7 +613,9 @@ fun TopBarAccountButton(
                 )
             },
     ) {
-        val photo = account?.thumbnailUrl
+        // The user's own picked photo comes first; then the account's Google photo.
+        val myPhoto = com.music.violence.ui.profile.rememberMyPhoto()
+        val photo: Any? = myPhoto ?: account?.thumbnailUrl
         if (photo != null) {
             AsyncImage(
                 model = photo,

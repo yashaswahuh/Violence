@@ -1513,7 +1513,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // A leftover APK only means "Install Now" for the session that
             // downloaded it — see AppUpdateChecker.clearCache.
             AppUpdateChecker.clearCache(getApplication())
-            AppUpdateChecker.check(getApplication())
+            if (AppSettings.autoCheckUpdates.value) AppUpdateChecker.check(getApplication())
         }
     }
 

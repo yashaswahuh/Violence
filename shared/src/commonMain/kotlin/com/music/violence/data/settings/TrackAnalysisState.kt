@@ -40,6 +40,12 @@ data class SmartAnalysis(
 data class TransitionWindow(val start: Float, val end: Float)
 
 /**
+ * The two covers of any song-to-song transition in flight, plain fade or analysed mix,
+ * for the player's cover animation. Null between transitions.
+ */
+data class CoverBlend(val outgoingArtwork: String?, val incomingArtwork: String?)
+
+/**
  * An Automix blend in flight, as the scrubber draws it: the beat it is running
  * on, and whether it is moving. Only republished when one of those changes.
  */

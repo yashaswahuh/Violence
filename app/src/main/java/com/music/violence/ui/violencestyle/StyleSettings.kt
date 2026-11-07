@@ -32,12 +32,15 @@ object ViolenceStyleSettings {
     private const val KEY_ACCOUNT_LIQUID_GLASS = P + "account_liquid_glass"
     private const val KEY_FULL_COVER = P + "full_cover_pages"
     private const val KEY_AUTOMIX_COVER = P + "automix_cover_animation"
+    private const val KEY_LYRICS_QUOTE = P + "lyrics_quote_card"
     internal const val KEY_PENDING = P + "startup_pending"
     internal const val KEY_NOTICE = P + "safe_mode_notice"
+    private const val KEY_GLASS_PROMPT_SHOWN = P + "glass_recommendation_shown"
 
     private var prefs: SharedPreferences? = null
 
-    val enabled = MutableStateFlow(false)
+    /** On by default: Violence Style is the app's look. A saved choice always wins over this. */
+    val enabled = MutableStateFlow(true)
     val background = MutableStateFlow(StyleDefaults.BACKGROUND)
     val motion = MutableStateFlow(StyleDefaults.MOTION)
     val intensity = MutableStateFlow(StyleDefaults.INTENSITY)
@@ -58,13 +61,16 @@ object ViolenceStyleSettings {
     /** The player's cover art glides from one song to the next through an Automix blend. Off by default. */
     val automixCoverAnimation = MutableStateFlow(false)
 
+    /** Test 1.0: the Quote design for lyrics share cards. Off by default. */
+    val lyricsQuoteCard = MutableStateFlow(false)
+
     /** True after safe mode switched the style off; cleared when the user turns it on again. */
     val safeModeTriggered = MutableStateFlow(false)
 
     fun init(context: Context) {
         val p = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs = p
-        enabled.value = p.getBoolean(KEY_ENABLED, false)
+        enabled.value = p.getBoolean(KEY_ENABLED, true)
         background.value = StylePrefsParse.enumOr(p.getString(KEY_BACKGROUND, null), StyleDefaults.BACKGROUND)
         motion.value = StylePrefsParse.enumOr(p.getString(KEY_MOTION, null), StyleDefaults.MOTION)
         intensity.value = StylePrefsParse.enumOr(p.getString(KEY_INTENSITY, null), StyleDefaults.INTENSITY)
@@ -76,7 +82,15 @@ object ViolenceStyleSettings {
         accountLiquidGlass.value = p.getBoolean(KEY_ACCOUNT_LIQUID_GLASS, false)
         fullCoverPages.value = p.getBoolean(KEY_FULL_COVER, false)
         automixCoverAnimation.value = p.getBoolean(KEY_AUTOMIX_COVER, false)
+        lyricsQuoteCard.value = p.getBoolean(KEY_LYRICS_QUOTE, false)
         safeModeTriggered.value = p.getBoolean(KEY_NOTICE, false)
+    }
+
+    /** Whether the one-time "Liquid Glass is recommended" popup has not been shown yet. */
+    fun glassPromptPending(): Boolean = prefs?.getBoolean(KEY_GLASS_PROMPT_SHOWN, false) == false
+
+    fun markGlassPromptShown() {
+        prefs?.edit()?.putBoolean(KEY_GLASS_PROMPT_SHOWN, true)?.apply()
     }
 
     fun setEnabled(value: Boolean) {
@@ -124,6 +138,11 @@ object ViolenceStyleSettings {
     fun setAutomixCoverAnimation(value: Boolean) {
         automixCoverAnimation.value = value
         prefs?.edit()?.putBoolean(KEY_AUTOMIX_COVER, value)?.apply()
+    }
+
+    fun setLyricsQuoteCard(value: Boolean) {
+        lyricsQuoteCard.value = value
+        prefs?.edit()?.putBoolean(KEY_LYRICS_QUOTE, value)?.apply()
     }
 
     private fun put(key: String, value: String) {

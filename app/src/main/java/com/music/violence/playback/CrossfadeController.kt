@@ -11,6 +11,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.music.violence.data.listentogether.ListenTogether
 import com.music.violence.data.settings.AppSettings
+import com.music.violence.data.settings.CoverBlend
 import com.music.violence.data.settings.MixBlend
 import com.music.violence.data.settings.MixDeck
 import com.music.violence.data.settings.MixTransitionView
@@ -1680,6 +1681,12 @@ class CrossfadeController(
         publishBlend(out, into, force = true)
         AppSettings.smartMixInProgress.value = isRealMix()
         if (isRealMix()) publishMixView(out, into)
+        // Every transition gets the cover animation, not only the analysed mixes.
+        AppSettings.smartMixProgress.value = 0f
+        AppSettings.coverBlend.value = CoverBlend(
+            outgoingArtwork = out.currentMediaItem?.mediaMetadata?.artworkUri?.toString(),
+            incomingArtwork = into.currentMediaItem?.mediaMetadata?.artworkUri?.toString(),
+        )
         // The bar fills to the end through the first half of the blend, which
         // would run straight over the marker for the transition now under way.
         AppSettings.smartTransitionWindow.value = null
@@ -1834,7 +1841,7 @@ class CrossfadeController(
             handOff(out, player)
         }
         publishBlend(out, player)
-        if (AppSettings.smartMixView.value != null) AppSettings.smartMixProgress.value = progress
+        AppSettings.smartMixProgress.value = progress
         rideFilters(incomingAt, outgoingAt)
 
         // Finish when the fade runs its course or its setting is switched off.
@@ -2094,6 +2101,7 @@ class CrossfadeController(
     }
 
     private fun clearMixView() {
+        AppSettings.coverBlend.value = null
         mixViewJob?.cancel()
         mixViewJob = null
         mixWavePair = null

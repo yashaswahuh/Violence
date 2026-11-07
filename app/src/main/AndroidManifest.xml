@@ -324,11 +324,53 @@
         <!--
           The launcher entries live on aliases, not on MainActivity, so the user can
           swap the home-screen icon by enabling one alias and disabling the others
-          (see AppIcon). Exactly one is enabled at a time; Default is the shipped one.
+          (see AppIcon). Exactly one is enabled at a time; Blue is the shipped one, and LauncherDefault is the "Minimal" icon.
         -->
         <activity-alias
-            android:name=".LauncherDefault"
+            android:name=".LauncherBlue"
             android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_v_blue"
+            android:roundIcon="@mipmap/ic_v_blue"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherRed"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_v_red"
+            android:roundIcon="@mipmap/ic_v_red"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherPink"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_v_pink"
+            android:roundIcon="@mipmap/ic_v_pink"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherDefault"
+            android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher"
