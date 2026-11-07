@@ -23,9 +23,8 @@ import java.util.Locale
  * ```
  *   Listening to Violence          <- activityName, or the app's own name
  *   ┌────┐  Song title             <- details
- *   │art │  Artist                 <- state
- *   └────┘  Hi-Res Lossless · FLAC · 4608 kbps · 24-bit · 96 kHz
- *           ▁▁▁▁▁▁ 1:04 / 3:47     <- from the timestamps
+ *   │art │  Artist · Hi-Res...     <- state (includes audio quality when present)
+ *   └────┘  ▁▁▁▁▁▁ 1:04 / 3:47     <- from the timestamps
  *   [ Listen on YouTube Music ]    <- button 1
  *   [ Visit Violence           ]   <- button 2
  * ```
@@ -67,6 +66,8 @@ class DiscordRPC(
         activityType: String = "listening",
         activityName: String = "",
         audioQuality: String? = null,
+        partyCode: String? = null,
+        partyServer: String? = null,
     ) = runCatching {
         val currentTime = System.currentTimeMillis()
 
@@ -83,14 +84,22 @@ class DiscordRPC(
         val adjustedRemainingDuration = (remainingDuration / playbackSpeed).toLong()
 
         val buttonsList = mutableListOf<Pair<String, String>>()
-        if (button1Visible) {
+        if (!partyCode.isNullOrBlank()) {
+            val jamUrl = if (!partyServer.isNullOrBlank()) {
+                "$partyServer/invite/${partyCode.uppercase()}"
+            } else {
+                "https://yashaswahuh.is-a.dev/Violence/party/$partyCode"
+            }
+            buttonsList.add("Listen Together (Jam)" to jamUrl)
+        }
+        if (buttonsList.size < 2 && button1Visible) {
             val resolvedText = resolveVariables(
                 button1Text.ifEmpty { DEFAULT_BUTTON_1 },
                 song,
             )
             buttonsList.add(resolvedText.take(DiscordApplication.BUTTON_LABEL_MAX) to watchUrl(song))
         }
-        if (button2Visible) {
+        if (buttonsList.size < 2 && button2Visible) {
             val resolvedText = resolveVariables(
                 button2Text.ifEmpty { DEFAULT_BUTTON_2 },
                 song,
@@ -107,24 +116,15 @@ class DiscordRPC(
 
         val name = activityName.ifEmpty { appName() }
         val artwork = song.artworkAt(ART_PX)?.takeIf { it.startsWith("http") }
+        val stateText = if (audioQuality != null) "${song.artist} · $audioQuality" else song.artist
 
         setActivity(
             name = name,
             details = songTitleWithRate,
-            state = song.artist,
+            state = stateText,
             detailsUrl = watchUrl(song),
-            // Asked for at a size Discord's own card actually draws — the row
-            // thumbnail our lists use is 160px and reads soft blown up to the
-            // 96dp sleeve in a presence card.
-            //
-            // A track with no artwork — or with artwork Discord can't reach,
-            // which is anything that isn't an http URL — sends none, and Discord
-            // is replaced by the Violence logo.
             largeImage = RpcImage.ExternalImage(artwork ?: DiscordApplication.LOGO_URL),
             smallImage = artwork?.let { RpcImage.ExternalImage(DiscordApplication.LOGO_URL) },
-            // The card's optional third information line. Kept absent for
-            // ordinary lossy streams so Discord only calls attention to a
-            // measured premium format.
             largeText = audioQuality,
             smallText = if (artwork != null) name else null,
             buttons = if (buttonsList.isNotEmpty()) buttonsList else null,
@@ -148,7 +148,7 @@ class DiscordRPC(
         context.getString(R.string.app_name).removeSuffix(" Dev")
 
     companion object {
-        const val PROJECT_URL = "https://github.com/yashaswahuh/Violence"
+        const val PROJECT_URL = "https://yashaswahuh.is-a.dev/Violence"
 
         const val DEFAULT_BUTTON_1 = "Listen on YouTube Music"
         const val DEFAULT_BUTTON_2 = "Visit Violence"

@@ -8,6 +8,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
@@ -286,6 +288,11 @@ fun DesktopCanvasView(
                 val pixels = ByteArray(decoder.width * decoder.height * 4)
                 val info = ImageInfo.makeN32(decoder.width, decoder.height, ColorAlphaType.OPAQUE)
                 while (isActive) {
+                    if (DesktopAppearanceSettings.pauseBackgroundVisualsWhenHidden.value &&
+                        DesktopWindowVisibility.isOccludedOrMinimized.value
+                    ) {
+                        snapshotFlow { DesktopWindowVisibility.isOccludedOrMinimized.value }.first { !it }
+                    }
                     val started = System.currentTimeMillis()
                     val decoded = withContext(Dispatchers.IO) { decoder.nextFrame(pixels) }
                     if (!decoded) break

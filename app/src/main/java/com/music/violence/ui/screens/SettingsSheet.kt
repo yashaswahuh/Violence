@@ -1,5 +1,11 @@
 package com.music.violence.ui.screens
 
+import java.io.File
+import android.os.Environment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+
 import com.music.violence.ui.violencestyle.violenceGroupFill
 import com.music.violence.ui.violencestyle.violenceGlassRim
 import com.music.violence.ui.components.GlassAlertDialog
@@ -286,6 +292,9 @@ fun SettingsScreen(
     val wifiOnlyDownloads by AppSettings.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val exportDownloads by AppSettings.exportDownloads.collectAsStateWithLifecycle()
     val syncDownloadedPlaylists by AppSettings.syncDownloadedPlaylists.collectAsStateWithLifecycle()
+    val saveSyncedLyricsWithDownloads by AppSettings.saveSyncedLyricsWithDownloads.collectAsStateWithLifecycle()
+    val pauseBackgroundVisualsWhenHidden by AppSettings.pauseBackgroundVisualsWhenHidden.collectAsStateWithLifecycle()
+    val constrainImageCacheMemory by AppSettings.constrainImageCacheMemory.collectAsStateWithLifecycle()
     val stopOnTaskRemoved by AppSettings.stopOnTaskRemoved.collectAsStateWithLifecycle()
     val hideVolumeBar by AppSettings.hideVolumeBar.collectAsStateWithLifecycle()
     val hideStatusBarInPlayer by AppSettings.hideStatusBarInPlayer.collectAsStateWithLifecycle()
@@ -666,6 +675,111 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.sync_downloaded_playlists_subtitle),
                 )
             }
+            val saveLyricsTitle = stringResource(R.string.save_synced_lyrics_with_downloads)
+            row(saveLyricsTitle, "lyrics", "synced", "offline", "cache") {
+                SettingsSubRow(
+                    title = saveLyricsTitle,
+                    checked = saveSyncedLyricsWithDownloads,
+                    onCheckedChange = AppSettings::setSaveSyncedLyricsWithDownloads,
+                    subtitle = stringResource(R.string.save_synced_lyrics_with_downloads_subtitle),
+                )
+            }
+            val storageBreakdownTitle = stringResource(R.string.storage_breakdown_title)
+            row(storageBreakdownTitle, "cache", "space", "storage", "disk", "clear", "repair") {
+                val context = LocalContext.current
+                val coroutineScope = rememberCoroutineScope()
+                var breakdown by remember { mutableStateOf<com.music.violence.data.storage.StorageBreakdown?>(null) }
+                var repairStatus by remember { mutableStateOf<String?>(null) }
+                var isRepairing by remember { mutableStateOf(false) }
+
+                LaunchedEffect(Unit) {
+                    withContext(Dispatchers.IO) {
+                        val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
+                        val imgDir = File(context.cacheDir, "image_cache")
+                        val streamCache = AudioCache.totalCacheBytes
+                        breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, streamCache)
+                    }
+                }
+
+                breakdown?.let { b ->
+                    SettingsRow(
+                        icon = SfIcons.Storage,
+                        title = storageBreakdownTitle,
+                        subtitle = "Downloads: ${b.formattedDownloaded()} (${b.downloadedTracksCount}) · Lyrics: ${b.formattedLyrics()} (${b.lyricsCacheCount}) · Stream: ${b.formattedStream()} · Art: ${b.formattedImages()}",
+                        value = b.formattedTotal(),
+                    )
+                }
+
+                SettingsRow(
+                    icon = SfIcons.Folder,
+                    title = stringResource(R.string.storage_open_folder),
+                    subtitle = "Music/Violence",
+                    onClick = {
+                        val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
+                        if (!dir.exists()) dir.mkdirs()
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(Uri.fromFile(dir), "resource/folder")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        runCatching { context.startActivity(intent) }.onFailure {
+                            val fallback = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, "vnd.android.cursor.dir/audio")
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            runCatching { context.startActivity(fallback) }
+                        }
+                    },
+                )
+
+                SettingsRow(
+                    icon = SfIcons.DeleteSweep,
+                    title = stringResource(R.string.storage_clear_stream_cache),
+                    subtitle = stringResource(R.string.storage_clear_stream_cache_subtitle),
+                    onClick = {
+                        AudioCache.clear {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
+                                val imgDir = File(context.cacheDir, "image_cache")
+                                breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, AudioCache.totalCacheBytes)
+                            }
+                        }
+                    },
+                )
+
+                SettingsRow(
+                    icon = SfIcons.Cached,
+                    title = stringResource(R.string.storage_repair_lyrics),
+                    subtitle = repairStatus ?: stringResource(R.string.storage_repair_lyrics_subtitle),
+                    badge = if (isRepairing) "Scanning…" else null,
+                    onClick = {
+                        if (isRepairing) return@SettingsRow
+                        isRepairing = true
+                        repairStatus = "Scanning & repairing…"
+                        coroutineScope.launch(Dispatchers.IO) {
+                            val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
+                            val (total, repaired) = com.music.violence.data.storage.StorageHealthHub.verifyAndRepairLyrics(musicDir) { videoId, artist, title ->
+                                val res = com.music.violence.data.lyrics.LyricsRepository.lyrics(
+                                    videoId = videoId,
+                                    title = title,
+                                    artist = artist,
+                                    durationMs = 0L,
+                                )
+                                if (res?.lines != null) {
+                                    val sidecar = File(musicDir, "$videoId.lyrics.json")
+                                    com.music.violence.data.lyrics.OfflineLyricsStorage.save(videoId, res.lines, destinationFile = sidecar)
+                                    true
+                                } else false
+                            }
+                            withContext(Dispatchers.Main) {
+                                isRepairing = false
+                                repairStatus = context.getString(R.string.storage_repair_lyrics_done, total, repaired)
+                                val imgDir = File(context.cacheDir, "image_cache")
+                                breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, AudioCache.totalCacheBytes)
+                            }
+                        }
+                    },
+                )
+            }
         }
 
         if (shows(SettingsCategory.PLAYBACK)) SearchableSettingsGroup(
@@ -907,6 +1021,43 @@ fun SettingsScreen(
                             )
                         },
                         onClick = { AppSettings.setSpatialAudio(!spatialAudio) },
+                    )
+                }
+            }
+            val crossfeedTitle = stringResource(R.string.crossfeed_title)
+            val crossfeedEnabled by AppSettings.crossfeedEnabled.collectAsStateWithLifecycle()
+            val crossfeedPreset by AppSettings.crossfeedPreset.collectAsStateWithLifecycle()
+            row(crossfeedTitle, "binaural", "crossfeed", "headphones", "hrtf") {
+                BypassedByBitPerfect(bitPerfectReady) {
+                    val currentPreset = com.music.violence.playback.crossfeed.CrossfeedPreset.fromId(crossfeedPreset)
+                    SettingsRow(
+                        icon = SfIcons.SurroundSound,
+                        title = crossfeedTitle,
+                        subtitle = if (crossfeedEnabled) {
+                            "${currentPreset.displayName} · " + stringResource(R.string.crossfeed_subtitle)
+                        } else {
+                            stringResource(R.string.crossfeed_subtitle)
+                        },
+                        value = if (crossfeedEnabled) currentPreset.displayName else stringResource(R.string.off),
+                        trailing = {
+                            IosSwitch(
+                                checked = crossfeedEnabled,
+                                onCheckedChange = AppSettings::setCrossfeedEnabled,
+                            )
+                        },
+                        onClick = {
+                            if (!crossfeedEnabled) {
+                                AppSettings.setCrossfeedEnabled(true)
+                            } else {
+                                val next = when (currentPreset) {
+                                    com.music.violence.playback.crossfeed.CrossfeedPreset.SUBTLE -> com.music.violence.playback.crossfeed.CrossfeedPreset.NATURAL
+                                    com.music.violence.playback.crossfeed.CrossfeedPreset.NATURAL -> com.music.violence.playback.crossfeed.CrossfeedPreset.JAN_MEIER
+                                    com.music.violence.playback.crossfeed.CrossfeedPreset.JAN_MEIER -> com.music.violence.playback.crossfeed.CrossfeedPreset.SUBTLE
+                                    else -> com.music.violence.playback.crossfeed.CrossfeedPreset.NATURAL
+                                }
+                                AppSettings.setCrossfeedPreset(next.id)
+                            }
+                        },
                     )
                 }
             }
@@ -1609,6 +1760,36 @@ fun SettingsScreen(
                         )
                     },
                     onClick = { AppSettings.setShowNerdStats(!nerdStats) },
+                )
+            }
+            val pauseVisualsTitle = stringResource(R.string.pause_background_visuals)
+            row(pauseVisualsTitle, "visuals", "battery", "performance", "screen off", "experimental") {
+                SettingsRow(
+                    icon = SfIcons.Performance,
+                    title = pauseVisualsTitle,
+                    subtitle = stringResource(R.string.pause_background_visuals_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = pauseBackgroundVisualsWhenHidden,
+                            onCheckedChange = AppSettings::setPauseBackgroundVisualsWhenHidden,
+                        )
+                    },
+                    onClick = { AppSettings.setPauseBackgroundVisualsWhenHidden(!pauseBackgroundVisualsWhenHidden) },
+                )
+            }
+            val constrainImageCacheTitle = stringResource(R.string.constrain_image_cache_memory)
+            row(constrainImageCacheTitle, "image", "cache", "memory", "ram", "heap") {
+                SettingsRow(
+                    icon = SfIcons.Storage,
+                    title = constrainImageCacheTitle,
+                    subtitle = stringResource(R.string.constrain_image_cache_memory_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = constrainImageCacheMemory,
+                            onCheckedChange = AppSettings::setConstrainImageCacheMemory,
+                        )
+                    },
+                    onClick = { AppSettings.setConstrainImageCacheMemory(!constrainImageCacheMemory) },
                 )
             }
             val appIconTitle = stringResource(R.string.app_icon)

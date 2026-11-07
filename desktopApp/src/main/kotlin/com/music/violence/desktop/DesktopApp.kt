@@ -1,5 +1,8 @@
 package com.music.violence.desktop
 
+import androidx.compose.material.icons.rounded.PictureInPictureAlt
+import androidx.compose.material.icons.rounded.FileUpload
+import com.music.violence.desktop.platform.WindowsTaskbarToolbar
 import androidx.compose.foundation.lazy.LazyListState
 import com.music.violence.ui.components.LocalShelfRowChrome
 import com.music.violence.ui.components.ShelfRowChrome
@@ -36,6 +39,9 @@ import com.music.violence.ui.screens.MoodGenrePlaylistsScreen
 import com.music.violence.ui.screens.SearchScreen
 import com.music.violence.data.NerdStats
 import com.music.violence.playback.PlaybackPosition
+import com.music.violence.playback.crossfeed.CrossfeedPreset
+import com.music.violence.data.storage.StorageHealthHub
+import com.music.violence.data.storage.StorageBreakdown
 import com.music.violence.playback.QueueSource
 import com.music.violence.playback.QueueTimeline
 import com.music.violence.playback.QueueTimeline.asQueueEntry
@@ -1601,8 +1607,9 @@ fun ViolenceDesktopApp() {
         DesktopPlaybackEngine(
             onEnded = {
                 selectedSong?.let(DesktopScrobbling::onPlaybackEnded)
-                if (DesktopSleepTimer.afterTrack.value) {
+                if (DesktopSleepTimer.afterTrack.value || (DesktopSleepTimer.finishCurrentTrack.value && DesktopSleepTimer.isExpired())) {
                     DesktopSleepTimer.cancel()
+                    playbackEngine.setVolume(volume)
                 } else if (repeatMode == DesktopRepeatMode.ONE) {
                     // Replayed in place. [startSong] makes the track a queue of one, which threw
                     // the rest of the queue away the first time it repeated.
@@ -1768,6 +1775,27 @@ fun ViolenceDesktopApp() {
         onDispose { DesktopWindowsMedia.stop() }
     }
 
+    LaunchedEffect(playbackEngine) {
+        DesktopMiniPlayerManager.onPlayPause = ::togglePlayPauseFromUser
+        DesktopMiniPlayerManager.onNext = ::playNext
+        DesktopMiniPlayerManager.onPrevious = ::playPrevious
+        DesktopMiniPlayerManager.onSeek = { positionMs ->
+            if (!DesktopListenTogether.state.value.controlsLocked) {
+                playbackEngine.seekTo(positionMs)
+                partySync.onLocalIntent()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        DesktopDropHandler.onSongsDropped = { droppedSongs ->
+            if (droppedSongs.isNotEmpty()) {
+                playSongs(droppedSongs, startIndex = 0)
+                DesktopPlayerHost.showMessage("Imported ${droppedSongs.size} local track(s)")
+            }
+        }
+    }
+
     LaunchedEffect(playbackSpeed) { playbackEngine.setPlaybackSpeed(playbackSpeed) }
     LaunchedEffect(volume) { playbackEngine.setVolume(volume) }
     LaunchedEffect(audioQuality) { playbackEngine.setAudioQuality(audioQuality.name) }
@@ -1793,6 +1821,11 @@ fun ViolenceDesktopApp() {
     }
     LaunchedEffect(autoEqEnabled, autoEqModel, autoEqSource, autoEqCustom) {
         playbackEngine.setAutoEq(autoEqEnabled, DesktopEqualizerSettings.autoEqProfile())
+    }
+    val crossfeedEnabled by DesktopEqualizerSettings.crossfeedEnabled.collectAsState()
+    val crossfeedPresetId by DesktopEqualizerSettings.crossfeedPreset.collectAsState()
+    LaunchedEffect(crossfeedEnabled, crossfeedPresetId) {
+        playbackEngine.setCrossfeed(crossfeedEnabled, CrossfeedPreset.fromId(crossfeedPresetId))
     }
     LaunchedEffect(spatialAudio, skipSilence, outputPrecision) {
         playbackEngine.setSpatialAudio(spatialAudio)
@@ -1859,11 +1892,42 @@ fun ViolenceDesktopApp() {
         }
     }
     LaunchedEffect(Unit) {
+        var wasFading = false
         while (currentCoroutineContext().isActive) {
-            delay(1_000L)
-            if (DesktopSleepTimer.isExpired()) {
-                DesktopSleepTimer.cancel()
-                playbackEngine.pause()
+            delay(200L)
+            val remainingMs = DesktopSleepTimer.remainingMs()
+            if (remainingMs != null) {
+                if (remainingMs > 0L) {
+                    if (DesktopSleepTimer.fadeToSilence.value && remainingMs <= DesktopSleepTimer.FADE_DURATION_MS) {
+                        val progress = (DesktopSleepTimer.FADE_DURATION_MS - remainingMs).toFloat() / DesktopSleepTimer.FADE_DURATION_MS
+                        val gain = DesktopSleepTimer.calculateFadeGain(progress)
+                        playbackEngine.setVolume((volume * gain).coerceIn(0f, 1f))
+                        wasFading = true
+                    } else if (wasFading) {
+                        playbackEngine.setVolume(volume)
+                        wasFading = false
+                    }
+                } else {
+                    if (DesktopSleepTimer.finishCurrentTrack.value) {
+                        val currentPos = playbackEngine.state.value.positionMs
+                        val duration = playbackEngine.state.value.durationMs
+                        val trackRemainingMs = (duration - currentPos).coerceAtLeast(0L)
+                        if (trackRemainingMs in 1..DesktopSleepTimer.OUTRO_FADE_DURATION_MS) {
+                            val progress = (DesktopSleepTimer.OUTRO_FADE_DURATION_MS - trackRemainingMs).toFloat() / DesktopSleepTimer.OUTRO_FADE_DURATION_MS
+                            val gain = DesktopSleepTimer.calculateFadeGain(progress)
+                            playbackEngine.setVolume((volume * gain).coerceIn(0f, 1f))
+                            wasFading = true
+                        }
+                    } else {
+                        DesktopSleepTimer.cancel()
+                        playbackEngine.pause()
+                        playbackEngine.setVolume(volume)
+                        wasFading = false
+                    }
+                }
+            } else if (wasFading) {
+                playbackEngine.setVolume(volume)
+                wasFading = false
             }
         }
     }
@@ -1879,6 +1943,8 @@ fun ViolenceDesktopApp() {
             playerPosition.report(it.positionMs, it.positionSampledAtNanos)
             playerPosition.seeks = it.seeks
             playerPosition.advancing = !it.awaitingAudio
+            DesktopMiniPlayerManager.updatePlayback(it.song, it.isPlaying, it.positionMs, it.durationMs)
+            WindowsTaskbarToolbar.update(it.isPlaying, it.song != null)
         }
     }
 
@@ -1888,6 +1954,9 @@ fun ViolenceDesktopApp() {
     // opens the player. Run from the player page instead, nothing was fetched until it was opened,
     // and a track half a minute in then showed a skeleton and arrived mid-song.
     var lyrics by remember { mutableStateOf<DesktopLyrics?>(null) }
+    LaunchedEffect(lyrics) {
+        DesktopMiniPlayerManager.setLyrics(lyrics?.lines.orEmpty(), playbackEngine.state.value.positionMs)
+    }
     // The provider picked for this track in the player's lyrics drawer, if any.
     var lyricsOnly by remember(selectedSong?.videoId) { mutableStateOf<String?>(null) }
     // A title and artist typed into the song menu's lyrics search, overriding the
@@ -3320,6 +3389,10 @@ fun ViolenceDesktopApp() {
                                 goBack()
                                 true
                             }
+                            isCommand && event.key == Key.M -> {
+                                DesktopMiniPlayerManager.toggle()
+                                true
+                            }
                             isCommand && event.key == Key.Comma -> {
                                 openSettings()
                                 true
@@ -3972,6 +4045,50 @@ fun ViolenceDesktopApp() {
                             pipeline = playbackEngine.pipeline(),
                             onDismiss = { overlays.pipeline = false },
                         )
+                    }
+                    val isDraggingByDrop by DesktopDropHandler.isDragging.collectAsState()
+                    if (isDraggingByDrop) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.72f))
+                                .padding(28.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(2.dp, Color(0xFFE22D4B), RoundedCornerShape(16.dp))
+                                    .background(Color(0xE6141416)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.FileUpload,
+                                        contentDescription = null,
+                                        tint = Color(0xFFE22D4B),
+                                        modifier = Modifier.size(54.dp),
+                                    )
+                                    Spacer(Modifier.height(14.dp))
+                                    Text(
+                                        text = "Drop Audio Files or Folders Here",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = "Supports FLAC, MP3, M4A, WAV, OPUS, OGG, AAC",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.65f),
+                                    )
+                                }
+                            }
+                        }
                     }
                 },
             ) { contentPadding ->
@@ -4885,6 +5002,17 @@ private fun DesktopTopBar(
                             ViolenceIcons.Queue,
                             DesktopStrings["queue", "Queue"],
                             tint = if (sidePanel == DesktopSidePanel.QUEUE) Color.White else DesktopSecondary,
+                            modifier = Modifier.size(19.dp),
+                        )
+                    }
+                    DesktopToolbarButton(
+                        onClick = { DesktopMiniPlayerManager.toggle() },
+                        size = 32.dp,
+                    ) {
+                        Icon(
+                            Icons.Rounded.PictureInPictureAlt,
+                            "Mini Player (Ctrl+M)",
+                            tint = DesktopSecondary,
                             modifier = Modifier.size(19.dp),
                         )
                     }
@@ -6952,6 +7080,16 @@ private fun DesktopSettingsScreen(
                         }
                     }
                     }
+                    val saveLyricsWithDownloads by DesktopAppearanceSettings.saveSyncedLyricsWithDownloads.collectAsState()
+                    SettingsToggle(
+                        DesktopStrings["save_synced_lyrics_with_downloads", "Save synced lyrics with downloads"],
+                        DesktopStrings["save_synced_lyrics_with_downloads_subtitle", "Save .lyrics.json alongside downloaded audio files for instant offline sync"],
+                        saveLyricsWithDownloads,
+                        DesktopAppearanceSettings::setSaveSyncedLyricsWithDownloads,
+                    )
+                    DesktopStorageHealthCard(
+                        downloadsDir = remember { java.io.File(System.getProperty("user.home"), "Music/Violence") },
+                    )
                 }
             }
             if (section == DesktopSettingsSection.SOURCES) item {
@@ -7018,6 +7156,20 @@ private fun DesktopSettingsScreen(
                         DesktopStrings["show_nerd_stats_subtitle", "Codec, bitrate and sample rate on the player"],
                         showNerdStats,
                         onShowNerdStatsChange,
+                    )
+                    val pauseVisualsWhenHidden by DesktopAppearanceSettings.pauseBackgroundVisualsWhenHidden.collectAsState()
+                    SettingsToggle(
+                        DesktopStrings["pause_background_visuals", "Pause background visuals when hidden"],
+                        DesktopStrings["pause_background_visuals_subtitle", "Pause Skia animation clock and canvas video decoders when window is minimized or hidden in tray"],
+                        pauseVisualsWhenHidden,
+                        DesktopAppearanceSettings::setPauseBackgroundVisualsWhenHidden,
+                    )
+                    val constrainImageCache by DesktopAppearanceSettings.constrainImageCacheMemory.collectAsState()
+                    SettingsToggle(
+                        DesktopStrings["constrain_image_cache_memory", "Constrain image cache memory"],
+                        DesktopStrings["constrain_image_cache_memory_subtitle", "Downsample decoded album art to widget dimensions and cap memory allocation"],
+                        constrainImageCache,
+                        DesktopAppearanceSettings::setConstrainImageCacheMemory,
                     )
                 }
             }
@@ -8458,6 +8610,221 @@ private fun SettingsToggle(title: String, subtitle: String, checked: Boolean, on
         }
         Spacer(Modifier.width(18.dp))
         Switch(checked = checked, onCheckedChange = onCheckedChange, colors = desktopSwitchColors())
+    }
+}
+
+@Composable
+private fun DesktopStorageHealthCard(
+    downloadsDir: java.io.File = remember { java.io.File(System.getProperty("user.home"), "Music/Violence") },
+) {
+    val scope = rememberCoroutineScope()
+    var storageBreakdown by remember { mutableStateOf(StorageBreakdown()) }
+    var isRepairingLyrics by remember { mutableStateOf(false) }
+
+    fun refreshBreakdown() {
+        scope.launch(Dispatchers.IO) {
+            var streamCacheBytes = 0L
+            if (downloadsDir.exists() && downloadsDir.isDirectory) {
+                downloadsDir.walkTopDown().maxDepth(2).forEach { file ->
+                    if (file.isFile && (file.name.endsWith(".part") || file.name.startsWith("."))) {
+                        streamCacheBytes += file.length()
+                    }
+                }
+            }
+            val breakdown = StorageHealthHub.calculateBreakdown(
+                downloadsDir = downloadsDir,
+                streamCacheBytes = streamCacheBytes,
+            )
+            storageBreakdown = breakdown
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshBreakdown()
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(14.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    DesktopStrings["storage_health_title", "Storage & Cache Health"],
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Total space used: ${storageBreakdown.formattedTotal()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesktopSecondary,
+                )
+            }
+            TextButton(onClick = { refreshBreakdown() }) {
+                Text(DesktopStrings["refresh", "Refresh"], color = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // Breakdown items
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(10.dp),
+            ) {
+                Column {
+                    Text(
+                        DesktopStrings["storage_downloaded_tracks", "Downloaded Audio"],
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                    Text(
+                        storageBreakdown.formattedDownloaded(),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                    )
+                    Text(
+                        "${storageBreakdown.downloadedTracksCount} tracks",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                }
+            }
+
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(10.dp),
+            ) {
+                Column {
+                    Text(
+                        DesktopStrings["storage_lyrics_cache", "Offline Lyrics"],
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                    Text(
+                        storageBreakdown.formattedLyrics(),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                    )
+                    Text(
+                        "${storageBreakdown.lyricsCacheCount} files",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                }
+            }
+
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(10.dp),
+            ) {
+                Column {
+                    Text(
+                        DesktopStrings["storage_stream_cache", "Stream Cache"],
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                    Text(
+                        storageBreakdown.formattedStream(),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                    )
+                    Text(
+                        "Temp chunks",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DesktopSecondary,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // Actions
+        SettingsRow(
+            icon = androidx.compose.material.icons.Icons.Rounded.Folder,
+            title = DesktopStrings["storage_open_folder", "Open Downloads Folder"],
+            subtitle = downloadsDir.absolutePath,
+            onClick = {
+                if (!downloadsDir.exists()) downloadsDir.mkdirs()
+                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN)) {
+                    runCatching { java.awt.Desktop.getDesktop().open(downloadsDir) }
+                        .onFailure { DesktopPlayerHost.showMessage("Could not open folder: ${it.message}") }
+                }
+            },
+        )
+
+        SettingsRow(
+            icon = androidx.compose.material.icons.Icons.Rounded.DeleteSweep,
+            title = DesktopStrings["storage_clear_stream_cache", "Clear Stream Cache"],
+            subtitle = DesktopStrings["storage_clear_stream_cache_summary", "Frees temporary audio segments while preserving complete downloads"],
+            onClick = {
+                scope.launch(Dispatchers.IO) {
+                    var freedBytes = 0L
+                    if (downloadsDir.exists() && downloadsDir.isDirectory) {
+                        downloadsDir.walkTopDown().maxDepth(2).forEach { file ->
+                            if (file.isFile && (file.name.endsWith(".part") || file.name.startsWith("."))) {
+                                val len = file.length()
+                                if (file.delete()) freedBytes += len
+                            }
+                        }
+                    }
+                    refreshBreakdown()
+                    DesktopPlayerHost.showMessage("Cleared ${StorageBreakdown.formatBytes(freedBytes)} of stream cache")
+                }
+            },
+        )
+
+        SettingsRow(
+            icon = androidx.compose.material.icons.Icons.Rounded.Download,
+            title = DesktopStrings["storage_repair_lyrics", "Verify & Repair Offline Lyrics"],
+            subtitle = if (isRepairingLyrics) "Scanning and downloading missing lyrics..." else DesktopStrings["storage_repair_lyrics_summary", "Scans downloaded files and syncs missing .lyrics.json sidecars"],
+            onClick = if (isRepairingLyrics) null else {
+                {
+                    scope.launch(Dispatchers.IO) {
+                        isRepairingLyrics = true
+                        DesktopPlayerHost.showMessage("Scanning downloaded tracks for lyrics...")
+                        val (scanned, repaired) = StorageHealthHub.verifyAndRepairLyrics(downloadsDir) { videoId, artist, title ->
+                            val song = Song(videoId = videoId, title = title, artist = artist, thumbnailUrl = null)
+                            val lyricsResult = DesktopLyricsClient.lookup(song)
+                            val lines = lyricsResult.getOrNull()?.lines
+                            if (lines != null) {
+                                val targetFile = java.io.File(downloadsDir, "$videoId.lyrics.json")
+                                com.music.violence.data.lyrics.OfflineLyricsStorage.save(videoId, lines, destinationFile = targetFile)
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        refreshBreakdown()
+                        isRepairingLyrics = false
+                        DesktopPlayerHost.showMessage("Scanned $scanned tracks · repaired $repaired missing lyrics")
+                    }
+                }
+            },
+        )
     }
 }
 

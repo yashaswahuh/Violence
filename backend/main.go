@@ -990,6 +990,22 @@ func handleSocketFrame(p *party.Party, member *party.Member, sc *hub.SafeConn, f
 			}
 		}
 
+	case protocol.FrameReaction:
+		emojiId, _ := frame["emojiId"].(float64)
+		ts, _ := frame["timestampMs"].(float64)
+		tsMs := int64(ts)
+		if tsMs <= 0 {
+			tsMs = clock.NowMs()
+		}
+		if emojiId >= 1 && emojiId <= 5 {
+			reactionMsg := map[string]interface{}{
+				"type":        protocol.FrameReaction,
+				"emojiId":     int(emojiId),
+				"timestampMs": tsMs,
+			}
+			hubInst.Broadcast(p.Code, reactionMsg, member.MemberId)
+		}
+
 	case protocol.FrameControl:
 		if !p.SpendControlBudget(member) {
 			_ = sc.WriteJSON(map[string]interface{}{

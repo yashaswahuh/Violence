@@ -37,7 +37,7 @@ concurrency:
 jobs:
   tv:
     name: Android TV
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 

@@ -41,6 +41,8 @@ internal object DesktopEqualizerSettings {
     private val _autoEqModel = MutableStateFlow(persistence.string(KEY_AUTO_EQ_MODEL, ""))
     private val _autoEqSource = MutableStateFlow(persistence.string(KEY_AUTO_EQ_SOURCE, ""))
     private val _autoEqCustom = MutableStateFlow(persistence.string(KEY_AUTO_EQ_CUSTOM, ""))
+    private val _crossfeedEnabled = MutableStateFlow(persistence.boolean(KEY_CROSSFEED_ENABLED, false))
+    private val _crossfeedPreset = MutableStateFlow(persistence.string(KEY_CROSSFEED_PRESET, "natural"))
 
     val enabled: StateFlow<Boolean> = _enabled
     val mode: StateFlow<DesktopEqualizerMode> = _mode
@@ -66,6 +68,8 @@ internal object DesktopEqualizerSettings {
     val autoEqModel: StateFlow<String> = _autoEqModel
     val autoEqSource: StateFlow<String> = _autoEqSource
     val autoEqCustom: StateFlow<String> = _autoEqCustom
+    val crossfeedEnabled: StateFlow<Boolean> = _crossfeedEnabled
+    val crossfeedPreset: StateFlow<String> = _crossfeedPreset
 
     fun setEnabled(value: Boolean) {
         _enabled.value = value
@@ -148,6 +152,16 @@ internal object DesktopEqualizerSettings {
         persistence.saveString(KEY_AUTO_EQ_CUSTOM, text)
     }
 
+    fun setCrossfeedEnabled(value: Boolean) {
+        _crossfeedEnabled.value = value
+        persistence.saveBoolean(KEY_CROSSFEED_ENABLED, value)
+    }
+
+    fun setCrossfeedPreset(presetId: String) {
+        _crossfeedPreset.value = presetId
+        persistence.saveString(KEY_CROSSFEED_PRESET, presetId)
+    }
+
     fun autoEqProfile(): AutoEqProfile? {
         val custom = _autoEqCustom.value
         val model = _autoEqModel.value
@@ -172,4 +186,6 @@ internal object DesktopEqualizerSettings {
     private const val KEY_AUTO_EQ_MODEL = "auto_eq_model"
     private const val KEY_AUTO_EQ_SOURCE = "auto_eq_source"
     private const val KEY_AUTO_EQ_CUSTOM = "auto_eq_custom"
+    private const val KEY_CROSSFEED_ENABLED = "crossfeed_enabled"
+    private const val KEY_CROSSFEED_PRESET = "crossfeed_preset" 
 }

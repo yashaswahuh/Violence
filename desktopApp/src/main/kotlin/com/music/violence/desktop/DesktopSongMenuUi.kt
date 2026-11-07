@@ -30,6 +30,9 @@ import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.VolumeDown
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Person
@@ -339,7 +342,9 @@ internal fun DesktopSongMenu(
             return@DesktopMenuSurface
         }
         if (pickingSleepTimer) {
-            DesktopMenuHeader("Sleep timer") { pickingSleepTimer = false }
+            val fadeToSilence by DesktopSleepTimer.fadeToSilence.collectAsState()
+            val finishCurrentTrack by DesktopSleepTimer.finishCurrentTrack.collectAsState()
+            DesktopMenuHeader(DesktopStrings["sleep_timer", "Sleep timer"]) { pickingSleepTimer = false }
             DesktopMenuDivider()
             DesktopSleepTimer.presets.forEach { minutes ->
                 DesktopMenuRow(
@@ -353,6 +358,19 @@ internal fun DesktopSongMenu(
                 label = DesktopStrings["d_end_of_this_track", "End of this track"],
                 selected = sleepAfterTrack,
                 onClick = onSleepAfterTrack,
+            )
+            DesktopMenuDivider()
+            DesktopMenuRow(
+                icon = Icons.Rounded.VolumeDown,
+                label = DesktopStrings["sleep_timer_fade", "Smooth fade to silence"],
+                selected = fadeToSilence,
+                onClick = { DesktopSleepTimer.setFadeToSilence(!fadeToSilence) },
+            )
+            DesktopMenuRow(
+                icon = Icons.Rounded.FastForward,
+                label = DesktopStrings["sleep_timer_finish_track", "Finish current track"],
+                selected = finishCurrentTrack,
+                onClick = { DesktopSleepTimer.setFinishCurrentTrack(!finishCurrentTrack) },
             )
             if (sleepTimerMinutes != null || sleepAfterTrack) {
                 DesktopMenuDivider()

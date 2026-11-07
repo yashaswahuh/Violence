@@ -12,12 +12,9 @@ import java.awt.GradientPaint
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.GraphicsEnvironment
-import java.awt.Point
-import java.awt.Rectangle
 import java.awt.RenderingHints
 import java.awt.Toolkit
 import java.awt.Window
-import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -31,11 +28,11 @@ import javax.swing.JPanel
 import javax.swing.KeyStroke
 
 /**
- * Modern, dark luminous tray flyout matching Violence's design language.
+ * Modern, dark obsidian tray flyout matching Violence's design language.
  *
- * Replaces the stark Win32 native AWT PopupMenu with an anti-aliased,
- * styled glass flyout featuring Now Playing metadata, interactive playback controls,
- * and quick navigation actions.
+ * Designed with Violence's signature frosted glass surfaces, glowing crimson accents,
+ * crisp anti-aliased vector iconography, Now Playing transport controls, and direct
+ * shortcuts to Mini Player (Ctrl+M), settings, and window actions.
  */
 internal object DesktopTrayFlyout {
 
@@ -52,7 +49,6 @@ internal object DesktopTrayFlyout {
             currentTitle = "Violence"
             currentArtist = "Not playing"
         } else {
-            // Split "Title — Artist" or "Title - Artist" if formatted together
             val separator = when {
                 title.contains(" — ") -> " — "
                 title.contains(" - ") -> " - "
@@ -77,8 +73,8 @@ internal object DesktopTrayFlyout {
             ensureDialog()
             val d = dialog ?: return@invokeLater
 
-            val width = 290
-            val height = 270
+            val width = 296
+            val height = 316
             d.setSize(width, height)
 
             val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
@@ -202,6 +198,7 @@ internal object DesktopTrayFlyout {
                         DesktopTrayFlyout.hide()
                         when (item) {
                             ITEM_OPEN -> DesktopTrayMenu.triggerOpenPlayer()
+                            ITEM_MINI_PLAYER -> DesktopTrayMenu.triggerToggleMiniPlayer()
                             ITEM_MINIMIZE -> DesktopTrayMenu.triggerMinimizeToTray()
                             ITEM_SETTINGS -> DesktopTrayMenu.triggerOpenSettings()
                             ITEM_QUIT -> DesktopTrayMenu.triggerQuit()
@@ -226,12 +223,13 @@ internal object DesktopTrayFlyout {
         }
 
         private fun getItemAt(x: Int, y: Int): Int {
-            if (x !in 10..(width - 10)) return -1
+            if (x !in 8..(width - 8)) return -1
             return when (y) {
                 in 120..152 -> ITEM_OPEN
-                in 154..186 -> ITEM_MINIMIZE
-                in 188..220 -> ITEM_SETTINGS
-                in 228..260 -> ITEM_QUIT
+                in 154..186 -> ITEM_MINI_PLAYER
+                in 188..220 -> ITEM_MINIMIZE
+                in 222..254 -> ITEM_SETTINGS
+                in 264..298 -> ITEM_QUIT
                 else -> -1
             }
         }
@@ -241,51 +239,55 @@ internal object DesktopTrayFlyout {
             val g2 = g as? Graphics2D ?: return
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB)
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
 
             val w = width
             val h = height
 
-            // Outer Flyout Container (Dark Luminous Canvas)
+            // 1. Outer Container: Violence obsidian glass
             val bgRect = RoundRectangle2D.Float(1f, 1f, w - 2f, h - 2f, 18f, 18f)
-            val bgGradient = GradientPaint(0f, 0f, Color(0x13, 0x13, 0x1E), 0f, h.toFloat(), Color(0x09, 0x09, 0x10))
+            val bgGradient = GradientPaint(0f, 0f, Color(0x15, 0x15, 0x1A), 0f, h.toFloat(), Color(0x0C, 0x0C, 0x0F))
             g2.paint = bgGradient
             g2.fill(bgRect)
 
-            // Subtle Glass Rim Border
+            // 2. Dual-tone glass rim border (specular white top, subtle crimson glow bottom)
+            val rimGradient = GradientPaint(0f, 0f, Color(255, 255, 255, 40), 0f, h.toFloat(), Color(0xE2, 0x2D, 0x4B, 55))
+            g2.paint = rimGradient
             g2.stroke = BasicStroke(1f)
-            g2.color = Color(255, 255, 255, 26)
             g2.draw(bgRect)
 
-            // Inner Top Light Sheen
-            g2.color = Color(255, 255, 255, 14)
+            // Inner top specular sheen
+            g2.color = Color(255, 255, 255, 18)
             g2.drawLine(20, 2, w - 20, 2)
 
-            // --- 1. Now Playing Card ---
+            // --- 3. Now Playing Card ---
             val cardX = 10
             val cardY = 10
             val cardW = w - 20
             val cardH = 98
             val cardRect = RoundRectangle2D.Float(cardX.toFloat(), cardY.toFloat(), cardW.toFloat(), cardH.toFloat(), 14f, 14f)
-            g2.color = Color(0x19, 0x19, 0x28, 220)
+            g2.color = Color(0x1C, 0x1C, 0x24, 230)
             g2.fill(cardRect)
             g2.color = Color(255, 255, 255, 20)
             g2.draw(cardRect)
 
-            // Music Icon Badge
+            // Music Icon Badge with glowing Violence red rim
             val badgeX = cardX + 10
             val badgeY = cardY + 10
-            val badgeRect = RoundRectangle2D.Float(badgeX.toFloat(), badgeY.toFloat(), 34f, 34f, 8f, 8f)
-            val badgeGradient = GradientPaint(badgeX.toFloat(), badgeY.toFloat(), Color(0x3F, 0x7B, 0xFF), badgeX.toFloat(), (badgeY + 34).toFloat(), Color(0x1D, 0x4E, 0xD8))
+            val badgeRect = RoundRectangle2D.Float(badgeX.toFloat(), badgeY.toFloat(), 34f, 34f, 9f, 9f)
+            val badgeGradient = GradientPaint(badgeX.toFloat(), badgeY.toFloat(), Color(0x2E, 0x14, 0x19), badgeX.toFloat(), (badgeY + 34).toFloat(), Color(0x1A, 0x0E, 0x12))
             g2.paint = badgeGradient
             g2.fill(badgeRect)
+            g2.color = Color(0xE2, 0x2D, 0x4B, 180)
+            g2.stroke = BasicStroke(1.2f)
+            g2.draw(badgeRect)
 
-            // Musical Note Icon in Badge
+            // Musical Note Icon inside badge
             g2.color = Color.WHITE
-            g2.stroke = BasicStroke(2f)
-            // Draw note glyph
             g2.fillOval(badgeX + 11, badgeY + 20, 6, 5)
-            g2.drawLine(badgeX + 16, badgeY + 22, badgeX + 16, badgeY + 10)
-            g2.drawLine(badgeX + 16, badgeY + 10, badgeX + 22, badgeY + 8)
+            g2.stroke = BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+            g2.drawLine(badgeX + 16, badgeY + 22, badgeX + 16, badgeY + 11)
+            g2.drawLine(badgeX + 16, badgeY + 11, badgeX + 22, badgeY + 9)
 
             // Track Info (Title and Artist)
             val textX = badgeX + 42
@@ -299,18 +301,17 @@ internal object DesktopTrayFlyout {
 
             // Track Artist
             g2.font = Font("Segoe UI", Font.PLAIN, 11)
-            g2.color = Color(0x9E, 0x9E, 0xB2)
+            g2.color = Color(0x9E, 0x9E, 0xA8)
             val truncatedArtist = truncateString(currentArtist, g2.fontMetrics, maxTextW)
             g2.drawString(truncatedArtist, textX, badgeY + 31)
 
-            // --- Transport Controls (Prev, Play/Pause, Next) ---
+            // --- Transport Controls (Prev, Play/Pause Hero, Next) ---
             val cardCenterX = w / 2
 
             // Previous Button
             drawTransportButton(g2, cardCenterX - 45, 84, 28, 28, hoveredControl == CONTROL_PREV) {
-                // Prev icon: |◀
                 color = Color(230, 230, 240)
-                stroke = BasicStroke(1.8f)
+                stroke = BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
                 drawLine(cardCenterX - 52, 79, cardCenterX - 52, 89)
                 val p = Path2D.Float().apply {
                     moveTo((cardCenterX - 42).toFloat(), 79f)
@@ -321,21 +322,26 @@ internal object DesktopTrayFlyout {
                 fill(p)
             }
 
-            // Play / Pause Button (Hero Circle)
+            // Play / Pause Button (Hero Violence Crimson Circle)
             val playCircleHover = hoveredControl == CONTROL_PLAY_PAUSE
-            val playCircleColor = if (playCircleHover) Color(0x4F, 0x8B, 0xFF) else Color(0x3F, 0x7B, 0xFF)
-            g2.color = playCircleColor
+            val playGradient = if (playCircleHover) {
+                GradientPaint((cardCenterX - 16).toFloat(), 68f, Color(0xFF, 0x55, 0x75), (cardCenterX + 16).toFloat(), 100f, Color(0xF0, 0x35, 0x55))
+            } else {
+                GradientPaint((cardCenterX - 16).toFloat(), 68f, Color(0xFF, 0x3B, 0x5C), (cardCenterX + 16).toFloat(), 100f, Color(0xE2, 0x2D, 0x4B))
+            }
+            g2.paint = playGradient
             g2.fillOval(cardCenterX - 16, 68, 32, 32)
             g2.color = Color(255, 255, 255, 80)
+            g2.stroke = BasicStroke(1f)
             g2.drawOval(cardCenterX - 16, 68, 32, 32)
 
             g2.color = Color.WHITE
             if (isPlaying) {
-                // Pause Icon (two vertical bars)
-                g2.fillRect(cardCenterX - 5, 76, 3, 16)
-                g2.fillRect(cardCenterX + 2, 76, 3, 16)
+                // Pause Icon (two rounded vertical bars)
+                g2.fillRoundRect(cardCenterX - 5, 76, 3, 16, 2, 2)
+                g2.fillRoundRect(cardCenterX + 2, 76, 3, 16, 2, 2)
             } else {
-                // Play Icon (triangle)
+                // Play Icon (centered triangle)
                 val playTriangle = Path2D.Float().apply {
                     moveTo((cardCenterX - 4).toFloat(), 75f)
                     lineTo((cardCenterX + 7).toFloat(), 84f)
@@ -347,9 +353,8 @@ internal object DesktopTrayFlyout {
 
             // Next Button
             drawTransportButton(g2, cardCenterX + 45, 84, 28, 28, hoveredControl == CONTROL_NEXT) {
-                // Next icon: ▶|
                 color = Color(230, 230, 240)
-                stroke = BasicStroke(1.8f)
+                stroke = BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
                 drawLine(cardCenterX + 52, 79, cardCenterX + 52, 89)
                 val p = Path2D.Float().apply {
                     moveTo((cardCenterX + 42).toFloat(), 79f)
@@ -364,16 +369,48 @@ internal object DesktopTrayFlyout {
             g2.color = Color(255, 255, 255, 14)
             g2.drawLine(14, 114, w - 14, 114)
 
-            // --- 2. Menu Navigation Rows ---
-            drawMenuItem(g2, ITEM_OPEN, 120, "Open Violence", "🗖", hoveredItem == ITEM_OPEN)
-            drawMenuItem(g2, ITEM_MINIMIZE, 154, "Minimize to Tray", "🗕", hoveredItem == ITEM_MINIMIZE)
-            drawMenuItem(g2, ITEM_SETTINGS, 188, "Settings", "⚙", hoveredItem == ITEM_SETTINGS)
+            // --- 4. Menu Navigation Rows ---
+            drawMenuItem(g2, ITEM_OPEN, 120, "Open Violence", shortcut = null, hoveredItem == ITEM_OPEN) { ix, iy ->
+                // Window icon: rectangle with caption line
+                stroke = BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                drawRoundRect(ix, iy, 14, 12, 3, 3)
+                drawLine(ix, iy + 4, ix + 14, iy + 4)
+            }
+
+            drawMenuItem(g2, ITEM_MINI_PLAYER, 154, "Mini Player", shortcut = "Ctrl+M", hoveredItem == ITEM_MINI_PLAYER) { ix, iy ->
+                // PiP icon: outer frame with inner PiP window
+                stroke = BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                drawRoundRect(ix, iy, 14, 12, 3, 3)
+                fillRoundRect(ix + 7, iy + 5, 6, 5, 1, 1)
+            }
+
+            drawMenuItem(g2, ITEM_MINIMIZE, 188, "Minimize to Tray", shortcut = null, hoveredItem == ITEM_MINIMIZE) { ix, iy ->
+                // Minimize dash
+                stroke = BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                drawLine(ix + 2, iy + 7, ix + 12, iy + 7)
+            }
+
+            drawMenuItem(g2, ITEM_SETTINGS, 222, "Settings", shortcut = null, hoveredItem == ITEM_SETTINGS) { ix, iy ->
+                // Gear icon
+                stroke = BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                drawOval(ix + 2, iy + 2, 10, 10)
+                fillOval(ix + 5, iy + 5, 4, 4)
+                drawLine(ix + 7, iy, ix + 7, iy + 2)
+                drawLine(ix + 7, iy + 12, ix + 7, iy + 14)
+                drawLine(ix, iy + 7, ix + 2, iy + 7)
+                drawLine(ix + 12, iy + 7, ix + 14, iy + 7)
+            }
 
             // Divider Line before Quit
             g2.color = Color(255, 255, 255, 14)
-            g2.drawLine(14, 224, w - 14, 224)
+            g2.drawLine(14, 258, w - 14, 258)
 
-            drawMenuItem(g2, ITEM_QUIT, 228, "Quit Violence", "✕", hoveredItem == ITEM_QUIT, isDestructive = true)
+            drawMenuItem(g2, ITEM_QUIT, 264, "Quit Violence", shortcut = null, hoveredItem == ITEM_QUIT, isDestructive = true) { ix, iy ->
+                // Cross icon
+                stroke = BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                drawLine(ix + 3, iy + 3, ix + 11, iy + 11)
+                drawLine(ix + 11, iy + 3, ix + 3, iy + 11)
+            }
         }
 
         private fun drawTransportButton(
@@ -388,7 +425,7 @@ internal object DesktopTrayFlyout {
             val rx = cx - w / 2
             val ry = cy - h / 2
             if (hovered) {
-                g2.color = Color(255, 255, 255, 25)
+                g2.color = Color(255, 255, 255, 22)
                 g2.fillRoundRect(rx, ry, w, h, 8, 8)
             }
             drawGlyph(g2)
@@ -399,9 +436,10 @@ internal object DesktopTrayFlyout {
             id: Int,
             y: Int,
             label: String,
-            iconGlyph: String,
+            shortcut: String?,
             hovered: Boolean,
             isDestructive: Boolean = false,
+            drawVectorIcon: Graphics2D.(ix: Int, iy: Int) -> Unit,
         ) {
             val itemX = 10
             val itemW = width - 20
@@ -409,31 +447,39 @@ internal object DesktopTrayFlyout {
 
             if (hovered) {
                 val highlightColor = if (isDestructive) {
-                    Color(0xE5, 0x38, 0x4F, 40)
+                    Color(0xFF, 0x45, 0x3A, 30)
                 } else {
-                    Color(255, 255, 255, 22)
+                    Color(255, 255, 255, 20)
                 }
                 g2.color = highlightColor
                 g2.fillRoundRect(itemX, y, itemW, itemH, 8, 8)
             }
 
-            // Left Icon Glyph
-            g2.font = Font("Segoe UI Symbol", Font.PLAIN, 13)
-            g2.color = when {
-                hovered && isDestructive -> Color(0xFF, 0x73, 0x82)
-                hovered -> Color(0x3F, 0x7B, 0xFF)
-                else -> Color(0x9E, 0x9E, 0xB2)
+            // Left Vector Icon
+            val iconColor = when {
+                hovered && isDestructive -> Color(0xFF, 0x69, 0x61)
+                hovered -> Color(0xFF, 0x3B, 0x5C) // Violence red accent
+                else -> Color(0x9E, 0x9E, 0xA8)
             }
-            g2.drawString(iconGlyph, itemX + 12, y + 21)
+            g2.color = iconColor
+            drawVectorIcon(g2, itemX + 10, y + 9)
 
             // Text Label
             g2.font = Font("Segoe UI", Font.PLAIN, 12)
             g2.color = when {
                 hovered && isDestructive -> Color(0xFF, 0x85, 0x94)
                 hovered -> Color.WHITE
-                else -> Color(0xDC, 0xDC, 0xEB)
+                else -> Color(0xDC, 0xDC, 0xE4)
             }
             g2.drawString(label, itemX + 34, y + 21)
+
+            // Shortcut text (if any)
+            if (shortcut != null) {
+                g2.font = Font("Segoe UI", Font.PLAIN, 11)
+                g2.color = if (hovered) Color(0xFF, 0x3B, 0x5C).brighter() else Color(0x7A, 0x7A, 0x88)
+                val sw = g2.fontMetrics.stringWidth(shortcut)
+                g2.drawString(shortcut, itemX + itemW - sw - 8, y + 21)
+            }
         }
 
         private fun truncateString(str: String, fm: FontMetrics, maxW: Int): String {
@@ -453,10 +499,10 @@ internal object DesktopTrayFlyout {
             private const val CONTROL_NEXT = 3
 
             private const val ITEM_OPEN = 10
-            private const val ITEM_MINIMIZE = 11
-            private const val ITEM_SETTINGS = 12
-            private const val ITEM_QUIT = 13
+            private const val ITEM_MINI_PLAYER = 11
+            private const val ITEM_MINIMIZE = 12
+            private const val ITEM_SETTINGS = 13
+            private const val ITEM_QUIT = 14
         }
     }
 }
-

@@ -78,6 +78,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.PathOperation
 import kotlin.math.exp
 import androidx.compose.ui.geometry.Size
@@ -168,15 +174,9 @@ internal fun TopPicksShelf(
         snapshotFlow { rowState.isScrollInProgress to clipOwner(rowState.layoutInfo, hasClip) }
             .collect { (scrolling, next) -> if (!scrolling) owner = next }
     }
-    // The card at the front of the row (the one the snap settles on): it carries the accent rim light under
-    // Violence Style, and the light moves with it as the row is swiped. Read only by the cards' `first` flag.
-    val frontIndex by remember(rowState) {
-        derivedStateOf {
-            val info = rowState.layoutInfo.visibleItemsInfo.firstOrNull()
-            val half = (info?.size ?: 0) / 2
-            rowState.firstVisibleItemIndex + if (rowState.firstVisibleItemScrollOffset > half) 1 else 0
-        }
-    }
+    val density = LocalDensity.current
+    val spacingPx = with(density) { 14.dp.roundToPx() }
+    val defaultLeadOffset = with(density) { PAGE_GUTTER.roundToPx() }
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(stringResource(Res.string.top_picks_for_you), hero = true)
         BoxWithConstraints {
@@ -196,7 +196,28 @@ internal fun TopPicksShelf(
                         ) {
                             TopPickCard(
                                 pick = pick,
-                                first = index == frontIndex,
+                                glowFraction = {
+                                    val layout = rowState.layoutInfo
+                                    val item = layout.visibleItemsInfo.firstOrNull { it.index == index }
+                                    if (item == null) {
+                                        if (layout.visibleItemsInfo.isEmpty() && index == 0) 1f else 0f
+                                    } else {
+                                        val leadOffset = layout.beforeContentPadding.takeIf { it > 0 } ?: defaultLeadOffset
+                                        val rawDelta = item.offset - leadOffset
+                                        val distance = when {
+                                            index == 0 && rawDelta > 0 -> 0f
+                                            index == picks.lastIndex && rawDelta < 0 -> 0f
+                                            else -> abs(rawDelta).toFloat()
+                                        }
+                                        val step = (item.size + spacingPx).toFloat().coerceAtLeast(1f)
+                                        if (distance >= step) {
+                                            0f
+                                        } else {
+                                            val linear = 1f - (distance / step)
+                                            linear * linear * (3f - 2f * linear)
+                                        }
+                                    }
+                                },
                                 listenerName = listenerName,
                                 onClick = onClick,
                                 onLongPress = onLongPress?.takeIf { pick.kind == TopPickKind.LATEST_RELEASE },
@@ -292,8 +313,8 @@ private fun TopPickCard(
     onClick: (TopPick, String) -> Unit,
     onLongPress: ((TopPick) -> Unit)?,
     modifier: Modifier,
-    /** The first card of the row: the one that carries the accent rim light under Violence Style. */
-    first: Boolean = false,
+    /** Provider for the accent rim light intensity (0f = none, 1f = fully lit). */
+    glowFraction: () -> Float = { 0f },
 ) {
     val text = cardText(pick, listenerName)
     val violence = LocalViolenceShared.current
@@ -305,7 +326,7 @@ private fun TopPickCard(
             .clip(shape)
             .thumbnailBorder(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .violenceCardRim(violence, first, shape)
+            .violenceCardRim(violence, glowFraction, shape)
             .longPressMenuClickable(onClick = { onClick(pick, text.title) }, onLongClick = longPress)
             .contextClick(longPress),
     ) {
@@ -1031,6 +1052,46 @@ private class Frame(val left: Float, val top: Float, val side: Float) {
 }
 
 /**
+ * Caches pre-rendered [ImageBitmap] instances for still mood tiles (in [FindYourMoodShelf] and [MoodGridPage]).
+ *
+ * Drawing complex vector outlines (320-step spiral with PathMeasure, rotated ovals, dash effects, etc.)
+ * outright on every scroll frame forces the RenderThread to re-execute all vector math and Skia path
+ * tessellation inside the full-page backdrop layer recorded for Liquid Glass. Caching the still picture
+ * as a single pre-baked bitmap reduces the per-frame cost to a single GPU texture blit, matching [AsyncImage]
+ * and eliminating scroll jank.
+ */
+internal object StillMoodArtCache {
+    internal val bitmaps = mutableMapOf<Triple<TopPickMood, Boolean, Int>, ImageBitmap>()
+
+    fun getOrCreate(mood: TopPickMood, square: Boolean, sidePx: Int, density: Density): ImageBitmap {
+        val key = Triple(mood, square, sidePx)
+        val cached = bitmaps[key]
+        if (cached != null) return cached
+
+        val image = ImageBitmap(sidePx, sidePx)
+        val style = mood.style()
+        val cache = EmblemCache()
+        val size = Size(sidePx.toFloat(), sidePx.toFloat())
+        CanvasDrawScope().draw(density, LayoutDirection.Ltr, androidx.compose.ui.graphics.Canvas(image), size) {
+            drawRect(style.background)
+            val w = size.width
+            val h = size.height
+            val f = if (square) {
+                val side = w * 0.70f
+                Frame(left = (w - side) / 2f, top = (h - side) / 2f, side = side)
+            } else {
+                val side = minOf(w * 0.84f, h * 0.62f)
+                Frame(left = (w - side) / 2f, top = h * 0.37f - side / 2f, side = side)
+            }
+            val stroke = cache.stroke((if (square) 2.dp else 2.5.dp).toPx())
+            drawEmblem(mood, f, mood.stillPhase(), style.stroke, stroke, cache)
+        }
+        bitmaps[key] = image
+        return image
+    }
+}
+
+/**
  * A mood's artwork. [square] is a Find Your Mood tile, where the emblem sits
  * in the middle; otherwise it's a tall Top Picks card and keeps to the part
  * above the caption.
@@ -1044,11 +1105,22 @@ private fun MoodArt(
     /** Drawn at rest — see [stillPhase] — and never asks for a frame. */
     still: Boolean = false,
 ) {
+    if (still) {
+        val density = LocalDensity.current
+        Canvas(modifier.graphicsLayer { }) {
+            if (size.width < 1f || size.height < 1f) return@Canvas
+            val sidePx = size.width.toInt().coerceAtLeast(1)
+            val bitmap = StillMoodArtCache.getOrCreate(mood, square, sidePx, density)
+            drawImage(bitmap)
+        }
+        return
+    }
+
     // Read only in the draw below, so a frame of the loop redraws this canvas
     // and recomposes nothing.
-    val loop = if (still) null else loopPhase(style.periodMs)
+    val loop = loopPhase(style.periodMs)
     val cache = remember(mood) { EmblemCache() }
-    Canvas(if (still) modifier else modifier.then(RetainedArt)) {
+    Canvas(modifier.then(RetainedArt)) {
         drawRect(style.background)
         val w = size.width
         val h = size.height
@@ -1062,7 +1134,7 @@ private fun MoodArt(
             Frame(left = (w - side) / 2f, top = h * 0.37f - side / 2f, side = side)
         }
         val stroke = cache.stroke((if (square) 2.dp else 2.5.dp).toPx())
-        drawEmblem(mood, f, loop?.value ?: mood.stillPhase(), style.stroke, stroke, cache)
+        drawEmblem(mood, f, loop.value, style.stroke, stroke, cache)
     }
 }
 
@@ -1599,6 +1671,8 @@ private fun spiral(path: Path, f: Frame) {
 
 // ---- Find Your Mood -----------------------------------------------------------
 
+private val CORE_MOODS = TopPickMood.entries.filter { it.isCoreMood }
+
 /**
  * Apple Music's Find Your Mood shelf: its seven moods as square tiles, each
  * named under it, and Show all on the heading for the activities as well —
@@ -1608,6 +1682,20 @@ private fun spiral(path: Path, f: Frame) {
 @Composable
 internal fun FindYourMoodShelf(onClick: (TopPickMood, String) -> Unit, onShowAll: () -> Unit) {
     val rowState = rememberLazyListState()
+    val density = LocalDensity.current
+    val logoPainter = painterResource(Res.drawable.ic_logo)
+
+    // Pre-warm the core mood bitmaps in composition so that the first draw
+    // frame drops 0 frames when entering the viewport.
+    val cardSidePx = with(density) { SHELF_CARD_WIDTH.roundToPx() }
+    LaunchedEffect(cardSidePx) {
+        if (cardSidePx > 0) {
+            CORE_MOODS.forEach { mood ->
+                StillMoodArtCache.getOrCreate(mood, true, cardSidePx, density)
+            }
+        }
+    }
+
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(stringResource(Res.string.find_your_mood), onShowAll = onShowAll)
         ShelfRow(
@@ -1615,8 +1703,8 @@ internal fun FindYourMoodShelf(onClick: (TopPickMood, String) -> Unit, onShowAll
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             state = rowState,
         ) {
-            items(TopPickMood.entries.filter { it.isCoreMood }, key = { it.name }) { mood ->
-                MoodTile(mood, onClick, Modifier.width(SHELF_CARD_WIDTH))
+            items(CORE_MOODS, key = { it.name }) { mood ->
+                MoodTile(mood, onClick, Modifier.width(SHELF_CARD_WIDTH), logoPainter)
             }
         }
     }
@@ -1633,6 +1721,7 @@ fun MoodGridPage(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
+    val logoPainter = painterResource(Res.drawable.ic_logo)
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = libraryGrid(maxWidth - PAGE_GUTTER * 2)
         LazyVerticalGrid(
@@ -1644,7 +1733,7 @@ fun MoodGridPage(
             modifier = Modifier.padding(horizontal = PAGE_GUTTER),
         ) {
             gridItems(TopPickMood.entries, key = { it.name }) { mood ->
-                MoodTile(mood, onClick, Modifier.fillMaxWidth())
+                MoodTile(mood, onClick, Modifier.fillMaxWidth(), logoPainter)
             }
         }
     }
@@ -1652,7 +1741,12 @@ fun MoodGridPage(
 
 /** A mood's square tile and its name under it, sized like a [ShelfCard]. */
 @Composable
-private fun MoodTile(mood: TopPickMood, onClick: (TopPickMood, String) -> Unit, modifier: Modifier) {
+private fun MoodTile(
+    mood: TopPickMood,
+    onClick: (TopPickMood, String) -> Unit,
+    modifier: Modifier,
+    logoPainter: Painter = painterResource(Res.drawable.ic_logo),
+) {
     val title = stringResource(mood.titleRes())
     Column(modifier.clickable { onClick(mood, title) }) {
         Box(
@@ -1662,13 +1756,9 @@ private fun MoodTile(mood: TopPickMood, onClick: (TopPickMood, String) -> Unit, 
                 .clip(RoundedCornerShape(12.dp))
                 .thumbnailBorder(RoundedCornerShape(12.dp)),
         ) {
-            // Still. A shelf of tiles each breathing on its own loop kept the
-            // page under the glass bars redrawing — and the bars' blur with
-            // it — for as long as the shelf was in view; the motion is Top
-            // Picks' own, one card at a time.
             MoodArt(mood, mood.style(), Modifier.fillMaxSize(), square = true, still = true)
             Icon(
-                painter = painterResource(Res.drawable.ic_logo),
+                painter = logoPainter,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier

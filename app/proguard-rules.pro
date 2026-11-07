@@ -7,7 +7,8 @@
 # enum names in preferences, Media3 custom commands, library reflection — keeps
 # working without a rule of its own.
 -dontobfuscate
--keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,Exceptions,*Annotation*
+-keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,Exceptions,*Annotation*,!kotlin.Metadata
+-dontwarn kotlin.Metadata
 
 # ---- Logging ------------------------------------------------------------------
 # A release build writes nothing to logcat. Every call is removed, ours and every

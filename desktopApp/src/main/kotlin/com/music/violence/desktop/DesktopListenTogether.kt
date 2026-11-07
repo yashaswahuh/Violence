@@ -11,6 +11,11 @@ import com.music.violence.data.listentogether.PartyPreview
 import com.music.violence.data.listentogether.PartyQueue
 import com.music.violence.data.listentogether.PartySnapshot
 import com.music.violence.data.listentogether.PartyTrack
+import com.music.violence.data.listentogether.DiscoveredJam
+import com.music.violence.data.listentogether.JamEmoji
+import com.music.violence.data.listentogether.JamLanManager
+import com.music.violence.data.listentogether.JamReaction
+import com.music.violence.data.listentogether.JamReactionProtocol
 import com.music.violence.data.listentogether.ServerClock
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -43,6 +48,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -143,6 +149,39 @@ internal object DesktopListenTogether {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val clock = ServerClock()
+    val jamLan = JamLanManager(scope)
+    val discoveredJams: StateFlow<List<DiscoveredJam>> = jamLan.discoveredJams
+    val reactions: SharedFlow<JamReaction> = jamLan.reactions
+
+    fun startLanDiscovery() = jamLan.startDiscovery()
+    fun stopLanDiscovery() = jamLan.stopDiscovery()
+    fun sendReaction(emoji: JamEmoji): Boolean {
+        val code = _state.value.code ?: return false
+        val now = System.currentTimeMillis()
+        val reaction = jamLan.sendReaction(emoji, now)
+        send(buildJsonObject {
+            put("type", "reaction")
+            put("emojiId", emoji.id.toInt())
+            put("timestampMs", now)
+        })
+        return reaction != null || session != null
+    }
+
+    init {
+        scope.launch {
+            _state.collect { s ->
+                val code = s.code
+                if (code != null) {
+                    val isHost = s.you?.isHost == true
+                    val host = s.you?.displayName ?: nickname()
+                    val track = s.playback.track?.let { "${it.title} - ${it.artist}" } ?: ""
+                    jamLan.enterParty(code, isHost, host, track)
+                } else {
+                    jamLan.leaveParty()
+                }
+            }
+        }
+    }
     private val persistence by lazy { DesktopPersistence() }
 
     private val _state = MutableStateFlow(State())
@@ -652,6 +691,15 @@ internal object DesktopListenTogether {
                             ?: current.you,
                     )
                 }
+            }
+
+            "reaction" -> {
+                val emojiId = frame["emojiId"]?.jsonPrimitive?.content?.toIntOrNull() ?: return
+                val ts = frame["timestampMs"]?.jsonPrimitive?.content?.toLongOrNull() ?: received
+                val emoji = JamEmoji.fromId(emojiId) ?: return
+                val partyCode = _state.value.code ?: return
+                val hash = JamReactionProtocol.computePartyHash(partyCode)
+                jamLan.recordReaction(JamReaction(partyHash = hash, emoji = emoji, timestampMs = ts))
             }
 
             "activity" -> {

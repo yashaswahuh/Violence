@@ -58,6 +58,7 @@ object DesktopDownloadManager {
                 }
                 check(Files.size(temporary) > 0L) { "Download failed: nothing was sent" }
                 Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING)
+                saveOfflineLyrics(song, directory)
                 return Result.success(song.copy(localUri = target.toUri().toString(), localPath = target.toString()))
             }
 
@@ -107,6 +108,7 @@ object DesktopDownloadManager {
             }.getOrElse {
                 Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING)
             }
+            saveOfflineLyrics(song, directory)
             Result.success(song.copy(localUri = target.toUri().toString(), localPath = target.toString()))
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -150,7 +152,19 @@ object DesktopDownloadManager {
     fun verified(downloads: List<Song>): List<Song> = downloads.filter(::isSaved)
 
     /** Deletes the file saved for [song]. Returns whether there was one to delete. */
+    private suspend fun saveOfflineLyrics(song: Song, directory: Path) {
+        if (!DesktopAppearanceSettings.saveSyncedLyricsWithDownloads.value) return
+        runCatching {
+            val lyricsResult = DesktopLyricsClient.lookup(song)
+            lyricsResult.getOrNull()?.lines?.let { lines ->
+                val targetFile = directory.resolve("${song.videoId}.lyrics.json").toFile()
+                com.music.violence.data.lyrics.OfflineLyricsStorage.save(song.videoId, lines, destinationFile = targetFile)
+            }
+        }
+    }
+
     fun delete(song: Song): Boolean {
+        com.music.violence.data.lyrics.OfflineLyricsStorage.remove(song.videoId)
         val file = savedFile(song) ?: return false
         return runCatching { Files.deleteIfExists(file) }
             .onFailure { DesktopTrackLog.log("could not delete the download of '${song.title}': ${it.message}") }

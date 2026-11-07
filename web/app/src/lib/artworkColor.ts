@@ -107,28 +107,41 @@ async function measure(url: string): Promise<ArtworkColor> {
     });
   }
 
-  // Filter out near-black, near-white, and skin tones (AndroidX Palette default filter)
+  const totalCount = swatches.reduce((sum, s) => sum + s.count, 0) || 1;
+
+  // Filter swatches: reject shadows/near-black, highlights/near-white, low-chroma greys,
+  // and trace artifacts. Purple/magenta (hue 250..315) requires >= 5% presence and real chroma
+  // so accidental purple fringing / noise doesn't hijack the accent.
   const candidates = swatches.filter((s) => {
     const [h, sat, lit] = rgbToHsl(s.r, s.g, s.b);
-    const isBlack = lit <= 0.08;
-    const isWhite = lit >= 0.95;
-    const nearRedILine = h >= 10 && h <= 37 && sat <= 0.82;
-    return !isBlack && !isWhite && !nearRedILine;
+    const chroma = (Math.max(s.r, s.g, s.b) - Math.min(s.r, s.g, s.b)) / 255;
+    const popRatio = s.count / totalCount;
+
+    if (lit < 0.12 || lit > 0.92) return false;
+    if (chroma < 0.08 || sat < 0.15) return false;
+
+    const isPurpleOrMagenta = h >= 250 && h <= 315;
+    if (isPurpleOrMagenta) {
+      return popRatio >= 0.05 && chroma >= 0.18;
+    }
+    return popRatio >= 0.015;
   });
 
-  const pool = candidates.length > 0 ? candidates : swatches;
+  const bestSwatch = candidates.length > 0
+    ? candidates.reduce((best, s) => {
+        const [, sat] = rgbToHsl(s.r, s.g, s.b);
+        const chroma = (Math.max(s.r, s.g, s.b) - Math.min(s.r, s.g, s.b)) / 255;
+        const popRatio = s.count / totalCount;
+        const score = (chroma * 0.65 + sat * 0.35) * Math.pow(popRatio, 0.75);
 
-  // Score vibrant: saturation * sqrt(population)
-  let bestSwatch = pool[0];
-  let bestScore = -1;
-  for (const s of pool) {
-    const [, sat] = rgbToHsl(s.r, s.g, s.b);
-    const score = sat * Math.sqrt(s.count);
-    if (score > bestScore) {
-      bestScore = score;
-      bestSwatch = s;
-    }
-  }
+        const bestChroma = (Math.max(best.r, best.g, best.b) - Math.min(best.r, best.g, best.b)) / 255;
+        const [, bestSat] = rgbToHsl(best.r, best.g, best.b);
+        const bestPopRatio = best.count / totalCount;
+        const bestScore = (bestChroma * 0.65 + bestSat * 0.35) * Math.pow(bestPopRatio, 0.75);
+
+        return score > bestScore ? s : best;
+      }, candidates[0])
+    : dominant;
 
   const accentHex = bestSwatch
     ? `#${toHex(bestSwatch.r)}${toHex(bestSwatch.g)}${toHex(bestSwatch.b)}`
@@ -138,23 +151,39 @@ async function measure(url: string): Promise<ArtworkColor> {
 }
 
 export function useArtworkColor(url: string | null | undefined): ArtworkColor | null {
-  const [color, setColor] = useState<ArtworkColor | null>(() => (url ? cache.get(url) ?? null : null));
+  const [state, setState] = useState<{ url: string | null | undefined; color: ArtworkColor | null }>({
+    url,
+    color: url ? cache.get(url) ?? null : null,
+  });
+
+  // Always evaluate color against the current url. If url changed and is not yet in state,
+  // return the cached color if ready, or null while loading. Never return another url's color!
+  const color = state.url === url ? state.color : (url ? cache.get(url) ?? null : null);
+
   useEffect(() => {
-    if (!url) return setColor(null);
+    if (!url) {
+      setState({ url: null, color: null });
+      return;
+    }
     const known = cache.get(url);
-    if (known) return setColor(known);
+    if (known) {
+      setState({ url, color: known });
+      return;
+    }
     let live = true;
     measure(url)
       .then((measured) => {
         cache.set(url, measured);
-        if (live) setColor(measured);
+        if (live) setState({ url, color: measured });
       })
       .catch(() => {
-        // An unreadable image leaves the page in its normal colours.
+        // An unreadable or failed image clears the color rather than keeping a stale one
+        if (live) setState({ url, color: null });
       });
     return () => {
       live = false;
     };
   }, [url]);
+
   return color;
 }

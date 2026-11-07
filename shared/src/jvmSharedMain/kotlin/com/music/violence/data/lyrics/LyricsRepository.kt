@@ -104,6 +104,18 @@ object LyricsRepository {
         /** Lets callers turn a cancelled race loser back into "not fetched". */
         onSourceCancelled: ((LyricsSource) -> Unit)? = null,
     ): Result? = coroutineScope {
+        if (sources.isEmpty()) return@coroutineScope null
+
+        // Offline cached .lyrics.json prioritized before network queries
+        if (LyricsSource.LOCAL_CACHE in sources || sources.size > 1) {
+            val cached = OfflineLyricsStorage.read(videoId)
+            if (cached != null && cached.isNotEmpty()) {
+                val res = result(LyricsSource.LOCAL_CACHE, cached)
+                onSourceResult?.invoke(LyricsSource.LOCAL_CACHE, res)
+                return@coroutineScope res
+            }
+        }
+
         val sequence = (order + LyricsSource.offered)
             .distinct()
             .filter { it in sources && !it.hidden }
@@ -213,6 +225,7 @@ object LyricsRepository {
             LyricsSource.KUGOU -> KuGou.lyrics(title, artist, durationMs, album)
             LyricsSource.MEGALOBIZ -> Megalobiz.lyrics(title, artist)
             LyricsSource.GENIUS -> Genius.lyrics(title, artist)
+            LyricsSource.LOCAL_CACHE -> OfflineLyricsStorage.read(videoId)
         }
         return found
     }

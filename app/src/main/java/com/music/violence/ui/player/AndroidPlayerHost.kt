@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.violence.data.canvas.CanvasArtwork
 import com.music.violence.data.canvas.CanvasRepository
+import com.music.violence.data.listentogether.JamEmoji
+import com.music.violence.data.listentogether.JamReaction
 import com.music.violence.data.listentogether.ListenTogether
 import com.music.violence.data.lyrics.LyricLine
 import com.music.violence.data.lyrics.LyricsTranslation
@@ -39,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -177,6 +180,13 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         ListenTogether.state
             .map { it.toPartyUi() }
             .stateIn(scope, SharingStarted.Eagerly, ListenTogether.state.value.toPartyUi())
+    }
+
+    override val partyReactions: SharedFlow<JamReaction>
+        get() = ListenTogether.reactions
+
+    override fun sendPartyReaction(emoji: JamEmoji) {
+        ListenTogether.sendReaction(emoji)
     }
 
     override suspend fun translateLyrics(

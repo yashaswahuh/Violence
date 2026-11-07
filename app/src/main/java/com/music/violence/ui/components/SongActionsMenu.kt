@@ -2,6 +2,7 @@ package com.music.violence.ui.components
 
 import com.music.violence.ui.icons.BrokenHeart
 import com.music.violence.ui.icons.SfIcons
+import com.music.violence.data.settings.AppSettings
 import com.music.violence.ui.components.trackArtSize
 import androidx.compose.ui.layout.ContentScale
 import com.music.violence.R
@@ -645,6 +646,30 @@ private fun SleepTimerPicker(palette: ArtworkPalette, onBack: () -> Unit) {
             selected = custom != null,
             accent = palette.accent,
         ) { pickingCustom = true }
+
+        HorizontalDivider(thickness = 0.5.dp, color = palette.divider)
+
+        val fadeToSilence by AppSettings.sleepTimerFade.collectAsStateWithLifecycle()
+        val finishCurrentTrack by AppSettings.sleepTimerFinishTrack.collectAsStateWithLifecycle()
+
+        SleepOption(
+            label = stringResource(R.string.sleep_timer_fade_title),
+            selected = fadeToSilence,
+            accent = palette.accent,
+        ) {
+            val next = !fadeToSilence
+            AppSettings.setSleepTimerFade(next)
+            SleepTimer.fadeToSilence.value = next
+        }
+        SleepOption(
+            label = stringResource(R.string.sleep_timer_finish_track_title),
+            selected = finishCurrentTrack,
+            accent = palette.accent,
+        ) {
+            val next = !finishCurrentTrack
+            AppSettings.setSleepTimerFinishTrack(next)
+            SleepTimer.finishCurrentTrack.value = next
+        }
         if (chosen != null || afterTrack) {
             ActionRow(SfIcons.Close, stringResource(R.string.turn_off_timer), accent = palette.accent) {
                 SleepTimer.cancel()

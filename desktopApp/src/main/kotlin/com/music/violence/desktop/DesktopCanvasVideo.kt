@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,7 +54,9 @@ internal fun DesktopCanvasVideo(spec: CanvasVideoSpec, modifier: Modifier) {
     val canvas = spec.canvas
     var frame by remember(canvas) { mutableStateOf<ImageBitmap?>(null) }
     val rendered = frame != null
-    val running by rememberUpdatedState(spec.isPlaying && !spec.pausedForTransition)
+    val occluded by DesktopWindowVisibility.isOccludedOrMinimized.collectAsState()
+    val pauseWhenHidden by DesktopAppearanceSettings.pauseBackgroundVisualsWhenHidden.collectAsState()
+    val running by rememberUpdatedState(spec.isPlaying && !spec.pausedForTransition && !(pauseWhenHidden && occluded))
     val reportAspect by rememberUpdatedState(spec.onAspectRatioChanged)
     val reportRendered by rememberUpdatedState(spec.onRenderedChanged)
     val reportFrame by rememberUpdatedState(spec.onFrameCaptured)

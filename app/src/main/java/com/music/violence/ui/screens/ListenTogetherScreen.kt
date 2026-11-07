@@ -91,6 +91,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.music.violence.R
 import com.music.violence.data.listentogether.JamInviteLink
+import com.music.violence.ui.player.JamReactionBurstOverlay
+import com.music.violence.ui.player.JamReactionChips
+import com.music.violence.ui.player.NearbyJamCard
 import com.music.violence.data.listentogether.ListenTogether
 import com.music.violence.nfc.NfcSendState
 import com.music.violence.nfc.NfcShareSession
@@ -258,8 +261,10 @@ fun ListenTogetherScreen(
     LaunchedEffect(Unit) { ListenTogether.ensureConnected() }
     DisposableEffect(Unit) {
         ListenTogether.setScreenActive(true)
+        ListenTogether.startLanDiscovery()
         onDispose {
             ListenTogether.setScreenActive(false)
+            ListenTogether.stopLanDiscovery()
         }
     }
 
@@ -539,13 +544,14 @@ fun ListenTogetherScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(contentPadding),
-    ) {
-        SettingsPageTitle(stringResource(R.string.listen_together))
+    Box(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(contentPadding),
+        ) {
+            SettingsPageTitle(stringResource(R.string.listen_together))
 
         if (!signedIn) {
             SettingsGroup(footer = stringResource(R.string.listen_together_sign_in_footer), topSpacing = 0.dp) {
@@ -559,6 +565,17 @@ fun ListenTogetherScreen(
         }
 
         if (!state.inParty) {
+            val nearbyJams by ListenTogether.discoveredJams.collectAsStateWithLifecycle()
+            if (nearbyJams.isNotEmpty()) {
+                nearbyJams.forEach { jam ->
+                    NearbyJamCard(
+                        jam = jam,
+                        onJoin = { openPartyPreview(it, null) },
+                        modifier = Modifier.padding(horizontal = GROUP_INSET, vertical = 6.dp),
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+            }
             PartyLanding(
                 avatarUrl = ListenTogether.myAvatarUrl(),
                 avatarId = ListenTogether.myAvatarId(),
@@ -595,6 +612,11 @@ fun ListenTogetherScreen(
                     modifier = Modifier.padding(start = GROUP_INSET + 4.dp, end = GROUP_INSET + 4.dp, bottom = 12.dp),
                 )
             }
+            JamReactionChips(
+                onReaction = { ListenTogether.sendReaction(it) },
+                modifier = Modifier.padding(horizontal = GROUP_INSET, vertical = 6.dp),
+            )
+            Spacer(Modifier.height(6.dp))
             InAParty(
                 state = state,
                 onCopy = { clipboard.setText(AnnotatedString(state.code.orEmpty())) },
@@ -671,6 +693,12 @@ fun ListenTogetherScreen(
         }
 
         Spacer(Modifier.height(32.dp))
+        }
+
+        JamReactionBurstOverlay(
+            reactions = ListenTogether.reactions,
+            modifier = Modifier.matchParentSize(),
+        )
     }
 }
 

@@ -1,5 +1,7 @@
 package com.music.violence.desktop
 
+import com.music.violence.desktop.platform.WindowsTaskbarToolbar
+import com.music.violence.desktop.ui.DesktopMiniPlayerWindow
 import androidx.compose.runtime.CompositionLocalProvider
 import com.music.violence.ui.player.PlayerPlatform
 import com.music.violence.data.DebugLog
@@ -45,6 +47,10 @@ fun main(args: Array<String> = emptyArray()) {
         DesktopTrackLog.log("$tag/$level: $message" + (error?.let { " (${it.message})" } ?: ""))
     }
     LyricsTranslation.cacheDir = DesktopMediaCache.directory.toFile()
+    com.music.violence.data.lyrics.OfflineLyricsStorage.baseDirectory = DesktopMediaCache.directory.resolve("lyrics").toFile()
+    com.music.violence.data.lyrics.OfflineLyricsStorage.registerDirectory(
+        java.nio.file.Path.of(System.getProperty("user.home"), "Music", "Violence").toFile(),
+    )
     // The Spotify library both apps share, on the tokens the web player mints in JavaFX.
     SpotifyLibrary.auth = SpotifyLibrary.Auth {
         DesktopSpotifyToken.accessToken()?.let { SpotifyLibrary.Tokens(it, DesktopSpotifyToken.clientToken()) }
@@ -76,11 +82,15 @@ private fun desktopMain() = application {
     // Closing puts the window away rather than ending the process, while there is a tray icon to
     // bring it back from — see [DesktopWindowVisibility].
     val visible by DesktopWindowVisibility.visible.collectAsState()
+    val isMiniMode by DesktopMiniPlayerManager.isMiniMode.collectAsState()
     val state = rememberWindowState(width = 1_220.dp, height = 780.dp)
     LaunchedEffect(visible) {
         if (visible && state.isMinimized) {
             state.isMinimized = false
         }
+    }
+    LaunchedEffect(state.isMinimized, visible) {
+        DesktopWindowVisibility.setOccludedOrMinimized(state.isMinimized || !visible)
     }
     // Hoisted so the player can fill the screen and the caption buttons can maximize — see
     // [DesktopWindowMode]. Fullscreen on Windows is a native borderless window that covers the
@@ -100,7 +110,7 @@ private fun desktopMain() = application {
     }
     Window(
         onCloseRequest = { if (DesktopWindowVisibility.onCloseRequest()) exitApplication() },
-        visible = visible,
+        visible = visible && !isMiniMode,
         title = "Violence",
         icon = painterResource(Res.drawable.logo),
         state = state,
@@ -117,6 +127,16 @@ private fun desktopMain() = application {
         val openingSize = remember { state.size }
         LaunchedEffect(composeWindow) {
             DesktopWindowVisibility.attachWindow(composeWindow)
+            DesktopDropHandler.attach(composeWindow)
+            WindowsTaskbarToolbar.start(
+                composeWindow,
+                object : WindowsTaskbarToolbar.Controller {
+                    override fun onPlay() { DesktopMiniPlayerManager.onPlayPause() }
+                    override fun onPause() { DesktopMiniPlayerManager.onPlayPause() }
+                    override fun onNext() { DesktopMiniPlayerManager.onNext() }
+                    override fun onPrevious() { DesktopMiniPlayerManager.onPrevious() }
+                },
+            )
             // AWT's default is white, and it is what shows for the frame or two a moved or resized
             // window takes to repaint: a white band along its edges.
             // Not over a transparent window, whose clear background is what the material shows
@@ -188,6 +208,12 @@ private fun desktopMain() = application {
         ) {
             ViolenceDesktopApp()
         }
+    }
+
+    if (isMiniMode) {
+        DesktopMiniPlayerWindow(
+            onClose = { DesktopMiniPlayerManager.exitMiniMode() },
+        )
     }
 }
 

@@ -307,6 +307,28 @@
   --glassMaterialInnerStrokeAlpha: 0.35;
 
   --navSidebarSelectedState: var(--vs-accent-soft, rgba(63, 123, 255, 0.22));
+
+  /*
+   * In Violence Style, the background is always the luminous canvas with live glow
+   * set by the playing song's accent. The scrollable page must always be transparent.
+   */
+  --page-tint: transparent;
+}
+
+[data-violence-style='true'] #scrollable-page,
+[data-violence-style='true'] main#scrollable-page[data-tint] {
+  background-color: transparent !important;
+}
+
+[data-violence-style='true'] [data-tint='dark'],
+[data-violence-style='true'] [data-tint='light'],
+[data-violence-style='true'] [data-tint] {
+  --systemPrimary: #ffffffeb;
+  --systemSecondary: #ffffffa3;
+  --systemTertiary: #ffffff66;
+  --systemQuaternary: #ffffff1a;
+  --systemQuinary: #ffffff0d;
+  color: var(--systemPrimary);
 }
 
 [data-violence-style='true'][data-vs-font='bodoni-moda'] {

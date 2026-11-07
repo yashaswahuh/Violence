@@ -17,6 +17,13 @@ internal object DesktopWindowVisibility {
     /** What the window's own `visible` is driven from. */
     val visible: StateFlow<Boolean> = _visible
 
+    private val _isOccludedOrMinimized = MutableStateFlow(false)
+    val isOccludedOrMinimized: StateFlow<Boolean> = _isOccludedOrMinimized
+
+    fun setOccludedOrMinimized(value: Boolean) {
+        _isOccludedOrMinimized.value = value
+    }
+
     /** Whether a close should hide rather than quit. */
     @Volatile
     var keepRunningWhenClosed: Boolean = false

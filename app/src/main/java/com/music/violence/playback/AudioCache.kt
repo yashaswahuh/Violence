@@ -199,6 +199,9 @@ object AudioCache {
 
     private lateinit var cache: SimpleCache
 
+    val totalCacheBytes: Long
+        get() = if (::cache.isInitialized) runCatching { cache.cacheSpace }.getOrDefault(0L) else 0L
+
     private lateinit var appContext: Context
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())

@@ -73,3 +73,6 @@ AGENTS.md
 # Distribution outputs (installers, packages)
 /dist/
 /desktopApp/dist/
+
+# Local runner guide
+/docs/SELF_HOSTED_RUNNER.md

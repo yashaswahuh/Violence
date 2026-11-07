@@ -127,6 +127,12 @@ enum class LyricsSource(
         detail = "Plain text fallback, massive web catalogue",
         wordSynced = false,
     ),
+    LOCAL_CACHE(
+        label = "Offline Cached",
+        detail = "Saved alongside downloaded track (.lyrics.json)",
+        wordSynced = true,
+        hidden = true,
+    ),
     ;
 
     companion object {

@@ -83,6 +83,7 @@ internal object DesktopTrayMenu {
     fun triggerOpenSettings() = synchronized(lock) { openSettings }()
     fun triggerQuit() = synchronized(lock) { quit }()
     fun triggerMinimizeToTray() { DesktopWindowVisibility.onCloseRequest() }
+    fun triggerToggleMiniPlayer() { DesktopMiniPlayerManager.toggle() }
 
     fun currentNowPlaying(): String? = synchronized(lock) { nowPlaying }
     fun currentIsPlaying(): Boolean = synchronized(lock) { isPlaying }

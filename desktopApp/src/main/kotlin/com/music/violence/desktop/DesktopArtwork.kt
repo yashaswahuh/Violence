@@ -34,8 +34,15 @@ internal object DesktopArtworkCache {
      * launcher was given, and clamped at both ends so a small heap still caches something and a
      * large one does not decide it may hold half a gigabyte of thumbnails.
      */
-    internal val budgetBytes: Long =
+    internal val defaultBudgetBytes: Long =
         (Runtime.getRuntime().maxMemory() / 6).coerceIn(32L * 1024 * 1024, 128L * 1024 * 1024)
+
+    internal val budgetBytes: Long
+        get() = if (DesktopAppearanceSettings.constrainImageCacheMemory.value) {
+            16L * 1024 * 1024
+        } else {
+            defaultBudgetBytes
+        }
 
     /** Four bytes a pixel, which is what every format here decodes to. */
     private val images = DesktopByteBudgetLru<ImageBitmap>(budgetBytes) {
@@ -66,7 +73,9 @@ fun DesktopArtwork(
     contentDescription: String? = null,
     px: Int? = null,
 ) {
-    val sized = if (px != null) url.artworkAt(px) else url
+    val constrainMemory = DesktopAppearanceSettings.constrainImageCacheMemory.value
+    val effectivePx = if (constrainMemory) (px?.coerceAtMost(256) ?: 128) else px
+    val sized = if (effectivePx != null) url.artworkAt(effectivePx) else url
     val bitmap by produceState<ImageBitmap?>(initialValue = null, key1 = sized) {
         value = withContext(Dispatchers.IO) {
             DesktopArtworkCache.load(sized)

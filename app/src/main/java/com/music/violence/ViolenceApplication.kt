@@ -61,6 +61,13 @@ class ViolenceApplication : Application(), SingletonImageLoader.Factory, Configu
         // The player is drawn by the shared UI module; this is what it reads
         // underneath — settings, the Canvas decoder, outputs, the party.
         AndroidStreamHooks.installEarly()
+        com.music.violence.playback.autoeq.AutoEqDatabase.streamProvider = {
+            try {
+                assets.open("autoeq/autoeq_database.json.gz")
+            } catch (_: Throwable) {
+                null
+            }
+        }
         PlayerPlatform.install(AndroidPlayerHost(this))
         com.music.violence.ui.AppUi.install(com.music.violence.ui.AndroidAppUiHost)
         // The shared data layer (lyrics, the YouTube Music client) logs to
@@ -100,6 +107,12 @@ class ViolenceApplication : Application(), SingletonImageLoader.Factory, Configu
         Innertube.appLanguage = { AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag() }
         migrateScriptOnlyAppLocale()
         LyricsTranslation.cacheDir = cacheDir
+        com.music.violence.data.lyrics.OfflineLyricsStorage.baseDirectory = cacheDir.resolve("lyrics")
+        com.music.violence.data.lyrics.OfflineLyricsStorage.registerDirectory(filesDir.resolve("downloads"))
+        com.music.violence.data.lyrics.OfflineLyricsStorage.registerDirectory(
+            java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MUSIC), com.music.violence.download.DownloadStore.FOLDER),
+        )
+        com.music.violence.ui.performance.BackgroundVisualsController.init(this)
         // PlaybackService shares this process, so seeding the cookie here means
         // stream resolution is authenticated from the first play onwards.
         authStore = AuthStore(this)
@@ -256,8 +269,9 @@ class ViolenceApplication : Application(), SingletonImageLoader.Factory, Configu
                 add(OkHttpNetworkFetcherFactory(callFactory = { coilHttpClient }))
             }
             .memoryCache {
+                val maxPercent = if (AppSettings.constrainImageCacheMemory.value) 0.08 else 0.20
                 MemoryCache.Builder()
-                    .maxSizePercent(context, 0.20)
+                    .maxSizePercent(context, maxPercent)
                     .build()
             }
             .diskCache {

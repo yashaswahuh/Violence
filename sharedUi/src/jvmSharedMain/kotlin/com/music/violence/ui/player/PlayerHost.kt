@@ -5,6 +5,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntSize
 import com.music.violence.data.canvas.CanvasArtwork
+import com.music.violence.data.listentogether.JamEmoji
+import com.music.violence.data.listentogether.JamReaction
 import com.music.violence.data.listentogether.PartyMember
 import com.music.violence.data.lyrics.LyricLine
 import com.music.violence.data.lyrics.LyricsSource
@@ -17,6 +19,8 @@ import com.music.violence.data.settings.MixBlend
 import com.music.violence.data.settings.MixTransitionView
 import com.music.violence.data.settings.TransitionWindow
 import dev.chrisbanes.haze.HazeState
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -95,6 +99,12 @@ interface PlayerHost {
 
     /** The Listen Together party this device is in, as the player draws it. */
     val party: StateFlow<PartyUi>
+
+    /** Incoming real-time reactions over local Wi-Fi UDP multicast. */
+    val partyReactions: SharedFlow<JamReaction> get() = MutableSharedFlow()
+
+    /** Sends a real-time reaction to peers in the party. */
+    fun sendPartyReaction(emoji: JamEmoji) = Unit
 
     suspend fun translateLyrics(
         trackId: String,

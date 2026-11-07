@@ -66,4 +66,9 @@ kotlin {
 android {
     namespace = "com.music.violence.shared"
     compileSdk = 36
+    sourceSets {
+        getByName("main") {
+            resources.srcDirs("src/jvmSharedMain/resources")
+        }
+    }
 }

@@ -557,6 +557,16 @@ class MainActivity : AppCompatActivity() {
      * running a second tap on the widget does not rebuild anything — it arrives
      * here, and [onCreate] never runs again.
      */
+    override fun onStart() {
+        super.onStart()
+        com.music.violence.ui.performance.BackgroundVisualsController.onActivityStarted()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        com.music.violence.ui.performance.BackgroundVisualsController.onActivityStopped()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // Replaces what getIntent() returns, so the extra this consumes is the

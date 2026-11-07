@@ -10,9 +10,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import com.music.violence.ui.graphics.ColorUtils
 import com.music.violence.ui.graphics.paletteSwatches
+import com.music.violence.ui.theme.selectVibrantSwatch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.math.sqrt
 
 data class DesktopArtworkPalette(
     val primary: Color,
@@ -44,11 +44,8 @@ private fun DesktopArtworkPalette.Companion.from(bitmap: ImageBitmap?): DesktopA
     return runCatching {
         val all = paletteSwatches(bitmap, maxColors = 24, clearFilters = true)
         if (all.isEmpty()) return DesktopArtworkPalette.Default
-        val accentCandidates = paletteSwatches(bitmap, maxColors = 24, clearFilters = false).ifEmpty { all }
-        val vibrant = accentCandidates.maxByOrNull { swatch ->
-            val hsl = FloatArray(3).also { ColorUtils.colorToHSL(swatch.rgb, it) }
-            hsl[1] * sqrt(swatch.population.toFloat())
-        } ?: all.first()
+        val dominant = all.maxBy { it.population }
+        val vibrant = selectVibrantSwatch(all, dominant)
 
         val vibrantColor = Color(vibrant.rgb)
         DesktopArtworkPalette(

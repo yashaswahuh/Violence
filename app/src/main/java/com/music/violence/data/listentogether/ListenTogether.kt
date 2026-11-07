@@ -43,6 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -253,6 +254,42 @@ object ListenTogether {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val clock = ServerClock(SystemClock::elapsedRealtime)
     private val switchMutex = Mutex()
+
+    val jamLan = JamLanManager(scope)
+    val discoveredJams: StateFlow<List<DiscoveredJam>> = jamLan.discoveredJams
+    val reactions: SharedFlow<JamReaction> = jamLan.reactions
+    private var appContext: Context? = null
+
+    fun startLanDiscovery() {
+        jamLan.startDiscovery()
+        appContext?.let { ctx ->
+            AndroidNsdDiscovery.startDiscovery(ctx) { jam ->
+                jamLan.recordDiscoveredJam(jam)
+            }
+        }
+    }
+
+    fun stopLanDiscovery() {
+        jamLan.stopDiscovery()
+        appContext?.let { ctx ->
+            AndroidNsdDiscovery.stopDiscovery(ctx)
+            if (_state.value.code == null) {
+                AndroidNsdDiscovery.releaseMulticastLock()
+            }
+        }
+    }
+
+    fun sendReaction(emoji: JamEmoji): Boolean {
+        val code = _state.value.code ?: return false
+        val now = System.currentTimeMillis()
+        val reaction = jamLan.sendReaction(emoji, now)
+        send(buildJsonObject {
+            put("type", "reaction")
+            put("emojiId", emoji.id.toInt())
+            put("timestampMs", now)
+        })
+        return reaction != null || session != null
+    }
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
@@ -675,6 +712,39 @@ object ListenTogether {
 
     fun init(context: Context) {
         prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        appContext = context.applicationContext
+        scope.launch {
+            _state.collect { s ->
+                val code = s.code
+                if (code != null) {
+                    appContext?.let { ctx ->
+                        AndroidNsdDiscovery.acquireMulticastLock(ctx)
+                    }
+                    val isHost = s.you?.isHost == true
+                    val host = s.you?.displayName ?: nickname()
+                    val track = s.playback.track?.let { "${it.title} - ${it.artist}" } ?: ""
+                    jamLan.enterParty(code, isHost, host, track)
+                    if (isHost) {
+                        appContext?.let { ctx ->
+                            AndroidNsdDiscovery.registerService(
+                                ctx,
+                                DiscoveredJam(code, host, track)
+                            )
+                        }
+                    } else {
+                        appContext?.let { ctx ->
+                            AndroidNsdDiscovery.unregisterService(ctx)
+                        }
+                    }
+                } else {
+                    jamLan.leaveParty()
+                    appContext?.let { ctx ->
+                        AndroidNsdDiscovery.unregisterService(ctx)
+                        AndroidNsdDiscovery.releaseMulticastLock()
+                    }
+                }
+            }
+        }
         val rawSaved = prefs.getString(KEY_SERVER, null)?.trim().orEmpty()
         val normalizedSaved = when (val res = parseAndNormalizeServerUrl(rawSaved)) {
             is ServerUrlValidationResult.Valid -> res.normalizedUrl
@@ -1481,6 +1551,15 @@ object ListenTogether {
                             ?: current.you,
                     )
                 }
+            }
+
+            "reaction" -> {
+                val emojiId = frame["emojiId"]?.jsonPrimitive?.content?.toIntOrNull() ?: return
+                val ts = frame["timestampMs"]?.jsonPrimitive?.content?.toLongOrNull() ?: received
+                val emoji = JamEmoji.fromId(emojiId) ?: return
+                val partyCode = _state.value.code ?: return
+                val hash = JamReactionProtocol.computePartyHash(partyCode)
+                jamLan.recordReaction(JamReaction(partyHash = hash, emoji = emoji, timestampMs = ts))
             }
 
             "activity" -> {

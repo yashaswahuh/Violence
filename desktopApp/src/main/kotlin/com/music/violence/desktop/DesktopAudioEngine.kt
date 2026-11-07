@@ -6,6 +6,8 @@ import com.music.violence.data.settings.MixBlend
 import com.music.violence.data.settings.SmartAnalysis
 import com.music.violence.data.settings.TrackAnalysisState
 import com.music.violence.data.settings.TransitionWindow
+import com.music.violence.playback.crossfeed.CrossfeedEngine
+import com.music.violence.playback.crossfeed.CrossfeedPreset
 import com.music.violence.playback.EqCurve
 import com.music.violence.playback.autoeq.AutoEqEngine
 import com.music.violence.playback.autoeq.AutoEqProfile
@@ -718,6 +720,8 @@ class DesktopPlaybackEngine(
      * the listener and the whole session, while the filter belongs to one handoff and has to have
      * the last word on it.
      */
+    private var crossfeed = CrossfeedEngine()
+    private var crossfeedIncoming = CrossfeedEngine()
     private var autoEq = AutoEqEngine()
     private var autoEqIncoming = AutoEqEngine()
     private var equalizer = DesktopEqualizer()
@@ -883,8 +887,9 @@ class DesktopPlaybackEngine(
     /** Mixes the outgoing track with the one coming in, filtering each side. */
     private fun blend(track: Track, block: FloatArray, count: Int): Pair<FloatArray, Int> {
         val incoming = upcoming
-        // Widened first, whether or not a mix is running, then equalised.
+        // Widened first, whether or not a mix is running, then crossfed and equalised.
         widen(spatial, track, block, count)
+        applyCrossfeed(crossfeed, block, count)
         autoEqualise(autoEq, block, count)
         equalise(equalizer, block, count)
         if (fadeRemaining <= 0 || incoming == null) return block to count
@@ -896,6 +901,7 @@ class DesktopPlaybackEngine(
         incomingSourceFrames += otherCount.toDouble() / sink.format.channels.coerceAtLeast(1) * incomingRate
         if (other != null) {
             widen(spatialIncoming, incoming, other, otherCount)
+            applyCrossfeed(crossfeedIncoming, other, otherCount)
             autoEqualise(autoEqIncoming, other, otherCount)
             equalise(equalizerIncoming, other, otherCount)
         }
@@ -1104,6 +1110,11 @@ class DesktopPlaybackEngine(
         processor.process(samples, count)
     }
 
+    private fun applyCrossfeed(engine: CrossfeedEngine, samples: FloatArray, count: Int) {
+        engine.setParameters(crossfeedEnabled, crossfeedPreset)
+        engine.process(samples, count)
+    }
+
     private fun autoEqualise(engine: AutoEqEngine, samples: FloatArray, count: Int) {
         engine.setProfile(autoEqEnabled, autoEqProfile)
         engine.process(samples, count)
@@ -1160,6 +1171,10 @@ class DesktopPlaybackEngine(
         // this track for the whole crossfade, and its sections — a 60 Hz shelf above all — are
         // ringing with that audio; handing the track over to the other one instead would hand it
         // the outgoing track's history at the seam.
+        val promotedCrossfeed = crossfeedIncoming
+        crossfeedIncoming = crossfeed
+        crossfeed = promotedCrossfeed
+        crossfeedIncoming.reset()
         val promotedAutoEq = autoEqIncoming
         autoEqIncoming = autoEq
         autoEq = promotedAutoEq
@@ -1426,6 +1441,8 @@ class DesktopPlaybackEngine(
         speedProcessor = DesktopAudioSpeed(sink.format.channels, sink.format.sampleRate)
         spatial = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
         spatialIncoming = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
+        crossfeed.configure(sink.format.channels, sink.format.sampleRate)
+        crossfeedIncoming.configure(sink.format.channels, sink.format.sampleRate)
         autoEq.configure(sink.format.channels, sink.format.sampleRate)
         autoEqIncoming.configure(sink.format.channels, sink.format.sampleRate)
         equalizer.configure(sink.format.channels, sink.format.sampleRate)
@@ -1464,6 +1481,8 @@ class DesktopPlaybackEngine(
         speedProcessor = DesktopAudioSpeed(sink.format.channels, sink.format.sampleRate)
         spatial = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
         spatialIncoming = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
+        crossfeed.configure(sink.format.channels, sink.format.sampleRate)
+        crossfeedIncoming.configure(sink.format.channels, sink.format.sampleRate)
         autoEq.configure(sink.format.channels, sink.format.sampleRate)
         autoEqIncoming.configure(sink.format.channels, sink.format.sampleRate)
         equalizer.configure(sink.format.channels, sink.format.sampleRate)
@@ -1796,12 +1815,13 @@ class DesktopPlaybackEngine(
         } else {
             duration - transitionSecondsFor(song) * 1_000L
         }
-        if (startMs - positionMs > ADDON_ARM_LEAD_MS) return
+        val is85Percent = duration > 0 && positionMs >= (duration * 0.85f)
+        if (startMs - positionMs > ADDON_ARM_LEAD_MS && !is85Percent) return
         // Whichever of this thread and a newer [prepareNext] gets there first owns it.
         if (!awaitingArm.compareAndSet(song, null)) return
         DesktopTrackLog.log(
             "arming '${song.title}' ${"%.1f".format((startMs - positionMs).coerceAtLeast(0) / 1_000.0)}s " +
-                "before its transition",
+                "before its transition (predictive 85%: $is85Percent)",
         )
         resolveUpcoming(song, race = true)
     }
@@ -1847,6 +1867,14 @@ class DesktopPlaybackEngine(
 
     @Volatile private var preferFloat = false
     @Volatile private var spatialEnabled = false
+
+    @Volatile private var crossfeedEnabled = false
+    @Volatile private var crossfeedPreset = CrossfeedPreset.NATURAL
+
+    fun setCrossfeed(enabled: Boolean, preset: CrossfeedPreset) {
+        crossfeedEnabled = enabled
+        crossfeedPreset = preset
+    }
 
     @Volatile private var autoEqEnabled = false
     @Volatile private var autoEqProfile: AutoEqProfile? = null
@@ -1922,6 +1950,7 @@ class DesktopPlaybackEngine(
             deviceName = sink.deviceName,
             bufferBytes = sink.bufferBytes,
             equalizerEnabled = equalizerEnabled,
+            crossfeedEnabled = crossfeedEnabled,
             skipSilence = skipSilenceEnabled,
         )
     }
