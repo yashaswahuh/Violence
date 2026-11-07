@@ -336,6 +336,8 @@ private fun PlaylistShelf(
                         subtitle = stringResource(Res.string.import_spotify_subtitle),
                         onClick = onImportSpotifyPlaylist,
                         logo = Res.drawable.spotify_logo,
+                        secondLogo = Res.drawable.apple_music_logo,
+                        labelMaxLines = 2,
                     )
                 }
             }
