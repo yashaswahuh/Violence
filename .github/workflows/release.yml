@@ -199,10 +199,13 @@ jobs:
       - name: Packaging tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm fakeroot binutils file
+          sudo apt-get install -y rpm fakeroot binutils file libfuse2 || true
           curl -sSL -o appimagetool.AppImage \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage
+          ./appimagetool.AppImage --appimage-extract
+          sudo mv squashfs-root /opt/appimagetool
+          sudo ln -sf /opt/appimagetool/AppRun /usr/local/bin/appimagetool
 
       - run: chmod +x gradlew
 
@@ -227,7 +230,7 @@ jobs:
           desktopApp/packaging/appimage.sh \
             desktopApp/build/compose/binaries/main/app/Violence \
             dist/violence-${tag}-linux-x86_64.AppImage \
-            "$PWD/appimagetool.AppImage"
+            appimagetool
 
       - name: Collect
         run: |
@@ -364,6 +367,7 @@ jobs:
   release:
     name: Publish Production Release
     needs: [prepare, android, linux, windows, macos]
+    if: always() && !cancelled() && needs.prepare.result == 'success'
     runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-latest' }}
     steps:
       - uses: actions/download-artifact@v4
