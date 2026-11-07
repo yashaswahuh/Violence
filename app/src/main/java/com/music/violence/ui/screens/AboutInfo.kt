@@ -91,7 +91,7 @@ private val CREDITS = listOf(
     CreditGroup(
         "Violence",
         listOf(
-            Credit("Yashaswa", "Violence, maintained as a private fork. GPL-3.0."),
+            Credit("Yashaswa, Namra Kapadia", "Violence, maintained as a private fork. GPL-3.0."),
             Credit("Kushagra Singh", "Created BitChord, the open-source app Violence is forked from. GPL-3.0."),
         ),
     ),
