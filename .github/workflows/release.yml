@@ -41,7 +41,10 @@ jobs:
             v=$(grep 'extra\["violenceVersionName"\]' build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
           fi
           [ -n "$v" ] || v="v0.9.5"
-          raw=$(echo "$v" | sed 's/^v//')
+          raw=$(echo "$v" | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1)
+          if [ -z "$raw" ]; then
+            raw="0.9.5"
+          fi
           tag="v${raw}"
           echo "raw=$raw" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
@@ -306,16 +309,9 @@ jobs:
           path: dist/*
 
   macos:
-    name: macOS · dmg, pkg, zip (${{ matrix.arch }})
+    name: macOS · dmg, pkg, zip
     needs: prepare
-    strategy:
-      matrix:
-        include:
-          - os: macos-14
-            arch: arm64
-          - os: macos-15-intel
-            arch: x64
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -350,20 +346,19 @@ jobs:
       - name: Collect
         run: |
           tag="${{ needs.prepare.outputs.tag_version }}"
-          arch="${{ matrix.arch }}"
           mkdir -p dist
           for f in desktopApp/build/compose/binaries/main/dmg/*.dmg; do
-            [ -f "$f" ] && cp "$f" "dist/violence-$tag-macos-$arch.dmg"
+            [ -f "$f" ] && cp "$f" "dist/violence-$tag-macos.dmg"
           done
           for f in desktopApp/build/compose/binaries/main/pkg/*.pkg; do
-            [ -f "$f" ] && cp "$f" "dist/violence-$tag-macos-$arch.pkg"
+            [ -f "$f" ] && cp "$f" "dist/violence-$tag-macos.pkg"
           done
-          ditto -c -k --keepParent desktopApp/build/compose/binaries/main/app/Violence.app "dist/violence-$tag-macos-$arch.zip"
+          ditto -c -k --keepParent desktopApp/build/compose/binaries/main/app/Violence.app "dist/violence-$tag-macos.zip"
           ls -lh dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.arch }}-artifacts
+          name: macos-artifacts
           path: dist/*
 
   release:
@@ -385,7 +380,7 @@ jobs:
       - name: Publish or update pre-release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.prepare.outputs.tag_version }}
+          tag_name: ${{ github.event.release.tag_name || needs.prepare.outputs.tag_version }}
           name: Violence ${{ needs.prepare.outputs.tag_version }}
           prerelease: true
           draft: false
