@@ -2,11 +2,9 @@
 # nothing is installed or changed globally. Contains no secrets.
 
 function Assert-OnBranch {
-    # Branch rule: work happens on violence-nk.
     $branch = (git branch --show-current).Trim()
-    if ($branch -ne 'violence-nk') {
-        Write-Host "You are on '$branch', not violence-nk. Switch with: git switch violence-nk" -ForegroundColor Yellow
-        Write-Host 'Continuing, because building does not change the repository, but commits and pushes must go to violence-nk.' -ForegroundColor Yellow
+    if ($branch -ne 'violence-nk' -and $branch -ne 'main' -and $branch -ne 'violence-main') {
+        Write-Host "You are on '$branch'. Commits and pushes must go to main or violence-nk." -ForegroundColor Yellow
     }
 }
 

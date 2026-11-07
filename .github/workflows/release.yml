@@ -1,10 +1,17 @@
 name: Release
 on:
+  release:
+    types: [published, prereleased]
+  push:
+    tags:
+      - 'v*'
+  public:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to stamp into the packages, without the leading v"
-        required: true
+        description: "Version to stamp into the packages (e.g. v0.9.5 or 0.9.5)"
+        required: false
+        default: "v0.9.5"
 
 permissions:
   contents: write
@@ -14,8 +21,161 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    name: Prepare Release Version
+    runs-on: ubuntu-latest
+    outputs:
+      raw_version: ${{ steps.ver.outputs.raw }}
+      tag_version: ${{ steps.ver.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute version
+        id: ver
+        run: |
+          v="${{ inputs.version || github.event.release.tag_name || '' }}"
+          if [ -z "$v" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            v="${GITHUB_REF_NAME}"
+          fi
+          if [ -z "$v" ]; then
+            v=$(grep 'extra\["violenceVersionName"\]' build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+          fi
+          [ -n "$v" ] || v="v0.9.5"
+          raw=$(echo "$v" | sed 's/^v//')
+          tag="v${raw}"
+          echo "raw=$raw" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Building Violence $tag (raw: $raw)"
+
+  android:
+    name: Android · Phone & TV (Production Release)
+    needs: prepare
+    runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-latest' }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21 and 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            21
+            17
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platforms;android-37.0" "platforms;android-36" "cmake;3.22.1" "ndk;27.0.12077973"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure Keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PROPERTIES: ${{ secrets.KEYSTORE_PROPERTIES }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > violence-release.jks
+            cat << 'EOF' > keystore.properties
+          storeFile=violence-release.jks
+          storePassword=${{ secrets.KEYSTORE_PASSWORD || 'violence' }}
+          keyAlias=${{ secrets.KEY_ALIAS || 'violence' }}
+          keyPassword=${{ secrets.KEY_PASSWORD || 'violence' }}
+          EOF
+          elif [ -n "$KEYSTORE_PROPERTIES" ]; then
+            echo "$KEYSTORE_PROPERTIES" > keystore.properties
+          elif [ ! -f keystore.properties ]; then
+            echo "Generating release signing keystore for CI build..."
+            keytool -genkeypair -v -keystore violence-release.jks \
+              -alias violence -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass violence -keypass violence \
+              -dname "CN=Violence, OU=Music, O=Violence, L=Unknown, ST=Unknown, C=US"
+            cat << 'EOF' > keystore.properties
+          storeFile=violence-release.jks
+          storePassword=violence
+          keyAlias=violence
+          keyPassword=violence
+          EOF
+          fi
+
+      - name: Write local.properties
+        run: |
+          echo "LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}" > local.properties
+          echo "LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}" >> local.properties
+          echo "JAM_BACKEND_URL=${{ vars.JAM_BACKEND_URL || '' }}" >> local.properties
+          echo "JAM_INVITE_BASE_URL=${{ vars.JAM_INVITE_BASE_URL || '' }}" >> local.properties
+
+      - run: chmod +x gradlew
+
+      - name: Build Phone & TV Production Release APKs
+        run: |
+          ./gradlew :app:assembleProdRelease :tv:assembleProdRelease \
+            -Pviolence.bundleWear=false \
+            -Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64
+
+      - name: Collect Android Release APKs and update.json
+        run: |
+          tag="${{ needs.prepare.outputs.tag_version }}"
+          raw="${{ needs.prepare.outputs.raw_version }}"
+          mkdir -p dist-android
+
+          # Find and copy phone release APKs
+          for abi in universal arm64-v8a armeabi-v7a x86_64; do
+            apk=$(find app/build/outputs/apk/prod/release -name "*${abi}*.apk" | head -n 1)
+            if [ -n "$apk" ]; then
+              cp "$apk" "dist-android/violence-${tag}-android-${abi}.apk"
+            fi
+          done
+
+          # Find and copy TV release APKs
+          for abi in universal arm64-v8a armeabi-v7a x86_64; do
+            apk=$(find tv/build/outputs/apk/prod/release -name "*${abi}*.apk" | head -n 1)
+            if [ -n "$apk" ]; then
+              cp "$apk" "dist-android/violence-${tag}-tv-${abi}.apk"
+            fi
+          done
+
+          # Generate update.json for in-app updates
+          node -e '
+            const fs = require("fs"), crypto = require("crypto");
+            const tag = process.argv[1];
+            const raw = process.argv[2];
+            const apks = {};
+            const files = fs.readdirSync("dist-android");
+            for (const f of files) {
+              if (!f.endsWith(".apk") || f.includes("universal")) continue;
+              const buf = fs.readFileSync("dist-android/" + f);
+              const hash = crypto.createHash("sha256").update(buf).digest("hex");
+              const isTv = f.includes("-tv-");
+              const abi = f.split(".apk")[0].split("-").pop();
+              const key = (isTv ? "tv-" : "phone-") + abi;
+              const altKey = (isTv ? "tv-" : "android-") + abi;
+              apks[key] = { url: f, sha256: hash, bytes: buf.length };
+              apks[altKey] = { url: f, sha256: hash, bytes: buf.length };
+            }
+            const updateJson = {
+              versionCode: 35,
+              versionName: tag,
+              changelog: ["Pre-release " + tag],
+              apks: apks
+            };
+            fs.writeFileSync("dist-android/update.json", JSON.stringify(updateJson, null, 2));
+          ' "$tag" "$raw"
+
+          ls -lh dist-android
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: dist-android/*
+
   linux:
     name: Linux · AppImage, deb, rpm
+    needs: prepare
     runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@v4
@@ -27,14 +187,6 @@ jobs:
           distribution: 'temurin'
 
       - uses: gradle/actions/setup-gradle@v4
-
-      - name: Work out the version
-        id: version
-        run: |
-          version="${{ inputs.version }}"
-          [ -n "$version" ] || version="${GITHUB_REF_NAME#v}"
-          echo "value=$version" >> "$GITHUB_OUTPUT"
-          echo "Building $version"
 
       - name: Write local.properties
         run: |
@@ -52,12 +204,12 @@ jobs:
       - run: chmod +x gradlew
 
       - name: Tests
-        run: ./gradlew :shared:jvmTest :desktopUi:jvmTest :desktopApp:test -Pviolence.version=${{ steps.version.outputs.value }}
+        run: ./gradlew :shared:jvmTest :desktopUi:jvmTest :desktopApp:test -Pviolence.version=${{ needs.prepare.outputs.raw_version }}
 
       - name: Build deb, rpm and the app image
         run: |
           ./gradlew :desktopApp:packageDeb :desktopApp:packageRpm :desktopApp:createDistributable \
-            -Pviolence.version=${{ steps.version.outputs.value }}
+            -Pviolence.version=${{ needs.prepare.outputs.raw_version }}
 
       - name: The analyser and models are in the jar
         run: |
@@ -67,17 +219,19 @@ jobs:
 
       - name: Build the AppImage
         run: |
+          tag="${{ needs.prepare.outputs.tag_version }}"
+          mkdir -p dist
           desktopApp/packaging/appimage.sh \
             desktopApp/build/compose/binaries/main/app/Violence \
-            dist/Violence-${{ steps.version.outputs.value }}-linux-x86_64.AppImage \
+            dist/violence-${tag}-linux-x86_64.AppImage \
             "$PWD/appimagetool.AppImage"
 
       - name: Collect
         run: |
-          v=${{ steps.version.outputs.value }}
+          tag="${{ needs.prepare.outputs.tag_version }}"
           mkdir -p dist
-          cp desktopApp/build/compose/binaries/main/deb/*.deb "dist/Violence-$v-linux-amd64.deb"
-          cp desktopApp/build/compose/binaries/main/rpm/*.rpm "dist/Violence-$v-linux-x86_64.rpm"
+          cp desktopApp/build/compose/binaries/main/deb/*.deb "dist/violence-${tag}-linux-amd64.deb"
+          cp desktopApp/build/compose/binaries/main/rpm/*.rpm "dist/violence-${tag}-linux-x86_64.rpm"
           ls -lh dist
 
       - uses: actions/upload-artifact@v4
@@ -86,7 +240,8 @@ jobs:
           path: dist/*
 
   windows:
-    name: Windows · installer, msi, portable
+    name: Windows · installer, msi, exe, portable
+    needs: prepare
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -110,15 +265,6 @@ jobs:
       - name: CMake version
         run: cmake --version
 
-      - name: Work out the version
-        id: version
-        shell: bash
-        run: |
-          version="${{ inputs.version }}"
-          [ -n "$version" ] || version="${GITHUB_REF_NAME#v}"
-          echo "value=$version" >> "$GITHUB_OUTPUT"
-          echo "Building $version"
-
       - name: Write local.properties
         shell: bash
         run: |
@@ -126,11 +272,11 @@ jobs:
           echo "LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}" >> local.properties
 
       - name: Tests
-        run: .\gradlew.bat :shared:jvmTest :desktopUi:jvmTest :desktopApp:test "-Pviolence.version=${{ steps.version.outputs.value }}"
+        run: .\gradlew.bat :shared:jvmTest :desktopUi:jvmTest :desktopApp:test "-Pviolence.version=${{ needs.prepare.outputs.raw_version }}"
 
       - name: Build msi, exe and the app image
         run: |
-          .\gradlew.bat :desktopApp:packageMsi :desktopApp:packageExe :desktopApp:createDistributable "-Pviolence.version=${{ steps.version.outputs.value }}"
+          .\gradlew.bat :desktopApp:packageMsi :desktopApp:packageExe :desktopApp:createDistributable "-Pviolence.version=${{ needs.prepare.outputs.raw_version }}"
 
       - name: The analyser and models are in the jar
         shell: bash
@@ -144,11 +290,13 @@ jobs:
       - name: Collect
         shell: pwsh
         run: |
-          $v = "${{ steps.version.outputs.value }}"
+          $tag = "${{ needs.prepare.outputs.tag_version }}"
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item desktopApp/build/compose/binaries/main/msi/*.msi "dist/Violence-$v-windows-x64.msi"
-          Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/Violence-$v-windows-x64-setup.exe"
-          7z a -tzip -mx=5 "dist/Violence-$v-windows-x64-portable.zip" `
+          Copy-Item desktopApp/build/compose/binaries/main/msi/*.msi "dist/violence-$tag-windows-x64-installer.msi"
+          Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/violence-$tag-windows-x64-setup.exe"
+          Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/violence-$tag-windows-x64-installer.exe"
+          Copy-Item desktopApp/build/compose/binaries/main/app/Violence/Violence.exe "dist/violence-$tag-windows-x64.exe"
+          7z a -tzip -mx=5 "dist/violence-$tag-windows-x64-portable.zip" `
             "desktopApp/build/compose/binaries/main/app/Violence/*" | Out-Null
           Get-ChildItem dist | Format-Table Name, Length
 
@@ -159,6 +307,7 @@ jobs:
 
   macos:
     name: macOS · dmg, pkg, zip (${{ matrix.arch }})
+    needs: prepare
     strategy:
       matrix:
         include:
@@ -178,14 +327,6 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Work out the version
-        id: version
-        run: |
-          version="${{ inputs.version }}"
-          [ -n "$version" ] || version="${GITHUB_REF_NAME#v}"
-          echo "value=$version" >> "$GITHUB_OUTPUT"
-          echo "Building $version"
-
       - name: Write local.properties
         run: |
           echo "LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}" > local.properties
@@ -194,12 +335,12 @@ jobs:
       - run: chmod +x gradlew
 
       - name: Tests
-        run: ./gradlew :shared:jvmTest :desktopUi:jvmTest :desktopApp:test -Pviolence.version=${{ steps.version.outputs.value }}
+        run: ./gradlew :shared:jvmTest :desktopUi:jvmTest :desktopApp:test -Pviolence.version=${{ needs.prepare.outputs.raw_version }}
 
       - name: Build DMG, PKG and the app bundle
         run: |
           ./gradlew :desktopApp:packageDmg :desktopApp:packagePkg :desktopApp:createDistributable \
-            -Pviolence.version=${{ steps.version.outputs.value }}
+            -Pviolence.version=${{ needs.prepare.outputs.raw_version }}
 
       - name: The analyser and models are in the jar
         run: |
@@ -208,16 +349,16 @@ jobs:
 
       - name: Collect
         run: |
-          v="${{ steps.version.outputs.value }}"
+          tag="${{ needs.prepare.outputs.tag_version }}"
           arch="${{ matrix.arch }}"
           mkdir -p dist
           for f in desktopApp/build/compose/binaries/main/dmg/*.dmg; do
-            [ -f "$f" ] && cp "$f" "dist/Violence-$v-macos-$arch.dmg"
+            [ -f "$f" ] && cp "$f" "dist/violence-$tag-macos-$arch.dmg"
           done
           for f in desktopApp/build/compose/binaries/main/pkg/*.pkg; do
-            [ -f "$f" ] && cp "$f" "dist/Violence-$v-macos-$arch.pkg"
+            [ -f "$f" ] && cp "$f" "dist/violence-$tag-macos-$arch.pkg"
           done
-          ditto -c -k --keepParent desktopApp/build/compose/binaries/main/app/Violence.app "dist/Violence-$v-macos-$arch.zip"
+          ditto -c -k --keepParent desktopApp/build/compose/binaries/main/app/Violence.app "dist/violence-$tag-macos-$arch.zip"
           ls -lh dist
 
       - uses: actions/upload-artifact@v4
@@ -226,8 +367,8 @@ jobs:
           path: dist/*
 
   release:
-    name: Publish
-    needs: [linux, windows, macos]
+    name: Publish Production Release
+    needs: [prepare, android, linux, windows, macos]
     runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-latest' }}
     steps:
       - uses: actions/download-artifact@v4
@@ -236,15 +377,18 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - run: ls -lh dist
+      - name: Ensure only production builds are present
+        run: |
+          rm -f dist/*dev* dist/*debug*
+          ls -lh dist
 
-      - name: Draft the release
-        if: github.ref_type == 'tag'
+      - name: Publish or update pre-release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Violence ${{ github.ref_name }}
-          draft: true
+          tag_name: ${{ needs.prepare.outputs.tag_version }}
+          name: Violence ${{ needs.prepare.outputs.tag_version }}
+          prerelease: true
+          draft: false
           files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

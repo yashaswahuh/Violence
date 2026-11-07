@@ -127,6 +127,10 @@ async function measure(url: string): Promise<ArtworkColor> {
     return popRatio >= 0.015;
   });
 
+  const dominant = swatches.length > 0
+    ? swatches.reduce((max, s) => (s.count > max.count ? s : max), swatches[0]!)
+    : undefined;
+
   const bestSwatch = candidates.length > 0
     ? candidates.reduce((best, s) => {
         const [, sat] = rgbToHsl(s.r, s.g, s.b);
@@ -140,7 +144,7 @@ async function measure(url: string): Promise<ArtworkColor> {
         const bestScore = (bestChroma * 0.65 + bestSat * 0.35) * Math.pow(bestPopRatio, 0.75);
 
         return score > bestScore ? s : best;
-      }, candidates[0])
+      }, candidates[0]!)
     : dominant;
 
   const accentHex = bestSwatch

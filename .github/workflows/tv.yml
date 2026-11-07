@@ -29,6 +29,8 @@ on:
       - 'gradle.properties'
       - 'gradle/**'
       - '.github/workflows/tv.yml'
+  public:
+  workflow_dispatch:
 
 concurrency:
   group: tv-${{ github.workflow }}-${{ github.ref }}

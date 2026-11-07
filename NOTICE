@@ -23,7 +23,7 @@ Animations: the Tap to share screen uses two free animations from LottieFiles un
 "Black successful check" by BASURI AUTOMOTIVE (https://lottiefiles.com/free-animation/black-successful-check-T3VoXop7Jp),
 recoloured to the app's colours. Played with Lottie for Android (Apache-2.0).
 
-Violence Style fonts (bundled in app/src/main/res/font, all licensed under the SIL Open Font License 1.1; full texts in fork-docs/style/licenses/):
+Violence Style fonts (bundled in app/src/main/res/font, all licensed under the SIL Open Font License 1.1):
 - Inter, Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
 - Bodoni Moda, Copyright 2020 The Bodoni Moda Project Authors (https://github.com/indestructible-type/Bodoni)
 - Anton, Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont.git)

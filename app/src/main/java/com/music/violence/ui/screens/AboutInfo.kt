@@ -30,54 +30,31 @@ private class ChangelogEntry(val title: String, val lines: List<String>)
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
-        "Pre-release",
+        "v0.9.5",
         listOf(
-            "New app icons: Blue (the new default), Red and Pink. The old default is now called Minimal. The Liquid Glass, Samsung and Pixel icons are no longer offered.",
+            "Made the app ready for Pre-release. Release scheduled for 10 November 2026",
+            "New app icons: Blue, Red, Pink, Yellow and Purple, along with Minimal and Monochrome options for simpler options.",
             "Headphone Crossfeed now has three buttons for its mode instead of tapping round a cycle.",
             "AutoEQ headphone calibration moved to Playback settings, since it works without the equaliser.",
-            "Storage breakdown moved to Storage. Tap it to open Open downloads folder, Clear stream cache and Verify offline lyrics.",
-            "Changelog now shows a timeline.",
-            "Automatic update check against GitHub Releases, with a switch to turn it off. There is also a Check for updates button.",
-            "Violence Style and Liquid Glass are on by default. Style options show only when it is on, and turning it off no longer touches Liquid Glass. Reduce dynamic blur is removed.",
-            "Your own profile photo now shows on the profile button, the profile page, Settings and your row in a Jam.",
-            "Credits page, Apple Music playlist import and a Quote design for lyrics cards (experimental).",
+            "Android TV remains untested for the time being.",
         ),
     ),
     ChangelogEntry(
-        "Hotfix 4.0",
+        "V0.0.2-0.9.0",
         listOf(
-            "Automix cover art now dissolves slowly into the next song's cover.",
-            "The look rotates between Automixes: plain dissolve, zoom, drift and twist.",
+            "Fixed Liquid Glass stutters.",
+            "Added AutoEQ, Binaural Crossfeed, Storage Breakdown, local user profiles, NFC Sharing, etc",
+            "Tons of performance improvements.",
+            "Created Violence Style (enabled by default) along with options for customization.",
         ),
     ),
     ChangelogEntry(
-        "Hotfix 3.0",
+        "V0.0.1",
         listOf(
-            "Leaving a Jam keeps your current queue and song instead of restoring the old queue.",
-        ),
-    ),
-    ChangelogEntry(
-        "Hotfix 2.0",
-        listOf(
-            "Casting: the player names the receiver (for example your Google Home) instead of \"this phone\".",
-            "Casting: the volume buttons change the receiver's volume, not the phone's.",
-            "Removed the refraction curves from the account menu and menu glass.",
-            "New (experimental): full-screen cover art on album and playlist pages, blended into the page colour.",
-            "New (experimental): Automix cover animation in the player.",
-        ),
-    ),
-    ChangelogEntry(
-        "Hotfix 1.0",
-        listOf(
-            "Changing the heading font now changes headings only. Song, album and playlist names keep the normal font.",
-        ),
-    ),
-    ChangelogEntry(
-        "Earlier",
-        listOf(
-            "Violence Style: live background, serif headings, glass bars and accent colours (optional).",
-            "Liquid Glass account menu (optional).",
-            "The app is now called Violence.",
+            "Forked BitChord v1.9.0 and rebranded to Violence.",
+            "Jam server uses Violence's own server instead of Bitchord's.",
+            "Icons changed and added a local profile system.",
+            "Credits to BitChord for the base code.",
         ),
     ),
 )

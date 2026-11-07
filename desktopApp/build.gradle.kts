@@ -8,10 +8,11 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 /** What the packages, the launcher and the settings footer all say. */
-val appVersion: String = (providers.gradleProperty("violence.version").orNull ?: providers.gradleProperty("violence.version").orNull)
+val appVersion: String = (providers.gradleProperty("violence.version").orNull
+    ?: (rootProject.extra["violenceVersionName"] as? String))
     ?.removePrefix("v")
     ?.takeIf { it.isNotBlank() }
-    ?: "1.8-beta1"
+    ?: "0.9.5"
 
 /** Which platform this build is *for*, which is the host unless told otherwise. */
 val hostIsWindows = System.getProperty("os.name").contains("Windows", ignoreCase = true)
@@ -578,6 +579,7 @@ compose.desktop {
             )
 
             macOS {
+                packageVersion = "1.0.$desktopVersionCode"
                 iconFile.set(project.file("packaging/icons/AppIcon.icns"))
                 bundleID = "com.yashaswahuh.violencemusic.desktop"
                 appCategory = "public.app-category.music"

@@ -64,11 +64,8 @@ AGENTS.md
 # Output of scripts/release.ps1 (signed APKs + update.json)
 /release-out/
 
-# Violence Style reference mockups: copyrighted album covers, never commit
-/fork-docs/style-reference/
-
-# Violence Style on-device screenshots (may show copyrighted covers: local only)
-/fork-docs/style/device-screenshots/
+# Fork documentation
+/fork-docs/
 
 # Distribution outputs (installers, packages)
 /dist/
