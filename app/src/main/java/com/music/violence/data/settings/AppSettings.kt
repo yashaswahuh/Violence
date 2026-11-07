@@ -426,6 +426,9 @@ object AppSettings {
     val autoEqCustomCurve = MutableStateFlow("")
 
     val crossfeedEnabled = MutableStateFlow(false)
+
+    /** Look for a new version when the app starts (GitHub Releases). On by default. */
+    val autoCheckUpdates = MutableStateFlow(true)
     val crossfeedPreset = MutableStateFlow("natural")
 
     val sleepTimerFade = MutableStateFlow(true)
@@ -493,7 +496,7 @@ object AppSettings {
     val reduceDynamicBlur = MutableStateFlow(false)
 
     /** Real backdrop-sampled glass (blur, lens refraction) on the floating nav bar, Android 12+ only. */
-    val liquidGlass = MutableStateFlow(false)
+    val liquidGlass = MutableStateFlow(true)
 
     /**
      * Blurs what scrolls under the status bar and the top controls, easing out
@@ -991,6 +994,7 @@ object AppSettings {
         autoEqSelectedCategory.value = prefs.getString(KEY_AUTO_EQ_CATEGORY, "") ?: ""
         autoEqCustomCurve.value = prefs.getString(KEY_AUTO_EQ_CUSTOM, "") ?: ""
         crossfeedEnabled.value = prefs.getBoolean(KEY_CROSSFEED_ENABLED, false)
+        autoCheckUpdates.value = prefs.getBoolean(KEY_AUTO_CHECK_UPDATES, true)
         crossfeedPreset.value = prefs.getString(KEY_CROSSFEED_PRESET, "natural") ?: "natural"
         sleepTimerFade.value = prefs.getBoolean(KEY_SLEEP_TIMER_FADE, true)
         sleepTimerFinishTrack.value = prefs.getBoolean(KEY_SLEEP_TIMER_FINISH_TRACK, false)
@@ -1020,8 +1024,10 @@ object AppSettings {
         swipeToPlayNext.value = prefs.getBoolean(KEY_SWIPE_TO_PLAY_NEXT, false)
         dontRepeatSuggestions.value = prefs.getBoolean(KEY_DONT_REPEAT_SUGGESTIONS, false)
         smartVersionAlignment.value = prefs.getBoolean(KEY_SMART_VERSION_ALIGNMENT, true)
-        reduceDynamicBlur.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
-        liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, false)
+        // The "Reduce dynamic blur" option is gone from Settings, so a value saved by an
+        // earlier version must not keep the blur off with no way to turn it back on.
+        reduceDynamicBlur.value = false
+        liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, true)
         progressiveBlur.value = prefs.getBoolean(KEY_PROGRESSIVE_BLUR, false)
         lyricsBlur.value = prefs.getBoolean(KEY_LYRICS_BLUR, true)
         lyricsOffsetMs.value = prefs.getInt(KEY_LYRICS_OFFSET_MS, 0)
@@ -1364,6 +1370,11 @@ object AppSettings {
     fun setAutoEqCustomCurve(text: String) {
         autoEqCustomCurve.value = text
         prefs.edit().putString(KEY_AUTO_EQ_CUSTOM, text).apply()
+    }
+
+    fun setAutoCheckUpdates(value: Boolean) {
+        autoCheckUpdates.value = value
+        prefs.edit().putBoolean(KEY_AUTO_CHECK_UPDATES, value).apply()
     }
 
     fun setCrossfeedEnabled(value: Boolean) {
@@ -2261,6 +2272,7 @@ object AppSettings {
     private const val KEY_AUTO_EQ_CATEGORY = "auto_eq_category"
     private const val KEY_AUTO_EQ_CUSTOM = "auto_eq_custom"
     private const val KEY_CROSSFEED_ENABLED = "crossfeed_enabled"
+    private const val KEY_AUTO_CHECK_UPDATES = "auto_check_updates"
     private const val KEY_CROSSFEED_PRESET = "crossfeed_preset"
     private const val KEY_SLEEP_TIMER_FADE = "sleep_timer_fade"
     private const val KEY_SLEEP_TIMER_FINISH_TRACK = "sleep_timer_finish_track"

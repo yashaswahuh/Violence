@@ -1,5 +1,6 @@
 package com.music.violence.ui.screens
 
+import androidx.compose.material.icons.rounded.Headphones
 import java.io.File
 import android.os.Environment
 import kotlinx.coroutines.Dispatchers
@@ -415,6 +416,7 @@ fun SettingsScreen(
     val scrobbleScope = rememberCoroutineScope()
     var checkingForUpdate by remember { mutableStateOf(false) }
     var showChangelog by remember { mutableStateOf(false) }
+    var showAutoEqPicker by remember { mutableStateOf(false) }
     var showCredits by remember { mutableStateOf(false) }
 
     val version = remember(context) {
@@ -481,6 +483,7 @@ fun SettingsScreen(
                     "friends", "contacts", "people", "receive", "nfc", "tap", "qr", "scan", "share", "link",
                 ) {
                     val me = myProfile
+                    val myPhoto = com.music.violence.ui.profile.rememberMyPhoto()
                     SettingsRow(
                         icon = SfIcons.Person,
                         title = profileTitle,
@@ -488,7 +491,7 @@ fun SettingsScreen(
                         onClick = onProfile,
                         trailing = if (me != null) {
                             {
-                                ProfileAvatar(me.avatarId, me.color, me.displayName, 32.dp)
+                                ProfileAvatar(me.avatarId, me.color, me.displayName, 32.dp, photo = myPhoto)
                                 Spacer(Modifier.width(8.dp))
                                 Chevron()
                             }
@@ -682,102 +685,6 @@ fun SettingsScreen(
                     checked = saveSyncedLyricsWithDownloads,
                     onCheckedChange = AppSettings::setSaveSyncedLyricsWithDownloads,
                     subtitle = stringResource(R.string.save_synced_lyrics_with_downloads_subtitle),
-                )
-            }
-            val storageBreakdownTitle = stringResource(R.string.storage_breakdown_title)
-            row(storageBreakdownTitle, "cache", "space", "storage", "disk", "clear", "repair") {
-                val context = LocalContext.current
-                val coroutineScope = rememberCoroutineScope()
-                var breakdown by remember { mutableStateOf<com.music.violence.data.storage.StorageBreakdown?>(null) }
-                var repairStatus by remember { mutableStateOf<String?>(null) }
-                var isRepairing by remember { mutableStateOf(false) }
-
-                LaunchedEffect(Unit) {
-                    withContext(Dispatchers.IO) {
-                        val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
-                        val imgDir = File(context.cacheDir, "image_cache")
-                        val streamCache = AudioCache.totalCacheBytes
-                        breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, streamCache)
-                    }
-                }
-
-                breakdown?.let { b ->
-                    SettingsRow(
-                        icon = SfIcons.Storage,
-                        title = storageBreakdownTitle,
-                        subtitle = "Downloads: ${b.formattedDownloaded()} (${b.downloadedTracksCount}) · Lyrics: ${b.formattedLyrics()} (${b.lyricsCacheCount}) · Stream: ${b.formattedStream()} · Art: ${b.formattedImages()}",
-                        value = b.formattedTotal(),
-                    )
-                }
-
-                SettingsRow(
-                    icon = SfIcons.Folder,
-                    title = stringResource(R.string.storage_open_folder),
-                    subtitle = "Music/Violence",
-                    onClick = {
-                        val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
-                        if (!dir.exists()) dir.mkdirs()
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(Uri.fromFile(dir), "resource/folder")
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        }
-                        runCatching { context.startActivity(intent) }.onFailure {
-                            val fallback = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, "vnd.android.cursor.dir/audio")
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                            runCatching { context.startActivity(fallback) }
-                        }
-                    },
-                )
-
-                SettingsRow(
-                    icon = SfIcons.DeleteSweep,
-                    title = stringResource(R.string.storage_clear_stream_cache),
-                    subtitle = stringResource(R.string.storage_clear_stream_cache_subtitle),
-                    onClick = {
-                        AudioCache.clear {
-                            coroutineScope.launch(Dispatchers.IO) {
-                                val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
-                                val imgDir = File(context.cacheDir, "image_cache")
-                                breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, AudioCache.totalCacheBytes)
-                            }
-                        }
-                    },
-                )
-
-                SettingsRow(
-                    icon = SfIcons.Cached,
-                    title = stringResource(R.string.storage_repair_lyrics),
-                    subtitle = repairStatus ?: stringResource(R.string.storage_repair_lyrics_subtitle),
-                    badge = if (isRepairing) "Scanning…" else null,
-                    onClick = {
-                        if (isRepairing) return@SettingsRow
-                        isRepairing = true
-                        repairStatus = "Scanning & repairing…"
-                        coroutineScope.launch(Dispatchers.IO) {
-                            val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
-                            val (total, repaired) = com.music.violence.data.storage.StorageHealthHub.verifyAndRepairLyrics(musicDir) { videoId, artist, title ->
-                                val res = com.music.violence.data.lyrics.LyricsRepository.lyrics(
-                                    videoId = videoId,
-                                    title = title,
-                                    artist = artist,
-                                    durationMs = 0L,
-                                )
-                                if (res?.lines != null) {
-                                    val sidecar = File(musicDir, "$videoId.lyrics.json")
-                                    com.music.violence.data.lyrics.OfflineLyricsStorage.save(videoId, res.lines, destinationFile = sidecar)
-                                    true
-                                } else false
-                            }
-                            withContext(Dispatchers.Main) {
-                                isRepairing = false
-                                repairStatus = context.getString(R.string.storage_repair_lyrics_done, total, repaired)
-                                val imgDir = File(context.cacheDir, "image_cache")
-                                breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, AudioCache.totalCacheBytes)
-                            }
-                        }
-                    },
                 )
             }
         }
@@ -1045,20 +952,63 @@ fun SettingsScreen(
                                 onCheckedChange = AppSettings::setCrossfeedEnabled,
                             )
                         },
-                        onClick = {
-                            if (!crossfeedEnabled) {
-                                AppSettings.setCrossfeedEnabled(true)
-                            } else {
-                                val next = when (currentPreset) {
-                                    com.music.violence.playback.crossfeed.CrossfeedPreset.SUBTLE -> com.music.violence.playback.crossfeed.CrossfeedPreset.NATURAL
-                                    com.music.violence.playback.crossfeed.CrossfeedPreset.NATURAL -> com.music.violence.playback.crossfeed.CrossfeedPreset.JAN_MEIER
-                                    com.music.violence.playback.crossfeed.CrossfeedPreset.JAN_MEIER -> com.music.violence.playback.crossfeed.CrossfeedPreset.SUBTLE
-                                    else -> com.music.violence.playback.crossfeed.CrossfeedPreset.NATURAL
-                                }
-                                AppSettings.setCrossfeedPreset(next.id)
-                            }
-                        },
+                        // The row only switches it on and off; the mode is picked
+                        // from the three buttons under it, not by tapping round a cycle.
+                        onClick = { AppSettings.setCrossfeedEnabled(!crossfeedEnabled) },
                     )
+                    if (crossfeedEnabled) {
+                        val modes = listOf(
+                            com.music.violence.playback.crossfeed.CrossfeedPreset.SUBTLE to "Subtle",
+                            com.music.violence.playback.crossfeed.CrossfeedPreset.NATURAL to "Natural",
+                            com.music.violence.playback.crossfeed.CrossfeedPreset.JAN_MEIER to "Jan Meier",
+                        )
+                        SegmentedControl(
+                            options = modes.map { it.second },
+                            selectedIndex = modes.indexOfFirst { it.first == currentPreset }.coerceAtLeast(0),
+                            onSelect = { AppSettings.setCrossfeedPreset(modes[it].first.id) },
+                            modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
+                        )
+                    }
+                }
+            }
+            // Headphone calibration works on its own: it does not need the
+            // equaliser switched on, so it has a row here, not a place inside the
+            // equaliser's page.
+            val autoEqTitle = stringResource(R.string.autoeq_title)
+            val autoEqEnabled by AppSettings.autoEqEnabled.collectAsStateWithLifecycle()
+            val autoEqModel by AppSettings.autoEqSelectedModel.collectAsStateWithLifecycle()
+            val autoEqSource by AppSettings.autoEqSelectedSource.collectAsStateWithLifecycle()
+            val autoEqCustom by AppSettings.autoEqCustomCurve.collectAsStateWithLifecycle()
+            row(autoEqTitle, "autoeq", "headphone", "calibration", "harman", "oratory") {
+                BypassedByBitPerfect(bitPerfectReady) {
+                    SettingsRow(
+                        icon = androidx.compose.material.icons.Icons.Rounded.Headphones,
+                        title = autoEqTitle,
+                        subtitle = stringResource(R.string.autoeq_subtitle),
+                        trailing = {
+                            IosSwitch(
+                                checked = autoEqEnabled,
+                                onCheckedChange = AppSettings::setAutoEqEnabled,
+                            )
+                        },
+                        onClick = { AppSettings.setAutoEqEnabled(!autoEqEnabled) },
+                    )
+                    if (autoEqEnabled) {
+                        SettingsRow(
+                            title = stringResource(R.string.autoeq_model),
+                            value = when {
+                                autoEqCustom.isNotBlank() -> stringResource(R.string.autoeq_custom_profile)
+                                autoEqModel.isNotBlank() -> autoEqModel
+                                else -> stringResource(R.string.autoeq_none)
+                            },
+                            subtitle = when {
+                                autoEqCustom.isNotBlank() -> stringResource(R.string.autoeq_custom_subtitle)
+                                autoEqModel.isNotBlank() -> autoEqSource
+                                else -> null
+                            },
+                            onClick = { showAutoEqPicker = true },
+                        )
+                    }
                 }
             }
             // The system panel is not listed here as well. A device with a
@@ -1115,21 +1065,6 @@ fun SettingsScreen(
                         )
                     },
                     onClick = { AppSettings.setReduceAnimation(!reduceAnimation) },
-                )
-            }
-            val reduceDynamicBlurTitle = stringResource(R.string.reduce_dynamic_blur)
-            row(reduceDynamicBlurTitle, "blur", "performance") {
-                SettingsRow(
-                    icon = SfIcons.BlurOff,
-                    title = reduceDynamicBlurTitle,
-                    subtitle = stringResource(R.string.reduce_dynamic_blur_subtitle),
-                    trailing = {
-                        IosSwitch(
-                            checked = reduceDynamicBlur,
-                            onCheckedChange = AppSettings::setReduceDynamicBlur,
-                        )
-                    },
-                    onClick = { AppSettings.setReduceDynamicBlur(!reduceDynamicBlur) },
                 )
             }
             val liquidGlassTitle = stringResource(R.string.liquid_glass)
@@ -1467,6 +1402,112 @@ fun SettingsScreen(
         val unlimitedLabel = stringResource(R.string.song_cache_unlimited)
         val cacheLimitLabel = if (cacheUnlimited) unlimitedLabel else formatCacheSize(cacheLimitMb)
         if (shows(SettingsCategory.STORAGE)) SearchableSettingsGroup(search, header = stringResource(R.string.storage)) {
+            val storageBreakdownTitle = stringResource(R.string.storage_breakdown_title)
+            row(storageBreakdownTitle, "cache", "space", "storage", "disk", "clear", "repair") {
+                val context = LocalContext.current
+                val coroutineScope = rememberCoroutineScope()
+                var breakdown by remember { mutableStateOf<com.music.violence.data.storage.StorageBreakdown?>(null) }
+                var repairStatus by remember { mutableStateOf<String?>(null) }
+                var isRepairing by remember { mutableStateOf(false) }
+                // The three tools hide behind the breakdown: tapping it opens them.
+                var toolsOpen by remember { mutableStateOf(false) }
+
+                LaunchedEffect(Unit) {
+                    withContext(Dispatchers.IO) {
+                        val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
+                        val imgDir = File(context.cacheDir, "image_cache")
+                        val streamCache = AudioCache.totalCacheBytes
+                        breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, streamCache)
+                    }
+                }
+
+                val b = breakdown
+                SettingsRow(
+                    icon = SfIcons.Storage,
+                    title = storageBreakdownTitle,
+                    subtitle = if (b == null) {
+                        stringResource(R.string.storage_calculating)
+                    } else {
+                        "Downloads: ${b.formattedDownloaded()} (${b.downloadedTracksCount}) · Lyrics: ${b.formattedLyrics()} (${b.lyricsCacheCount}) · Stream: ${b.formattedStream()} · Art: ${b.formattedImages()}"
+                    },
+                    value = b?.formattedTotal(),
+                    onClick = { toolsOpen = !toolsOpen },
+                )
+                androidx.compose.animation.AnimatedVisibility(visible = toolsOpen) {
+                    Column {
+
+                    SettingsRow(
+                        icon = SfIcons.Folder,
+                        title = stringResource(R.string.storage_open_folder),
+                        subtitle = "Music/Violence",
+                        onClick = {
+                            val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
+                            if (!dir.exists()) dir.mkdirs()
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(Uri.fromFile(dir), "resource/folder")
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            runCatching { context.startActivity(intent) }.onFailure {
+                                val fallback = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, "vnd.android.cursor.dir/audio")
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                runCatching { context.startActivity(fallback) }
+                            }
+                        },
+                    )
+
+                    SettingsRow(
+                        icon = SfIcons.DeleteSweep,
+                        title = stringResource(R.string.storage_clear_stream_cache),
+                        subtitle = stringResource(R.string.storage_clear_stream_cache_subtitle),
+                        onClick = {
+                            AudioCache.clear {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
+                                    val imgDir = File(context.cacheDir, "image_cache")
+                                    breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, AudioCache.totalCacheBytes)
+                                }
+                            }
+                        },
+                    )
+
+                    SettingsRow(
+                        icon = SfIcons.Cached,
+                        title = stringResource(R.string.storage_repair_lyrics),
+                        subtitle = repairStatus ?: stringResource(R.string.storage_repair_lyrics_subtitle),
+                        badge = if (isRepairing) "Scanning…" else null,
+                        onClick = {
+                            if (isRepairing) return@SettingsRow
+                            isRepairing = true
+                            repairStatus = "Scanning & repairing…"
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Violence")
+                                val (total, repaired) = com.music.violence.data.storage.StorageHealthHub.verifyAndRepairLyrics(musicDir) { videoId, artist, title ->
+                                    val res = com.music.violence.data.lyrics.LyricsRepository.lyrics(
+                                        videoId = videoId,
+                                        title = title,
+                                        artist = artist,
+                                        durationMs = 0L,
+                                    )
+                                    if (res?.lines != null) {
+                                        val sidecar = File(musicDir, "$videoId.lyrics.json")
+                                        com.music.violence.data.lyrics.OfflineLyricsStorage.save(videoId, res.lines, destinationFile = sidecar)
+                                        true
+                                    } else false
+                                }
+                                withContext(Dispatchers.Main) {
+                                    isRepairing = false
+                                    repairStatus = context.getString(R.string.storage_repair_lyrics_done, total, repaired)
+                                    val imgDir = File(context.cacheDir, "image_cache")
+                                    breakdown = com.music.violence.data.storage.StorageHealthHub.calculateBreakdown(musicDir, imgDir, AudioCache.totalCacheBytes)
+                                }
+                            }
+                        },
+                    )
+                    }
+                }
+            }
             val showCacheFolderTitle = stringResource(R.string.show_cache_folder)
             row(showCacheFolderTitle, "cache", "cached songs", "library", "folder") {
                 SettingsRow(
@@ -1885,6 +1926,22 @@ fun SettingsScreen(
                     },
                 )
             }
+            val autoCheckTitle = stringResource(R.string.auto_check_updates)
+            val autoCheckUpdates by AppSettings.autoCheckUpdates.collectAsStateWithLifecycle()
+            row(autoCheckTitle, "update", "automatic", "background", "github") {
+                SettingsRow(
+                    icon = SfIcons.Cached,
+                    title = autoCheckTitle,
+                    subtitle = stringResource(R.string.auto_check_updates_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = autoCheckUpdates,
+                            onCheckedChange = AppSettings::setAutoCheckUpdates,
+                        )
+                    },
+                    onClick = { AppSettings.setAutoCheckUpdates(!autoCheckUpdates) },
+                )
+            }
             val changelogTitle = stringResource(R.string.changelog)
             row(changelogTitle, "changes", "what's new", "release notes", "history") {
                 SettingsRow(
@@ -1941,6 +1998,7 @@ fun SettingsScreen(
     }
 
     if (showChangelog) ChangelogDialog(onDismiss = { showChangelog = false })
+    if (showAutoEqPicker) AutoEqPickerSheet(onDismiss = { showAutoEqPicker = false })
     if (showCredits) CreditsDialog(onDismiss = { showCredits = false })
 
     // Everything in the Cached songs folder goes with it, so say so first.

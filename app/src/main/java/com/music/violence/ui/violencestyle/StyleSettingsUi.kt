@@ -44,6 +44,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.violence.R
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.music.violence.data.settings.AppSettings
+import com.music.violence.ui.components.GlassAlertDialog
 import com.music.violence.ui.components.IosSwitch
 import com.music.violence.ui.components.PillSegmentedControl
 import com.music.violence.ui.components.lightweightLiquidGlass
@@ -59,12 +65,39 @@ private val RowInset = 16.dp
 fun ViolenceStyleSettingsBlock() {
     val enabled by ViolenceStyleSettings.enabled.collectAsStateWithLifecycle()
     val safeMode by ViolenceStyleSettings.safeModeTriggered.collectAsStateWithLifecycle()
+    val liquidGlass by AppSettings.liquidGlass.collectAsStateWithLifecycle()
+    var recommendGlass by remember { mutableStateOf(false) }
+    // Turned on by hand with Liquid Glass off: say once that the style looks best with it.
+    // Turning the style off never touches Liquid Glass.
+    fun toggle(value: Boolean) {
+        ViolenceStyleSettings.setEnabled(value)
+        if (value && !liquidGlass && ViolenceStyleSettings.glassPromptPending()) {
+            ViolenceStyleSettings.markGlassPromptShown()
+            recommendGlass = true
+        }
+    }
+    if (recommendGlass) {
+        GlassAlertDialog(
+            onDismissRequest = { recommendGlass = false },
+            title = { Text(stringResource(R.string.vs_glass_recommended_title)) },
+            text = { Text(stringResource(R.string.vs_glass_recommended_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    AppSettings.setLiquidGlass(true)
+                    recommendGlass = false
+                }) { Text(stringResource(R.string.vs_glass_recommended_turn_on)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { recommendGlass = false }) { Text(stringResource(R.string.vs_glass_recommended_not_now)) }
+            },
+        )
+    }
     Column(Modifier.fillMaxWidth()) {
         SettingsRow(
             title = stringResource(R.string.vs_title),
             subtitle = stringResource(R.string.vs_description),
-            trailing = { IosSwitch(checked = enabled, onCheckedChange = ViolenceStyleSettings::setEnabled) },
-            onClick = { ViolenceStyleSettings.setEnabled(!enabled) },
+            trailing = { IosSwitch(checked = enabled, onCheckedChange = ::toggle) },
+            onClick = { toggle(!enabled) },
         )
         if (safeMode && !enabled) {
             Text(

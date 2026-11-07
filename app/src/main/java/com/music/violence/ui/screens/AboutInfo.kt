@@ -1,6 +1,13 @@
 package com.music.violence.ui.screens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,11 +30,17 @@ private class ChangelogEntry(val title: String, val lines: List<String>)
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
-        "Settings and updates",
+        "Pre-release",
         listOf(
-            "Check for updates button in Settings > About.",
-            "Changelog and Credits pages.",
-            "Violence Style now lives in Appearance instead of Experimental.",
+            "New app icons: Blue (the new default), Red and Pink. The old default is now called Minimal. The Liquid Glass, Samsung and Pixel icons are no longer offered.",
+            "Headphone Crossfeed now has three buttons for its mode instead of tapping round a cycle.",
+            "AutoEQ headphone calibration moved to Playback settings, since it works without the equaliser.",
+            "Storage breakdown moved to Storage. Tap it to open Open downloads folder, Clear stream cache and Verify offline lyrics.",
+            "Changelog now shows a timeline.",
+            "Automatic update check against GitHub Releases, with a switch to turn it off. There is also a Check for updates button.",
+            "Violence Style and Liquid Glass are on by default. Style options show only when it is on, and turning it off no longer touches Liquid Glass. Reduce dynamic blur is removed.",
+            "Your own profile photo now shows on the profile button, the profile page, Settings and your row in a Jam.",
+            "Credits page, Apple Music playlist import and a Quote design for lyrics cards (experimental).",
         ),
     ),
     ChangelogEntry(
@@ -129,13 +142,57 @@ internal fun ChangelogDialog(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.changelog)) },
         text = {
+            val accent = MaterialTheme.colorScheme.primary
+            val lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
+            val pastDot = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 CHANGELOG.forEachIndexed { index, entry ->
-                    if (index > 0) Spacer(Modifier.height(14.dp))
-                    Text(entry.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(4.dp))
-                    entry.lines.forEach { line ->
-                        Text("• $line", style = MaterialTheme.typography.bodyMedium)
+                    val current = index == 0
+                    val last = index == CHANGELOG.lastIndex
+                    // A straight line down the left with a dot per release: grey for the
+                    // past, and a glowing one, in the app's accent colour, for the current.
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
+                            .drawBehind {
+                                val x = 10.dp.toPx()
+                                val dotY = 11.dp.toPx()
+                                drawLine(
+                                    color = lineColor,
+                                    start = Offset(x, if (index == 0) dotY else 0f),
+                                    end = Offset(x, if (last) dotY else size.height),
+                                    strokeWidth = 2.dp.toPx(),
+                                )
+                                if (current) {
+                                    drawCircle(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(accent.copy(alpha = 0.55f), Color.Transparent),
+                                            center = Offset(x, dotY),
+                                            radius = 13.dp.toPx(),
+                                        ),
+                                        radius = 13.dp.toPx(),
+                                        center = Offset(x, dotY),
+                                    )
+                                    drawCircle(color = accent, radius = 5.dp.toPx(), center = Offset(x, dotY))
+                                } else {
+                                    drawCircle(color = pastDot, radius = 3.5.dp.toPx(), center = Offset(x, dotY))
+                                }
+                            }
+                            .padding(start = 28.dp, bottom = if (last) 0.dp else 16.dp),
+                    ) {
+                        Column {
+                            Text(
+                                entry.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (current) accent else MaterialTheme.colorScheme.onSurface,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            entry.lines.forEach { line ->
+                                Text("• $line", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
                     }
                 }
             }

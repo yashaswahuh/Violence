@@ -1,5 +1,6 @@
 package com.music.violence.data
 
+import kotlinx.serialization.json.jsonArray
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -73,6 +74,11 @@ object AppUpdateChecker {
     private const val PREFS = "app_update"
     private const val KEY_LAST_CHECK = "last_check_ms"
     private const val KEY_LAST_BODY = "last_body"
+    private const val KEY_GH_CHECK = "gh_last_check_ms"
+    private const val KEY_GH_BODY = "gh_last_body"
+
+    /** The repository whose GitHub Releases are checked when the build has no `UPDATE_INFO_URL`. */
+    internal const val GITHUB_REPO = "yashaswahuh/Violence"
 
     /** The file is fetched at most this often; in between, the copy kept from the last fetch is used. */
     internal const val CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000
@@ -98,36 +104,37 @@ object AppUpdateChecker {
     private var downloadCancelled = false
 
     /**
-     * Looks for an update. A no-op without a configured address. The network is touched at most
-     * once per [CHECK_INTERVAL_MS]; a launch inside that window reads the kept copy of the file, so
-     * an update found yesterday is still offered today (until it is installed) without asking again.
-     * A failed fetch keeps whatever copy there is and tries again on the next launch.
+     * Looks for an update, quietly, at most once per [CHECK_INTERVAL_MS]; in between, the copy kept
+     * from the last fetch is used, so an update found yesterday is still offered today (until it is
+     * installed) without asking again. A failed fetch keeps whatever copy there is and tries again on
+     * the next launch. The caller decides whether to run it at all (Settings > Check for updates
+     * automatically).
+     *
+     * Where it looks: the `update.json` at `UPDATE_INFO_URL` when the build has one, otherwise the
+     * GitHub Releases of [GITHUB_REPO].
      */
     suspend fun check(context: Context) = withContext(Dispatchers.IO) {
-        val infoUrl = BuildConfig.UPDATE_INFO_URL.trim()
-        if (infoUrl.isBlank() || !infoUrl.startsWith("https://", ignoreCase = true)) return@withContext
         runCatching {
             val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val source = source()
             val now = System.currentTimeMillis()
-            val last = prefs.getLong(KEY_LAST_CHECK, 0L)
-            var body = prefs.getString(KEY_LAST_BODY, null)
+            val last = prefs.getLong(source.checkKey, 0L)
+            var body = prefs.getString(source.bodyKey, null)
             if (body == null || now - last >= CHECK_INTERVAL_MS || now < last) {
-                val fetched = fetch(infoUrl)
+                val fetched = fetch(source.url, source.github)
                 if (fetched != null) {
                     body = fetched
-                    prefs.edit().putLong(KEY_LAST_CHECK, now).putString(KEY_LAST_BODY, fetched).apply()
+                    prefs.edit().putLong(source.checkKey, now).putString(source.bodyKey, fetched).apply()
                 }
             }
-            val parsed = body?.let { parseUpdate(it, infoUrl, BuildConfig.UPDATE_APK_KEY, Build.SUPPORTED_ABIS.toList()) } ?: return@runCatching
-            if (parsed.versionCode > BuildConfig.VERSION_CODE) {
-                _available.value = UpdateInfo(parsed.versionName, parsed.page, parsed.apkUrl, parsed.notes, parsed.sha256)
-            }
+            val found = body?.let { resolve(it, source) } ?: return@runCatching
+            _available.value = found
         }
     }
 
     /** What a check the user asked for found. */
     sealed interface CheckResult {
-        /** This build has no update address, so there is nothing to ask. */
+        /** There is nowhere to look. */
         data object NotConfigured : CheckResult
         data object UpToDate : CheckResult
         data class Available(val info: UpdateInfo) : CheckResult
@@ -146,29 +153,126 @@ object AppUpdateChecker {
      * app is asked to open its update sheet.
      */
     suspend fun checkNow(context: Context): CheckResult = withContext(Dispatchers.IO) {
-        val infoUrl = BuildConfig.UPDATE_INFO_URL.trim()
-        if (infoUrl.isBlank() || !infoUrl.startsWith("https://", ignoreCase = true)) {
-            return@withContext CheckResult.NotConfigured
-        }
+        val source = source()
+        if (source.url.isBlank()) return@withContext CheckResult.NotConfigured
         runCatching {
-            val body = fetch(infoUrl) ?: return@runCatching CheckResult.Failed
+            val body = fetch(source.url, source.github) ?: return@runCatching CheckResult.Failed
             context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                .putLong(KEY_LAST_CHECK, System.currentTimeMillis()).putString(KEY_LAST_BODY, body).apply()
-            val parsed = parseUpdate(body, infoUrl, BuildConfig.UPDATE_APK_KEY, Build.SUPPORTED_ABIS.toList())
-                ?: return@runCatching CheckResult.Failed
-            if (parsed.versionCode > BuildConfig.VERSION_CODE) {
-                val info = UpdateInfo(parsed.versionName, parsed.page, parsed.apkUrl, parsed.notes, parsed.sha256)
-                _available.value = info
+                .putLong(source.checkKey, System.currentTimeMillis()).putString(source.bodyKey, body).apply()
+            val found = resolve(body, source)
+            if (found != null) {
+                _available.value = found
                 _showRequests.tryEmit(Unit)
-                CheckResult.Available(info)
-            } else {
+                CheckResult.Available(found)
+            } else if (parseOk(body, source)) {
                 CheckResult.UpToDate
+            } else {
+                CheckResult.Failed
             }
         }.getOrDefault(CheckResult.Failed)
     }
 
-    private fun fetch(url: String): String? {
-        val request = Request.Builder().url(url).header("Cache-Control", "no-cache").build()
+    /** Where updates are looked for, and the keys that source's last answer is kept under. */
+    private class UpdateSource(val url: String, val github: Boolean) {
+        val bodyKey get() = if (github) KEY_GH_BODY else KEY_LAST_BODY
+        val checkKey get() = if (github) KEY_GH_CHECK else KEY_LAST_CHECK
+    }
+
+    private fun source(): UpdateSource {
+        val infoUrl = BuildConfig.UPDATE_INFO_URL.trim()
+        return if (infoUrl.startsWith("https://", ignoreCase = true)) {
+            UpdateSource(infoUrl, github = false)
+        } else {
+            UpdateSource("https://api.github.com/repos/$GITHUB_REPO/releases?per_page=5", github = true)
+        }
+    }
+
+    /** The update [body] describes if it is newer than this build, else null. */
+    private fun resolve(body: String, source: UpdateSource): UpdateInfo? {
+        val abis = Build.SUPPORTED_ABIS.toList()
+        return if (source.github) {
+            val release = parseGithubReleases(body, BuildConfig.UPDATE_APK_KEY, abis) ?: return null
+            if (!isNewerVersion(release.versionName, BuildConfig.VERSION_NAME)) return null
+            UpdateInfo(release.versionName, release.page, release.apkUrl, release.notes, release.sha256)
+        } else {
+            val parsed = parseUpdate(body, source.url, BuildConfig.UPDATE_APK_KEY, abis) ?: return null
+            if (parsed.versionCode <= BuildConfig.VERSION_CODE) return null
+            UpdateInfo(parsed.versionName, parsed.page, parsed.apkUrl, parsed.notes, parsed.sha256)
+        }
+    }
+
+    /** Whether [body] was readable at all, so "up to date" is not said about an answer that was garbage. */
+    private fun parseOk(body: String, source: UpdateSource): Boolean = if (source.github) {
+        parseGithubReleases(body, BuildConfig.UPDATE_APK_KEY, Build.SUPPORTED_ABIS.toList()) != null
+    } else {
+        parseUpdate(body, source.url, BuildConfig.UPDATE_APK_KEY, Build.SUPPORTED_ABIS.toList()) != null
+    }
+
+    /** What [parseGithubReleases] reads out of GitHub's answer. */
+    internal data class ParsedRelease(
+        val versionName: String,
+        val notes: String?,
+        val page: String,
+        val apkUrl: String?,
+        val sha256: String?,
+    )
+
+    /**
+     * The newest published release in GitHub's `releases` list (pre-releases included, drafts not).
+     * The tag is the version (`v1.9.0-violence.3` reads as `1.9.0-violence.3`), the release text is
+     * the changelog, and the APK is the asset for this app: named with [apkKey] and, best, one of
+     * [abis], else any `.apk`. GitHub's own `digest` is the checksum when it gives one.
+     */
+    internal fun parseGithubReleases(body: String, apkKey: String, abis: List<String> = emptyList()): ParsedRelease? =
+        runCatching {
+            val release = json.parseToJsonElement(body).jsonArray
+                .mapNotNull { it as? JsonObject }
+                .firstOrNull { (it["draft"] as? JsonPrimitive)?.contentOrNull != "true" }
+                ?: return@runCatching null
+            val tag = release["tag_name"]?.jsonPrimitive?.contentOrNull?.trim()?.takeIf { it.isNotEmpty() }
+                ?: return@runCatching null
+            val version = tag.removePrefix("v").removePrefix("V")
+            val notes = release["body"]?.jsonPrimitive?.contentOrNull?.trim()?.takeIf { it.isNotEmpty() }?.take(4000)
+            val page = release["html_url"]?.jsonPrimitive?.contentOrNull?.takeIf { it.startsWith("https://") }
+                ?: "https://github.com/$GITHUB_REPO/releases"
+            val apks = (release["assets"] as? JsonArray).orEmpty()
+                .mapNotNull { it as? JsonObject }
+                .filter { it["name"]?.jsonPrimitive?.contentOrNull?.endsWith(".apk", ignoreCase = true) == true }
+            fun named(asset: JsonObject) = asset["name"]!!.jsonPrimitive.content.lowercase()
+            val forApp = apks.filter { apkKey.lowercase() in named(it) }.ifEmpty { apks }
+            val apk = abis.firstNotNullOfOrNull { abi -> forApp.firstOrNull { abi.lowercase() in named(it) } }
+                ?: forApp.firstOrNull { "universal" in named(it) }
+                ?: forApp.firstOrNull()
+            val url = apk?.get("browser_download_url")?.jsonPrimitive?.contentOrNull?.takeIf { it.startsWith("https://") }
+            val sha = apk?.get("digest")?.jsonPrimitive?.contentOrNull?.removePrefix("sha256:")?.trim()?.lowercase()
+                ?.takeIf { Regex("[0-9a-f]{64}").matches(it) }
+            ParsedRelease(version, notes, page, url, sha)
+        }.getOrNull()
+
+    /**
+     * Whether [candidate] is a later version than [current]. Compares the numbers in each in order
+     * (`1.9.0-violence.3` is 1, 9, 0, 3), so the fork's `-violence.N` counts up like any other part.
+     */
+    internal fun isNewerVersion(candidate: String, current: String): Boolean {
+        fun parts(v: String) = Regex("""\d+""").findAll(v).map { it.value.toLongOrNull() ?: 0L }.toList()
+        val a = parts(candidate)
+        val b = parts(current)
+        if (a.isEmpty()) return false
+        for (i in 0 until maxOf(a.size, b.size)) {
+            val x = a.getOrElse(i) { 0L }
+            val y = b.getOrElse(i) { 0L }
+            if (x != y) return x > y
+        }
+        return false
+    }
+
+    private fun fetch(url: String, github: Boolean = false): String? {
+        val request = Request.Builder().url(url).header("Cache-Control", "no-cache").apply {
+            if (github) {
+                header("Accept", "application/vnd.github+json")
+                header("User-Agent", "Violence-updater")
+            }
+        }.build()
         return Http.client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) null else response.body?.string()
         }

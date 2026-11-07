@@ -12,4 +12,13 @@
     <string name="credits">Credits</string>
     <string name="credits_subtitle">Everyone and everything Violence is built on</string>
     <string name="credits_disclaimer">Violence is not affiliated with or endorsed by YouTube, Google, Spotify, Last.fm or Apple. All names and logos belong to their owners.</string>
+    <string name="autoeq_title">Headphone calibration (AutoEQ)</string>
+    <string name="autoeq_subtitle">Corrects your headphones\' sound to the Harman target using 8,850+ measured profiles. Works without the equaliser.</string>
+    <string name="autoeq_model">Headphone model</string>
+    <string name="autoeq_none">None</string>
+    <string name="autoeq_custom_profile">Custom profile</string>
+    <string name="autoeq_custom_subtitle">Imported ParametricEQ</string>
+    <string name="storage_calculating">Calculating…</string>
+    <string name="auto_check_updates">Check for updates automatically</string>
+    <string name="auto_check_updates_subtitle">Looks for a new version on GitHub when the app opens, at most once a day.</string>
 </resources>
