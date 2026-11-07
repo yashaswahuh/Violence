@@ -2,8 +2,10 @@ package com.music.violence.ui.player
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RadialGradient
@@ -41,8 +43,9 @@ internal suspend fun renderLyricsQuoteCard(
     context: Context,
     card: LyricsShareRequest,
     story: Boolean = false,
+    loader: suspend (String) -> Bitmap? = { url -> loadBitmap(context, url) },
 ): Bitmap = withContext(Dispatchers.Default) {
-    val cover = card.artworkUrl?.let { loadBitmap(context, it) }
+    val cover = card.artworkUrl?.let { loader(it) }
     val colors = quotePalette(cover)
     val serif = quoteTypeface(context, R.font.vs_bodoni_moda_italic, Typeface.SERIF)
     val serifUpright = quoteTypeface(context, R.font.vs_bodoni_moda, Typeface.SERIF)
@@ -128,8 +131,8 @@ internal suspend fun renderLyricsQuoteCard(
         artist,
     )
 
-    // ── The record ──────────────────────────────────────────────────────────
-    drawRecord(canvas, cover, colors, cx = W - 120f, cy = cardH - 100f, radius = 330f)
+    // ── The cover ───────────────────────────────────────────────────────────
+    if (cover != null) drawCoverPrint(canvas, cover, colors, W - MARGIN - PRINT, ruleY - 4f, PRINT)
 
     bitmap
 }
@@ -177,47 +180,53 @@ private fun planQuote(lines: List<LyricsShareLine>, serif: Typeface, sans: Typef
     return QuotePlan(rows)
 }
 
-// ── The record ─────────────────────────────────────────────────────────────
+// ── The cover, as a print ──────────────────────────────────────────────────
 
-internal fun drawRecord(canvas: Canvas, cover: Bitmap?, colors: QuoteColors, cx: Float, cy: Float, radius: Float) {
-    val disc = Path().apply { addCircle(cx, cy, radius, Path.Direction.CW) }
+/**
+ * The cover as a clean framed print: rounded corners, a soft shadow lifting it off the page, a
+ * hairline edge and a faint light from the top left. No gimmick, just the picture, the way a
+ * record sleeve would be pinned to a wall. With no cover, a quiet tile in the card's own colours.
+ */
+internal fun drawCoverPrint(canvas: Canvas, cover: Bitmap?, colors: QuoteColors, x: Float, y: Float, size: Float, radius: Float = 26f) {
+    val rect = RectF(x, y, x + size, y + size)
+    // The shadow, offset down so the print sits above the page.
+    canvas.drawRoundRect(
+        RectF(x + 10f, y + 26f, x + size - 10f, y + size + 26f), radius, radius,
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = withAlpha(Color.BLACK, 0x80)
+            maskFilter = BlurMaskFilter(36f, BlurMaskFilter.Blur.NORMAL)
+        },
+    )
+    val frame = Path().apply { addRoundRect(rect, radius, radius, Path.Direction.CW) }
     canvas.save()
-    canvas.clipPath(disc)
+    canvas.clipPath(frame)
     if (cover != null) {
-        // Centre-cropped square of the sleeve, so a wide thumbnail is not squashed.
+        // Centre-cropped square, so a wide thumbnail is not squashed.
         val side = min(cover.width, cover.height)
         val src = Rect((cover.width - side) / 2, (cover.height - side) / 2, (cover.width + side) / 2, (cover.height + side) / 2)
-        canvas.drawBitmap(cover, src, RectF(cx - radius, cy - radius, cx + radius, cy + radius), Paint(Paint.FILTER_BITMAP_FLAG))
+        canvas.drawBitmap(cover, src, rect, Paint(Paint.FILTER_BITMAP_FLAG))
     } else {
-        canvas.drawColor(withAlpha(Color.WHITE, 0x22))
+        canvas.drawRect(
+            rect,
+            Paint().apply {
+                shader = LinearGradient(x, y, x + size, y + size, colors.accent, colors.ground, Shader.TileMode.CLAMP)
+            },
+        )
     }
-    // The vinyl over the picture: dark film, then grooves, then a sheen.
-    canvas.drawCircle(cx, cy, radius, Paint().apply { color = withAlpha(Color.BLACK, 0x66) })
-    val groove = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 2f
-        color = withAlpha(Color.BLACK, 0x55)
-    }
-    var r = radius - 10f
-    while (r > radius * 0.36f) {
-        canvas.drawCircle(cx, cy, r, groove)
-        r -= 11f
-    }
-    val sheen = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = withAlpha(Color.WHITE, 0x12) }
-    canvas.drawArc(RectF(cx - radius, cy - radius, cx + radius, cy + radius), 200f, 38f, true, sheen)
-    canvas.drawArc(RectF(cx - radius, cy - radius, cx + radius, cy + radius), 20f, 38f, true, sheen)
+    // Light from the top left, fading out across the picture.
+    canvas.drawRect(
+        rect,
+        Paint().apply {
+            shader = LinearGradient(x, y, x + size * 0.9f, y + size * 0.9f, withAlpha(Color.WHITE, 0x26), 0x00FFFFFF, Shader.TileMode.CLAMP)
+        },
+    )
     canvas.restore()
-
-    // Label: the cover's own tone, with the spindle hole through it.
-    canvas.drawCircle(cx, cy, radius * 0.22f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = colors.accent })
-    canvas.drawCircle(cx, cy, radius * 0.05f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = colors.ground })
-    // A thin edge so the disc stays crisp against a ground of nearly the same tone.
-    canvas.drawCircle(
-        cx, cy, radius,
+    canvas.drawRoundRect(
+        rect, radius, radius,
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 3f
-            color = withAlpha(colors.accent, 0x99)
+            strokeWidth = 2f
+            color = withAlpha(Color.WHITE, 0x2E)
         },
     )
 }
@@ -279,11 +288,14 @@ private const val CONTENT_W = W - MARGIN * 2
 /** Room above the verse, for the quotation mark and the brand. */
 private const val HEAD = 300f
 
-/** Room below the verse: the rule, the credit and the record's top edge. */
-private const val FOOT = 520f
+/** Room below the verse: the rule, the credit and the cover beside it. */
+private const val FOOT = 460f
 
-/** The credit stays left of the record. */
-private const val CREDIT_W = 470f
+/** The credit stays left of the cover. */
+private const val CREDIT_W = 560f
+
+/** The cover's size beside the credit. */
+private const val PRINT = 300f
 
 private const val BRAND = "VIOLENCE"
 

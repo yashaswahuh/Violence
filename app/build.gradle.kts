@@ -247,6 +247,8 @@ android {
             // so a test of that layer fails on the logging rather than on the
             // logic it was written to check.
             isReturnDefaultValues = true
+            // Lets the card-preview test load the app's fonts and resources.
+            isIncludeAndroidResources = true
         }
     }
 }
@@ -478,6 +480,9 @@ dependencies {
     implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
 
     testImplementation("junit:junit:4.13.2")
+    // Draws the share cards to PNG on the PC (CardPreviewTest), so a design can be looked at.
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("org.conscrypt:conscrypt-openjdk-uber:2.5.2")
     // A real HTTP server for the addon tests. The addon protocol is entirely
     // "what does this app send, and what does it do with what comes back", and
     // a hand-rolled fake of the client would be a test of the fake. Pinned to
