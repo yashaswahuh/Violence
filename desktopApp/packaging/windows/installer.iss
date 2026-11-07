@@ -1,5 +1,7 @@
 #define MyAppName "Violence"
+#ifndef MyAppVersion
 #define MyAppVersion "0.9.5"
+#endif
 #define MyAppPublisher "Violence"
 #define MyAppExeName "Violence.exe"
 

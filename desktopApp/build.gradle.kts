@@ -693,7 +693,7 @@ val packageWindowsInstaller by tasks.registering {
         val issFile = project.file("packaging/windows/installer.iss")
         logger.lifecycle("Compiling Inno Setup installer with ${iscc.absolutePath}...")
         providers.exec {
-            commandLine(iscc.absolutePath, issFile.absolutePath)
+            commandLine(iscc.absolutePath, "/DMyAppVersion=$appVersion", issFile.absolutePath)
         }.result.get().assertNormalExitValue()
         logger.lifecycle("Windows installer compiled successfully in desktopApp/dist/")
     }

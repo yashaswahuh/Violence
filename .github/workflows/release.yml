@@ -268,6 +268,11 @@ jobs:
           Expand-Archive wix.zip -DestinationPath "$env:RUNNER_TEMP\wix"
           "$env:RUNNER_TEMP\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Inno Setup 6
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress
+
       - name: CMake version
         run: cmake --version
 
@@ -282,7 +287,7 @@ jobs:
 
       - name: Build msi, exe and the app image
         run: |
-          .\gradlew.bat :desktopApp:packageMsi :desktopApp:packageExe :desktopApp:createDistributable "-Pviolence.version=${{ needs.prepare.outputs.raw_version }}"
+          .\gradlew.bat :desktopApp:packageMsi :desktopApp:createDistributable :desktopApp:packageWindowsInstaller "-Pviolence.version=${{ needs.prepare.outputs.raw_version }}"
 
       - name: The analyser and models are in the jar
         shell: bash
@@ -299,8 +304,13 @@ jobs:
           $tag = "${{ needs.prepare.outputs.tag_version }}"
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item desktopApp/build/compose/binaries/main/msi/*.msi "dist/violence-$tag-windows-x64-installer.msi"
-          Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/violence-$tag-windows-x64-setup.exe"
-          Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/violence-$tag-windows-x64-installer.exe"
+          if (Test-Path desktopApp/dist/Violence-Setup.exe) {
+            Copy-Item desktopApp/dist/Violence-Setup.exe "dist/violence-$tag-windows-x64-setup.exe"
+            Copy-Item desktopApp/dist/Violence-Setup.exe "dist/violence-$tag-windows-x64-installer.exe"
+          } elseif (Test-Path desktopApp/build/compose/binaries/main/exe/*.exe) {
+            Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/violence-$tag-windows-x64-setup.exe"
+            Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/violence-$tag-windows-x64-installer.exe"
+          }
           Copy-Item desktopApp/build/compose/binaries/main/app/Violence/Violence.exe "dist/violence-$tag-windows-x64.exe"
           7z a -tzip -mx=5 "dist/violence-$tag-windows-x64-portable.zip" `
             "desktopApp/build/compose/binaries/main/app/Violence/*" | Out-Null
