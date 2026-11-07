@@ -118,4 +118,35 @@ class CardPreviewTest {
         save("lyrics-warm", runBlocking { renderLyricsQuoteCard(context, request, story = false, loader = { warm }) })
         save("lyrics-warm-story", runBlocking { renderLyricsQuoteCard(context, request, story = true, loader = { warm }) })
     }
+
+    /** The case from a real phone: a long title with quotes, several credited artists, one play each. */
+    @Test
+    fun replayLongTitles() {
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
+        fun song(i: Int, title: String, artist: String) =
+            Song(videoId = "w$i", title = title, artist = artist, thumbnailUrl = "warm")
+        val hours = List(24) { h -> if (h == 21) 900L else if (h in 18..23) 400L else 90L }
+        val summary = ReplaySummary(
+            period = ReplayPeriod.THIS_YEAR,
+            label = "2026",
+            totalMs = 212L * 60_000,
+            totalPlays = 140,
+            songs = listOf(
+                RankedSong(song(1, "Gehra Hua (From \"Dhurandhar\")", "Shashwat Sachdev, Arijit Singh, Armaan Malik, Aditya Dhar"), 400_000, 1),
+                RankedSong(song(2, "Polaroid", "RiJ, Hurricane, bhaskar"), 600_000, 3),
+                RankedSong(song(3, "Bure Din (feat. Mick Jenkins)", "Seedhe Maut"), 300_000, 1),
+            ),
+            artists = listOf(RankedEntry("Seedhe Maut", null, "warm", null, 3_000_000, 12)),
+            albums = emptyList(),
+            genres = emptyList(),
+            hourOfDay = hours,
+            busiestDay = "2026-05-02",
+            busiestDayMs = 3_000_000,
+            distinctSongs = 125,
+            distinctArtists = 45,
+            distinctAlbums = 60,
+            since = "2026-09",
+        )
+        save("replay-long-titles", runBlocking { renderReplayQuotePoster(context, summary, "Namra Kapadia", loader = { warm }) })
+    }
 }

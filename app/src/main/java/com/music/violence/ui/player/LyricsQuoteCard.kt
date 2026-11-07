@@ -187,16 +187,28 @@ private fun planQuote(lines: List<LyricsShareLine>, serif: Typeface, sans: Typef
  * hairline edge and a faint light from the top left. No gimmick, just the picture, the way a
  * record sleeve would be pinned to a wall. With no cover, a quiet tile in the card's own colours.
  */
-internal fun drawCoverPrint(canvas: Canvas, cover: Bitmap?, colors: QuoteColors, x: Float, y: Float, size: Float, radius: Float = 26f) {
+internal fun drawCoverPrint(
+    canvas: Canvas,
+    cover: Bitmap?,
+    colors: QuoteColors,
+    x: Float,
+    y: Float,
+    size: Float,
+    radius: Float = 26f,
+    /** Off for a small thumbnail, which a heavy shadow would swamp. */
+    shadow: Boolean = true,
+) {
     val rect = RectF(x, y, x + size, y + size)
     // The shadow, offset down so the print sits above the page.
-    canvas.drawRoundRect(
-        RectF(x + 10f, y + 26f, x + size - 10f, y + size + 26f), radius, radius,
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = withAlpha(Color.BLACK, 0x80)
-            maskFilter = BlurMaskFilter(36f, BlurMaskFilter.Blur.NORMAL)
-        },
-    )
+    if (shadow) {
+        canvas.drawRoundRect(
+            RectF(x + 10f, y + 26f, x + size - 10f, y + size + 26f), radius, radius,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = withAlpha(Color.BLACK, 0x80)
+                maskFilter = BlurMaskFilter(36f, BlurMaskFilter.Blur.NORMAL)
+            },
+        )
+    }
     val frame = Path().apply { addRoundRect(rect, radius, radius, Path.Direction.CW) }
     canvas.save()
     canvas.clipPath(frame)
