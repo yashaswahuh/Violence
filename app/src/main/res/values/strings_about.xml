@@ -21,4 +21,5 @@
     <string name="storage_calculating">Calculating…</string>
     <string name="auto_check_updates">Check for updates automatically</string>
     <string name="auto_check_updates_subtitle">Looks for a new version on GitHub when the app opens, at most once a day.</string>
+    <string name="replay_persona_label">Listening personality</string>
 </resources>

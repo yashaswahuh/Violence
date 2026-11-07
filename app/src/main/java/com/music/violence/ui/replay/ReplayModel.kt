@@ -449,4 +449,17 @@ fun ReplaySummary.cards(context: Context): List<ReplayHeroCard> = buildList {
             ),
         )
     }
+    // The fun one: how this person listens, in a name and one line of proof.
+    if (songs.isNotEmpty()) {
+        val (name, proof) = persona(context, this@cards)
+        add(
+            ReplayHeroCard(
+                label = context.getString(R.string.replay_persona_label),
+                value = name,
+                detail = proof,
+                artworkUrl = songs.firstOrNull()?.song?.thumbnailUrl,
+                page = ReplayStoryPage.HABITS,
+            ),
+        )
+    }
 }

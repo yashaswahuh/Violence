@@ -1,5 +1,7 @@
 package com.music.violence.ui.replay
 
+import androidx.compose.material.icons.rounded.Undo
+import androidx.compose.runtime.collectAsState
 import com.music.violence.R
 
 import android.content.ContentValues
@@ -89,9 +91,21 @@ fun ReplayShareSheet(
     var poster by remember { mutableStateOf<Bitmap?>(null) }
     var failed by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
+    // Test 1.0: the Quote design for the whole Replay, offered while its experimental switch is on.
+    val quoteAvailable by com.music.violence.ui.violencestyle.ViolenceStyleSettings.lyricsQuoteCard.collectAsState()
+    var quote by remember(quoteAvailable) { mutableStateOf(quoteAvailable) }
 
-    LaunchedEffect(summary, page) {
-        poster = runCatching { renderReplayPoster(context, summary, holder, memberSince, page) }
+    LaunchedEffect(summary, page, quote) {
+        poster = null
+        failed = false
+        saved = false
+        poster = runCatching {
+            if (quote && page == null) {
+                renderReplayQuotePoster(context, summary, holder)
+            } else {
+                renderReplayPoster(context, summary, holder, memberSince, page)
+            }
+        }
             .onFailure { failed = true }
             .getOrNull()
     }
@@ -167,6 +181,16 @@ fun ReplayShareSheet(
         // appear a second after the sheet does are buttons that get tapped at
         // exactly the moment they move.
         val ready = poster != null
+        if (quoteAvailable && page == null) {
+            ShareAction(
+                label = stringResource(if (quote) R.string.lyrics_card_use_classic else R.string.lyrics_card_use_quote),
+                icon = androidx.compose.material.icons.Icons.Rounded.Undo,
+                accent = false,
+                enabled = ready,
+                modifier = Modifier.fillMaxWidth(),
+            ) { quote = !quote }
+            Spacer(Modifier.height(12.dp))
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ShareAction(
                 label = if (saved) stringResource(R.string.saved) else stringResource(R.string.save),
