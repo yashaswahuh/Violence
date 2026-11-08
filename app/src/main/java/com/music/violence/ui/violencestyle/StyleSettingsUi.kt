@@ -275,7 +275,7 @@ private fun CustomColorPicker() {
                             .background(Color(preset.argb))
                             .border(
                                 width = if (picked) 2.dp else 0.5.dp,
-                                color = if (picked) Color.White else Color.White.copy(alpha = 0.3f),
+                                color = (if (LocalViolenceLight.current) LIGHT_INK else Color.White).copy(alpha = if (picked) 1f else 0.3f),
                                 shape = CircleShape,
                             ),
                     )

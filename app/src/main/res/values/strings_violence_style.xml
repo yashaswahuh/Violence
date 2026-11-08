@@ -5,7 +5,7 @@
 -->
 <resources>
     <string name="vs_title">Violence Style (experimental)</string>
-    <string name="vs_description">An experimental skin: new fonts, a glowing background and tinted glass. With this off the app looks exactly as it does today. While it is on, the app uses the dark theme.</string>
+    <string name="vs_description">An experimental skin: new fonts, a glowing background and tinted glass. With this off the app looks exactly as it does today. While it is on, it follows your theme: a dark look in dark mode and a light look in light mode.</string>
     <string name="vs_background">Background</string>
     <string name="vs_bg_aurora">Aurora</string>
     <string name="vs_bg_corner">Corner</string>

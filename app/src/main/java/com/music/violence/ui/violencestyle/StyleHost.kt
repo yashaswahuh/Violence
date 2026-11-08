@@ -116,7 +116,7 @@ fun ViolenceStyledTheme(
         val current by rememberUpdatedState(content)
         val slot = remember { movableContentOf { current() } }
         if (enabled) {
-            ViolenceStyleHost { slot() }
+            ViolenceStyleHost(light = !darkTheme) { slot() }
         } else {
             slot()
         }
@@ -124,7 +124,7 @@ fun ViolenceStyledTheme(
 }
 
 @Composable
-private fun ViolenceStyleHost(content: @Composable () -> Unit) {
+private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
     val context = LocalContext.current
     ViolenceTypographyScope(enabled = true) {
         val background by ViolenceStyleSettings.background.collectAsStateWithLifecycle()
@@ -171,9 +171,13 @@ private fun ViolenceStyleHost(content: @Composable () -> Unit) {
             )
         }
 
-        val tokens = rememberAccentTokens(state)
+        val dayTokens = rememberAccentTokens(state)
+        // In the light version small accent text has to be darker, or it vanishes on the light page.
+        val tokens = remember(dayTokens, light) {
+            if (light) dayTokens.copy(textAccent = dayTokens.textAccentOnLight) else dayTokens
+        }
         val headings = remember(headingFont) { ViolenceHeadingStyles.build(headingFont.family()) }
-        val shared = remember(tokens, headings, state.intensity, state.effectiveMotion) {
+        val shared = remember(tokens, headings, state.intensity, state.effectiveMotion, light) {
             ViolenceSharedStyle(
                 accent = Color(tokens.accent),
                 accentSoft = Color(tokens.accentSoft),
@@ -186,6 +190,8 @@ private fun ViolenceStyleHost(content: @Composable () -> Unit) {
                 cardTitleCaps = headings.cardTitleCaps,
                 label = headings.label,
                 motion = state.effectiveMotion != StyleMotion.OFF,
+                light = light,
+                ink = if (light) LIGHT_INK else Color.White,
             )
         }
         val backgroundLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
@@ -204,6 +210,7 @@ private fun ViolenceStyleHost(content: @Composable () -> Unit) {
             LocalViolenceBackground provides backgroundHolder,
             LocalViolenceSeeThrough provides state.showsBackground(),
             LocalViolenceShared provides shared,
+            LocalViolenceLight provides light,
             content = content,
         )
     }
@@ -286,6 +293,9 @@ private fun rememberAccentTokens(state: StyleState): AccentTokens {
     )
     return remember(animated) { AccentTokens.from(animated.toArgb()) }
 }
+
+/** The colour of type and lines on the light page: a near-black with a hint of violet. */
+internal val LIGHT_INK = Color(0xFF16131C)
 
 private const val SONG_DEBOUNCE_MS = 400L
 private const val NEUTRAL_SETTLE_MS = 700L

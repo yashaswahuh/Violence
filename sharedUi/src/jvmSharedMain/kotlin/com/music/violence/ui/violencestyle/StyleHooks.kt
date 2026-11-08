@@ -10,3 +10,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * every shared screen keeps the fill it always had.
  */
 val LocalViolenceSeeThrough = staticCompositionLocalOf { false }
+
+/**
+ * True while Violence Style is showing its light version (the app's theme is light). Provided by the
+ * phone app; false everywhere else, so every other host keeps the dark look it always had.
+ */
+val LocalViolenceLight = staticCompositionLocalOf { false }

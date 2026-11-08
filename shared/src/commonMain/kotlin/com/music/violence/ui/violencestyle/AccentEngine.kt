@@ -14,6 +14,8 @@ data class AccentTokens(
     val textAccent: Int,
     /** True for the White preset and other neutral colours: the capsule stays neutral (ref1 look). */
     val neutral: Boolean,
+    /** The accent darkened until it reaches 4.5:1 against the light page, for small text in the light version. */
+    val textAccentOnLight: Int = textAccent,
 ) {
     companion object {
         /** Derives every token from any source colour, however extreme. */
@@ -33,6 +35,7 @@ data class AccentTokens(
                 onAccent = AccentMath.onColor(accent),
                 textAccent = AccentMath.liftToContrast(accent),
                 neutral = neutral,
+                textAccentOnLight = AccentMath.dropToContrast(accent),
             )
         }
 

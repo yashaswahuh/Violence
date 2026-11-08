@@ -81,25 +81,33 @@ fun ViolenceBackground() {
     val foreground = rememberIsForeground()
     val visualsSuspended by com.music.violence.ui.performance.BackgroundVisualsController.isSuspended.collectAsStateWithLifecycle()
     val playerOpen by ViolenceStyleSong.playerOpen.collectAsStateWithLifecycle()
+    val light = LocalViolenceLight.current
     val running = StyleCapabilityRules.backgroundClockMayRun(style, foreground, playerOpen) && !visualsSuspended
     val time = rememberBackgroundClock(running)
 
     val glow = tokens.glowColor
     // Quantised: the guard runs when the colour has moved visibly, not on every frame of a crossfade.
     val guardKey = glow and 0xF8F8F8
-    val scales = remember(style.background, style.intensity, style.effectiveMotion, guardKey) {
-        GlowGuard.scales(style.background, glow, style.intensity, style.effectiveMotion)
+    val scales = remember(style.background, style.intensity, style.effectiveMotion, guardKey, light) {
+        // The guard keeps the glow dark enough for white type. On the light page the type is dark and
+        // the glow only has to stay soft, so a fixed softer scale is used instead.
+        if (light) {
+            FloatArray(maxOf(BackgroundGeometry.blobCount(style.background), 1)) { LIGHT_GLOW_SCALE }
+        } else {
+            GlowGuard.scales(style.background, glow, style.intensity, style.effectiveMotion)
+        }
     }
     val brushes = remember { BackgroundBrushes() }
-    val glowColor = Color(glow)
-    val unit = remember(glow) { brushes.unitGlow(glowColor) }
+    // The light version's glow is the same hue, lifted toward white so it reads as a pastel wash.
+    val glowColor = if (light) androidx.compose.ui.graphics.lerp(Color(glow), Color.White, LIGHT_GLOW_LIFT) else Color(glow)
+    val unit = remember(glow, light) { brushes.unitGlow(glowColor) }
     val config = BackgroundConfig(
         style = style.background,
         motion = style.effectiveMotion,
         intensity = style.intensity,
         flat = style.reduceTransparency,
         glow = glowColor,
-        base = Color(BackgroundGeometry.baseColor(glow)),
+        base = Color(if (light) BackgroundGeometry.baseColorLight(glow) else BackgroundGeometry.baseColor(glow)),
         scales = scales,
         unit = unit,
     )
@@ -287,3 +295,9 @@ internal fun computeClockTick(
 }
 
 private const val TICK_TOLERANCE_NANOS = 4_000_000L
+
+/** How strong the light version's glows are against the dark version's guarded ones. */
+private const val LIGHT_GLOW_SCALE = 0.62f
+
+/** How far toward white the light version's glow colour is lifted. */
+private const val LIGHT_GLOW_LIFT = 0.30f

@@ -14,6 +14,9 @@ object AccentMath {
 
     /** The app's dark background (`colorScheme.background` is pure black while the style is on). */
     const val DARK_BACKGROUND: Int = 0xFF000000.toInt()
+
+    /** The page colour of the light version: a very light, faintly cool gray. */
+    const val LIGHT_BACKGROUND: Int = 0xFFF4F4F8.toInt()
     const val WHITE: Int = 0xFFFFFFFF.toInt()
     const val BLACK: Int = 0xFF000000.toInt()
 
@@ -139,6 +142,23 @@ object AccentMath {
             if (contrastRatio(candidate, background) >= minContrast) return candidate
         }
         return WHITE
+    }
+
+    /**
+     * The mirror of [liftToContrast] for a light page: lowers the lightness of [argb] until it reaches
+     * [minContrast] against [background], keeping the hue. Used for small accent text in the light
+     * version. Returns near-black if it never gets there.
+     */
+    fun dropToContrast(argb: Int, background: Int = LIGHT_BACKGROUND, minContrast: Double = SMALL_TEXT_CONTRAST): Int {
+        if (contrastRatio(argb, background) >= minContrast) return argb or (0xFF shl 24)
+        val hsl = toHsl(argb)
+        var l = hsl.l
+        while (l > 0f) {
+            l = max(0f, l - 0.02f)
+            val candidate = fromHsl(hsl.h, hsl.s, l)
+            if (contrastRatio(candidate, background) >= minContrast) return candidate
+        }
+        return 0xFF16131C.toInt()
     }
 
     /** Black or white text on [argb], whichever contrasts more. */

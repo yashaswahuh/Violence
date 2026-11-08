@@ -437,7 +437,6 @@ class MainActivity : AppCompatActivity() {
         // Violence Style (experimental): load its settings and apply safe mode before anything composes.
         ViolenceStyleBoot.start(this)
         setContent {
-            val vsEnabled by ViolenceStyleSettings.enabled.collectAsStateWithLifecycle()
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
             val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
@@ -448,7 +447,8 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(highPerformance, performanceRefreshRate, composeView) {
                 applyPerformanceMode(highPerformance, performanceRefreshRate, composeView)
             }
-            val darkTheme = ViolenceStyleSettings.forceDark(vsEnabled) ?: when (theme) {
+            // Violence Style follows the theme like the rest of the app: it has a dark look and a light one.
+            val darkTheme = when (theme) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true

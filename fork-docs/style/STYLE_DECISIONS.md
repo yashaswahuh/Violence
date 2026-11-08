@@ -32,6 +32,7 @@ Keep these as defaults but make sure user can change to other options in setttin
 9. Light theme: what should the skin do when the app theme or the system theme is light?
    [A: the skin shows its dark look while it is on (suggested) / B: the skin turns itself off in light theme / C: design a light version later]
    Choice:design a light version later
+    Update 2026-11-08: built on Android. The style now follows the app theme (System, Light or Dark) with a light look: a pale, accent-tinted page with soft pastel glows, near-black type, a darker accent for small text and light glass. Desktop and Web keep the dark look.
 10. Where should the master toggle live? There is no "Experimental" tab today. [Advanced & experimental options / Appearance / a new category]
     Choice:Advanced & experimental options
 11. Heading style [Mixed: caps with an italic second line (ref2 to ref4) / All caps (ref1)]:

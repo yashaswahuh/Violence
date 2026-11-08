@@ -123,11 +123,6 @@ class StyleOffParityTest {
         assertEquals(StyleMotion.OFF, s.effectiveMotion)
     }
 
-    @Test fun darkOnlyOverrideAppliesOnlyWhileOn() {
-        assertNull(ViolenceStyleSettings.forceDark(false))
-        assertEquals(true, ViolenceStyleSettings.forceDark(true))
-    }
-
     @Test fun typographyIsTheSameObjectWhenOff() {
         val base = Typography()
         assertSame(base, violenceTypography(base, enabled = false))

@@ -72,6 +72,10 @@ class ViolenceSharedStyle(
     val label: TextStyle,
     /** True when the live background may move (motion not Off, FULL mode, no reduce motion). */
     val motion: Boolean = false,
+    /** True in the light version: the page is light, so type and lines are dark. */
+    val light: Boolean = false,
+    /** The colour of type and lines on the page: white on the dark page, near-black on the light one. */
+    val ink: Color = Color.White,
 )
 
 /** Null while the style is off. */
@@ -158,7 +162,7 @@ fun ViolenceSectionHeader(
                         Text(
                             text = heading.caps,
                             style = if (hero) style.displayCaps else style.sectionCaps,
-                            color = Color.White,
+                            color = style.ink,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -168,7 +172,7 @@ fun ViolenceSectionHeader(
                                 style = if (hero) style.displayItalic else style.sectionCaps.copy(
                                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                                 ),
-                                color = Color.White,
+                                color = style.ink,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -218,7 +222,7 @@ fun ViolenceSectionHeader(
             Text(
                 text = subtitle,
                 style = style.label.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize),
-                color = Color.White.copy(alpha = 0.6f),
+                color = style.ink.copy(alpha = 0.6f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -235,7 +239,7 @@ fun ViolenceSectionHeader(
  */
 private fun DrawScope.drawRule(style: ViolenceSharedStyle, hero: Boolean, pulse: Float?) {
     val y = size.height / 2f
-    val accent = if (style.neutral) Color.White else style.accent
+    val accent = if (style.neutral) style.ink else style.accent
     val reach = if (hero) 11.dp.toPx() else 6.dp.toPx()
     val endX = size.width - reach * 2f - 4.dp.toPx()
     if (endX <= 0f) return
@@ -272,16 +276,17 @@ private fun DrawScope.drawRule(style: ViolenceSharedStyle, hero: Boolean, pulse:
         radius = reach * 3f,
         center = c,
     )
-    drawSparkle(c, reach * twinkle, accent)
+    val fill = if (style.light) accent else Color.White
+    drawSparkle(c, reach * twinkle, accent, fill)
     if (hero) {
         // A small companion up and to the left, twinkling the other way.
         val small = Offset(c.x - reach * 1.9f, y - reach * 1.5f)
-        drawSparkle(small, reach * 0.42f * (2f - twinkle), accent.copy(alpha = 0.85f))
+        drawSparkle(small, reach * 0.42f * (2f - twinkle), accent.copy(alpha = 0.85f), fill)
     }
 }
 
 /** A four-point star: four curved points meeting at a centre, filled white with a thin accent rim. */
-private fun DrawScope.drawSparkle(c: Offset, r: Float, accent: Color) {
+private fun DrawScope.drawSparkle(c: Offset, r: Float, accent: Color, fill: Color) {
     val star = androidx.compose.ui.graphics.Path().apply {
         moveTo(c.x, c.y - r)
         quadraticBezierTo(c.x + r * 0.10f, c.y - r * 0.10f, c.x + r, c.y)
@@ -291,7 +296,7 @@ private fun DrawScope.drawSparkle(c: Offset, r: Float, accent: Color) {
         close()
     }
     drawPath(star, accent.copy(alpha = 0.55f), style = Stroke(r * 0.28f))
-    drawPath(star, Color.White)
+    drawPath(star, fill)
 }
 
 /**

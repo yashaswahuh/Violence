@@ -122,7 +122,7 @@ This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. 
 
 An optional skin for Android phone, Desktop, and Web: a display-serif heading style, a live glowing background, glass bars and buttons, and accent colours taken from the playing song, your device or a colour you pick. It is **off by default**, and with it off the app is exactly the app without it.
 
-- **Turn it on:** Settings > "Advanced & experimental options" on Android, or Settings > "Appearance" on Desktop and Web. While it is on the app uses its dark theme.
+- **Turn it on:** Settings > "Advanced & experimental options" on Android, or Settings > "Appearance" on Desktop and Web. On Android it follows your theme (System, Light or Dark) and has a dark and a light look; Desktop and Web use the dark look.
 - **Settings:** background (Aurora, Corner, Haze, Off), motion (Off, Subtle, Normal), glow intensity (Low, Medium, High), accent source (Song, Device, Custom with nine presets and a picker), heading font (Bodoni Moda, Cormorant, Anton), reduce transparency, and a glow on album and playlist pages. A "Mode" line shows when the app runs in Lite mode (older Android, low memory, battery saver, reduced blur).
 - **If something goes wrong:** switch it off in the same place. If the app fails to start twice in a row with the skin on, it turns itself off and tells you.
 - **Report a problem:** say which device and Android version you use and which settings were on.
