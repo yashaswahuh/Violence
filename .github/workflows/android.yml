@@ -11,7 +11,7 @@ name: Android CI
 
 on:
   push:
-    branches: [violence-nk]
+    branches: [main, violence-main, violence-nk]
     paths:
       - 'app/**'
       - 'tv/**'
@@ -23,6 +23,7 @@ on:
       - 'settings.gradle.kts'
       - 'gradle.properties'
       - '.github/workflows/android.yml'
+  public:
   workflow_dispatch:
 
 permissions:

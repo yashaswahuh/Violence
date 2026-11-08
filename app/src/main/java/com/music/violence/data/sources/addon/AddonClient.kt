@@ -496,7 +496,7 @@ class AddonClient(rawBaseUrl: String) {
         private const val BACKOFF_BASE_MS = 500L
         private const val BACKOFF_CAP_MS = 8_000L
 
-        private val USER_AGENT = "Violence/v${com.music.violence.BuildConfig.VERSION_NAME}"
+        private val USER_AGENT = "Violence/${if (com.music.violence.BuildConfig.VERSION_NAME.startsWith("v")) "" else "v"}${com.music.violence.BuildConfig.VERSION_NAME}"
 
         /**
          * What [probeSearch] asks for. Deliberately an ordinary word rather

@@ -1,5 +1,7 @@
 #define MyAppName "Violence"
-#define MyAppVersion "1.0.0"
+#ifndef MyAppVersion
+#define MyAppVersion "0.9.5"
+#endif
 #define MyAppPublisher "Violence"
 #define MyAppExeName "Violence.exe"
 
@@ -8,9 +10,9 @@ AppId={{D37F8A1B-89A1-4C55-9B2F-9E26388C8F7A}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-AppPublisherURL=https://github.com/kushagrasinghx/BitChord
-AppSupportURL=https://github.com/kushagrasinghx/BitChord/issues
-AppUpdatesURL=https://github.com/kushagrasinghx/BitChord/releases
+AppPublisherURL=https://github.com/yashaswahuh/Violence
+AppSupportURL=https://github.com/yashaswahuh/Violence/issues
+AppUpdatesURL=https://github.com/yashaswahuh/Violence/releases
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes

@@ -30,7 +30,7 @@ import java.security.MessageDigest
 
 /**
  * Violence is sideloaded, so there is nothing to push an update notice on its own. This reads one
- * small JSON file from a free static host (`UPDATE_INFO_URL`, see fork-docs/RELEASE_GUIDE.md) at
+ * small JSON file from a free static host (`UPDATE_INFO_URL`) at
  * most once a day, compares its `versionCode` with the running build, and, when it is newer, offers
  * the APK: downloaded into the app cache, checked against the file's SHA-256, and handed to the
  * system package installer, so the whole round trip stays inside the app.
@@ -239,7 +239,14 @@ object AppUpdateChecker {
                 .mapNotNull { it as? JsonObject }
                 .filter { it["name"]?.jsonPrimitive?.contentOrNull?.endsWith(".apk", ignoreCase = true) == true }
             fun named(asset: JsonObject) = asset["name"]!!.jsonPrimitive.content.lowercase()
-            val forApp = apks.filter { apkKey.lowercase() in named(it) }.ifEmpty { apks }
+            val forApp = apks.filter {
+                val n = named(it)
+                if (apkKey.equals("tv", ignoreCase = true)) {
+                    "tv" in n
+                } else {
+                    ("phone" in n || "android" in n || "app" in n) && "tv" !in n
+                }
+            }.ifEmpty { apks }
             val apk = abis.firstNotNullOfOrNull { abi -> forApp.firstOrNull { abi.lowercase() in named(it) } }
                 ?: forApp.firstOrNull { "universal" in named(it) }
                 ?: forApp.firstOrNull()
@@ -305,7 +312,17 @@ object AppUpdateChecker {
         }?.takeIf { it.isNotEmpty() }
         val page = root["page"]?.jsonPrimitive?.contentOrNull?.let { resolveHttps(infoUrl, it) } ?: infoUrl
         val apks = root["apks"] as? JsonObject
-        val apk = (abis.map { "$apkKey-$it" } + apkKey).firstNotNullOfOrNull { apks?.get(it) as? JsonObject }
+        val candidates = buildList {
+            abis.forEach {
+                add("$apkKey-$it")
+                if (apkKey == "phone") add("android-$it")
+                if (apkKey == "android") add("phone-$it")
+            }
+            add(apkKey)
+            if (apkKey == "phone") add("android")
+            if (apkKey == "android") add("phone")
+        }
+        val apk = candidates.firstNotNullOfOrNull { apks?.get(it) as? JsonObject }
         val apkUrl = apk?.get("url")?.jsonPrimitive?.contentOrNull?.let { resolveHttps(infoUrl, it) }
         val sha = apk?.get("sha256")?.jsonPrimitive?.contentOrNull?.trim()?.lowercase()
             ?.takeIf { Regex("[0-9a-f]{64}").matches(it) }

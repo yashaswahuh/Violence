@@ -189,6 +189,8 @@ android {
                 storePassword = signing.getProperty("storePassword")
                 keyAlias = signing.getProperty("keyAlias")
                 keyPassword = signing.getProperty("keyPassword")
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
@@ -262,6 +264,18 @@ android {
             // so a test of that layer fails on the logging rather than on the
             // logic it was written to check.
             isReturnDefaultValues = true
+        }
+    }
+
+    applicationVariants.all {
+        val variant = this
+        outputs.all {
+            val output = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            if (output != null && variant.flavorName == "prod" && variant.buildType.name == "release") {
+                val abi = output.getFilter(com.android.build.OutputFile.ABI) ?: "universal"
+                val v = variant.versionName.let { if (it.startsWith("v")) it else "v$it" }
+                output.outputFileName = "violence-$v-tv-$abi.apk"
+            }
         }
     }
 }

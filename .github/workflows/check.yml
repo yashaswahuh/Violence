@@ -4,6 +4,8 @@ on:
   push:
     branches: [violence-nk, violence-main, main]
   pull_request:
+  public:
+  workflow_dispatch:
 
 concurrency:
   group: check-${{ github.workflow }}-${{ github.ref }}

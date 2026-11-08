@@ -24,12 +24,12 @@
 - **Credit:** BitChord and its design are the work of Kushagra Singh; this fork is maintained separately and is not endorsed by YouTube, Google, Spotify, Last.fm, or Apple.
 
 ### Main Changes
-Based on fork documentation and logs (`/fork-docs`):
+Based on project updates and logs:
 - **Rebrand:** Renamed application identity and user-facing assets to Violence across Android, TV, Web, and companion extensions; updated package application IDs (`com.yashaswahuh.violencemusic`), URI schemes (`violence://`), and notification channels.
 - **Author-Hosted Services Disabled or Replaced:** Decoupled and disabled upstream author telemetry and presence pings (`api.bitchord.kushagrasingh.in/api/presence`), the upstream update checker, and donation/promotional links. Nothing in the app calls the original author's servers.
 - **Its own update check:** Settings has **Check for updates**. Once a day at most, Violence reads this repository's GitHub Releases (or an `update.json`, if the build sets `UPDATE_INFO_URL`), and an APK it offers is checked against its SHA-256 before it is handed to the system installer.
 - **New CI:** GitHub Actions workflows for Android phone and TV debug builds, unit tests, GitHub Pages web deployment (with a `404.html` so deep links and refresh work), a manual desktop check, and a release workflow that builds the desktop packages.
-- **Playback Sources & APIs Reference:** See [fork-docs/PLAYBACK_SOURCES.md](fork-docs/PLAYBACK_SOURCES.md) for complete technical documentation of playback endpoints, login flows, lyrics providers, and replacement guides.
+- **Playback Sources & APIs Reference:** Integrated technical documentation for playback endpoints, login flows, and lyrics providers.
 
 ### Third-Party Disclaimer
 Violence is not affiliated with or endorsed by YouTube, Google, Spotify, Last.fm, or Apple. All trademarks, service marks, trade names, and logos belong to their respective owners. Users are solely responsible for complying with the terms of service of any third-party platforms they access through this software. The user interface of Violence is inspired by Apple Music.
@@ -135,4 +135,4 @@ An optional skin for Android phone, Desktop, and Web: a display-serif heading st
 - **Settings:** background (Aurora, Corner, Haze, Off), motion (Off, Subtle, Normal), glow intensity (Low, Medium, High), accent source (Song, Device, Custom with nine presets and a picker), heading font (Bodoni Moda, Cormorant, Anton), reduce transparency, a glow on album and playlist pages, full-screen cover art on albums and playlists, and the Quote design for lyrics and Replay cards (Test 1.0). A "Mode" line shows when the app runs in Lite mode (older Android, low memory, battery saver, reduced blur).
 - **If something goes wrong:** switch it off in the same place. If the app fails to start twice in a row with the skin on, it turns itself off and tells you.
 - **Report a problem:** say which device and Android version you use and which settings were on.
-- Fonts used by the skin (Inter, Bodoni Moda, Cormorant Garamond, Anton) are under the SIL Open Font License 1.1; see `NOTICE`. More: `fork-docs/style/STYLE_OVERVIEW.md`.
+- Fonts used by the skin (Inter, Bodoni Moda, Cormorant Garamond, Anton) are under the SIL Open Font License 1.1; see `NOTICE`.

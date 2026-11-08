@@ -41,8 +41,8 @@ buildscript {
  * No "v" in the name — the in-app updater reads it as a number; the "v" is the
  * release tag's alone.
  */
-extra["violenceVersionCode"] = 35
-extra["violenceVersionName"] = "1.9.0-violence.1"
+extra["violenceVersionCode"] = 36
+extra["violenceVersionName"] = "v0.9.5"
 
 /*
  * Bump this by hand before cutting each sideloaded test build ("beta2",

@@ -49,5 +49,5 @@ mkdir -p "$(dirname "$OUT")"
 # APPIMAGE_EXTRACT_AND_RUN rather than the flag of the same name: it is read by the AppImage
 # runtime, so it covers a CI runner with no FUSE, and a natively built appimagetool — which has
 # no such flag and would refuse to start — simply ignores it.
-ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$TOOL" "$APPDIR" "$OUT"
+ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$TOOL" "$APPDIR" "$OUT" || ARCH=x86_64 "$TOOL" --appimage-extract-and-run "$APPDIR" "$OUT"
 echo "appimage: $OUT"

@@ -8,10 +8,11 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 /** What the packages, the launcher and the settings footer all say. */
-val appVersion: String = (providers.gradleProperty("violence.version").orNull ?: providers.gradleProperty("violence.version").orNull)
+val appVersion: String = (providers.gradleProperty("violence.version").orNull
+    ?: (rootProject.extra["violenceVersionName"] as? String))
     ?.removePrefix("v")
     ?.takeIf { it.isNotBlank() }
-    ?: "1.8-beta1"
+    ?: "0.9.5"
 
 /** Which platform this build is *for*, which is the host unless told otherwise. */
 val hostIsWindows = System.getProperty("os.name").contains("Windows", ignoreCase = true)
@@ -31,7 +32,11 @@ val isArm64 = hostArch == "aarch64" || hostArch == "arm64"
 // intentionally displayed without a patch number (1.7 rather than 1.7.0).
 // The build number is the desktop version code; it also keeps "-beta1" out of the numeric installer version.
 val desktopVersionCode = 29
-val nativePackageVersion = appVersion.substringBefore('-').split('.').take(2).joinToString(".") + ".$desktopVersionCode"
+val semverNumbers = Regex("""\d+(\.\d+)*""").find(appVersion)?.value ?: "0.9.5"
+val versionParts = semverNumbers.split('.').filter { it.isNotEmpty() }
+val majorPart = versionParts.getOrNull(0) ?: "0"
+val minorPart = versionParts.getOrNull(1) ?: "9"
+val nativePackageVersion = "$majorPart.$minorPart.$desktopVersionCode"
 
 // FFmpeg decodes audio; see DesktopAudioDecoder.
 val javacppVersion = "1.5.12"
@@ -578,6 +583,7 @@ compose.desktop {
             )
 
             macOS {
+                packageVersion = "1.0.$desktopVersionCode"
                 iconFile.set(project.file("packaging/icons/AppIcon.icns"))
                 bundleID = "com.yashaswahuh.violencemusic.desktop"
                 appCategory = "public.app-category.music"
@@ -687,7 +693,7 @@ val packageWindowsInstaller by tasks.registering {
         val issFile = project.file("packaging/windows/installer.iss")
         logger.lifecycle("Compiling Inno Setup installer with ${iscc.absolutePath}...")
         providers.exec {
-            commandLine(iscc.absolutePath, issFile.absolutePath)
+            commandLine(iscc.absolutePath, "/DMyAppVersion=$appVersion", issFile.absolutePath)
         }.result.get().assertNormalExitValue()
         logger.lifecycle("Windows installer compiled successfully in desktopApp/dist/")
     }

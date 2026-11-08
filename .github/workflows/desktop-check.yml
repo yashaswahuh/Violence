@@ -4,6 +4,15 @@ name: Desktop check (manual)
 # These jobs used to run from check.yml on every push; they are manual-only now.
 # Run them by hand from the Actions tab only when the owner says "unfreeze desktop".
 on:
+  push:
+    branches: [violence-nk, violence-main, main]
+    paths:
+      - 'desktopApp/**'
+      - 'desktopUi/**'
+      - 'shared/**'
+      - 'sharedUi/**'
+      - '.github/workflows/desktop-check.yml'
+  public:
   workflow_dispatch:
 
 concurrency:

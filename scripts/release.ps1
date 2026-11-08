@@ -92,7 +92,7 @@ if ($Bump -or $VersionName) {
     if ($VersionName) { $newName = $VersionName }
     elseif ($name -match '^(.*-violence\.)(\d+)$') { $newName = $Matches[1] + ([int]$Matches[2] + 1) }
     else { Stop-Release "The version '$name' does not end in -violence.N. Use -VersionName to set it." }
-    if ($newName -notmatch '^\d+\.\d+\.\d+(-violence\.\d+)?$') { Stop-Release "Version name '$newName' should look like 1.9.0-violence.2 (upstream version, then -violence.N)." }
+    if ($newName -notmatch '^v?\d+\.\d+\.\d+(-violence\.\d+)?$') { Stop-Release "Version name '$newName' should look like v0.9.5 or 0.9.5." }
     $gradleRaw = $gradleRaw -replace 'extra\["violenceVersionCode"\]\s*=\s*\d+', "extra[`"violenceVersionCode`"] = $newCode"
     $gradleRaw = $gradleRaw -replace 'extra\["violenceVersionName"\]\s*=\s*"[^"]+"', "extra[`"violenceVersionName`"] = `"$newName`""
     [IO.File]::WriteAllText($gradleFile, $gradleRaw, (New-Object Text.UTF8Encoding($false)))
@@ -126,14 +126,14 @@ if (-not $SkipBuild) {
 $abis = 'arm64-v8a', 'armeabi-v7a', 'x86_64'
 function Find-Apk([string]$Module, [string]$Which) {
     $dir = Join-Path $root "$Module\build\outputs\apk\prod\release"
-    $apk = Get-ChildItem $dir -Filter "*-$Which-release*.apk" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    $apk = Get-ChildItem $dir -Filter "*$Which*.apk" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if (-not $apk) { Stop-Release "No $Which release APK in $dir." }
     if ($apk.Name -match 'unsigned') { Stop-Release "$($apk.Name) is unsigned: keystore.properties did not take effect." }
     return $apk
 }
 # One universal APK per app (all CPUs; for installing by hand) and one APK per CPU type (about half the size; the in-app updater uses these).
 $sources = @()
-foreach ($pair in @(@('phone', 'app'), @('tv', 'tv'))) {
+foreach ($pair in @(@('android', 'app'), @('tv', 'tv'))) {
     $sources += [pscustomobject]@{ Key = $pair[0]; Abi = $null; File = (Find-Apk $pair[1] 'universal') }
     foreach ($abi in $abis) { $sources += [pscustomobject]@{ Key = $pair[0]; Abi = $abi; File = (Find-Apk $pair[1] $abi) } }
 }
@@ -158,9 +158,10 @@ New-Item -ItemType Directory -Force $outDir | Out-Null
 Get-ChildItem $outDir -Filter 'violence-*.apk' -ErrorAction SilentlyContinue | Remove-Item -Force
 $apkEntries = [ordered]@{}
 $allFiles = @()
+$tagVer = if ($name.StartsWith('v')) { $name } else { "v$name" }
 foreach ($s in $sources) {
-    $suffix = if ($s.Abi) { "-$($s.Abi)" } else { '' }
-    $dest = Join-Path $outDir "violence-$($s.Key)-$name$suffix.apk"
+    $suffix = if ($s.Abi) { "-$($s.Abi)" } else { '-universal' }
+    $dest = Join-Path $outDir "violence-$tagVer-$($s.Key)$suffix.apk"
     Copy-Item $s.File.FullName $dest -Force
     $item = Get-Item $dest
     $allFiles += $item.FullName
@@ -170,6 +171,13 @@ foreach ($s in $sources) {
             url    = $item.Name
             sha256 = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
             bytes  = $item.Length
+        }
+        if ($s.Key -eq 'android') {
+            $apkEntries["phone-$($s.Abi)"] = [ordered]@{
+                url    = $item.Name
+                sha256 = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
+                bytes  = $item.Length
+            }
         }
         if ($item.Length -gt 95MB) { Write-Host "WARNING: $($item.Name) is above 95 MB; keep update files well under GitHub's 100 MB file limit." -ForegroundColor Yellow }
     }
@@ -187,22 +195,22 @@ $jsonPath = Join-Path $outDir 'update.json'
 # ---- 6. What to do next ----------------------------------------------------------------------------------------------
 Write-Host ''
 Write-Host "Built $name (versionCode $code) into: $outDir" -ForegroundColor Green
-Write-Host "  violence-phone-$name.apk / violence-tv-$name.apk = the files to hand to people (work on every phone / TV)."
+Write-Host "  violence-$tagVer-android-universal.apk / violence-$tagVer-tv-universal.apk = the files to hand to people (work on every phone / TV)."
 Write-Host '  the -arm64-v8a / -armeabi-v7a / -x86_64 files + update.json = what the in-app updater downloads (smaller).'
 if ($fingerprint) { Write-Host "Signing certificate SHA-256 (for assetlinks.json, see APP_LINKS.md): $($fingerprint.ToUpper() -replace '(..)(?=.)', '$1:')" }
 Write-Host ''
 Write-Host 'PUBLISH (nothing has been committed or uploaded yet):' -ForegroundColor Cyan
 $n = 1
 if ($versionChanged) {
-    Write-Host ("{0}. git add build.gradle.kts; git commit -m `"Release {1}`"; git branch --show-current   (must print violence-nk); git push origin violence-nk" -f $n, $name); $n++
+    Write-Host ("{0}. git add build.gradle.kts; git commit -m `"Release {1}`"; git push origin main" -f $n, $tagVer); $n++
 }
-Write-Host ("{0}. On GitHub: repository > Releases > Draft a new release. Tag: v{1} (create it on violence-nk). Title: Violence {1}." -f $n, $name); $n++
+Write-Host ("{0}. On GitHub: repository > Releases > Draft a new release. Tag: {1} (create it on main). Title: Violence {1}." -f $n, $tagVer); $n++
 Write-Host ("{0}. Drag ALL files from {1} into the release (8 APKs plus update.json), or use the gh command below." -f $n, $outDir); $n++
-Write-Host ("{0}. Leave 'Set as a pre-release' UNticked, then Publish release. The Web Deploy workflow then copies the update files to the site (about 2 minutes)." -f $n); $n++
+Write-Host ("{0}. Set as pre-release if desired, then Publish release. The Web Deploy workflow then copies the update files to the site (about 2 minutes)." -f $n); $n++
 if ($UpdateFolderUrl) { Write-Host ("{0}. Check it worked: open {1}/update.json in a browser. It should show versionCode {2}. Phones and TVs notice it within a day of the next launch." -f $n, $UpdateFolderUrl, $code); $n++ }
 Write-Host ''
 Write-Host 'Same release from a terminal (needs gh logged in):' -ForegroundColor DarkGray
 $quoted = (($allFiles + $jsonPath) | ForEach-Object { '"' + $_ + '"' }) -join ' '
-Write-Host ("  gh release create v{0} {1} --target violence-nk --title `"Violence {0}`" --notes `"{2}`"" -f $name, $quoted, ($Changelog -join '; ')) -ForegroundColor DarkGray
+Write-Host ("  gh release create {0} {1} --target main --title `"Violence {0}`" --notes `"{2}`"" -f $tagVer, $quoted, ($Changelog -join '; ')) -ForegroundColor DarkGray
 Write-Host ''
 Write-Host 'Never commit the keystore, keystore.properties or the APKs (all gitignored).' -ForegroundColor Yellow
