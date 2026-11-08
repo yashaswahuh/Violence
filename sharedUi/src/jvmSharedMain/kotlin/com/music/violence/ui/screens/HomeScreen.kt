@@ -52,7 +52,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -506,21 +508,48 @@ fun CompactTrackRow(
  * system font scale.
  */
 @Composable
-private fun HomeTitle(title: String, modifier: Modifier = Modifier) {
+internal fun HomeTitle(title: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp)) {
         // The name as a wide-tracked wordmark in text (it was the ic_logo image).
-        Text(
-            text = "VIOLENCE",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.42.em,
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-            modifier = Modifier.padding(bottom = 14.dp),
+        val violence = LocalViolenceShared.current
+        val base = MaterialTheme.typography.titleLarge.copy(
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 0.42.em,
         )
-        // "Listen now" is hidden for now; the wordmark above stays.
+        if (violence == null) {
+            Text(
+                text = "VIOLENCE",
+                style = base,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                modifier = Modifier.padding(bottom = 14.dp),
+            )
+        } else {
+            // Under Violence Style the name glows with the accent: white lit toward the accent from
+            // the left, with the accent bleeding softly around the letters.
+            val glow = if (violence.neutral) Color.White else violence.accent
+            Box(Modifier.padding(bottom = 14.dp)) {
+                // A wide soft bloom behind the letters, then the letters with a tight glow of their own.
+                Text(
+                    text = "VIOLENCE",
+                    style = base.copy(
+                        shadow = Shadow(color = glow.copy(alpha = if (violence.neutral) 0.30f else 0.85f), offset = Offset.Zero, blurRadius = 70f),
+                    ),
+                    color = glow.copy(alpha = if (violence.neutral) 0.18f else 0.55f),
+                    maxLines = 1,
+                )
+                Text(
+                    text = "VIOLENCE",
+                    style = base.copy(
+                        brush = Brush.horizontalGradient(listOf(Color.White, violence.textAccent)),
+                        shadow = Shadow(color = glow.copy(alpha = if (violence.neutral) 0.35f else 1f), offset = Offset.Zero, blurRadius = 22f),
+                    ),
+                    color = Color.Unspecified,
+                    maxLines = 1,
+                )
+            }
+        }
     }
 }
 

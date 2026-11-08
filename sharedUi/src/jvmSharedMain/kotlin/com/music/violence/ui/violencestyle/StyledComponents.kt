@@ -130,6 +130,19 @@ fun ViolenceSectionHeader(
     val density = LocalDensity.current
     val capped = Density(density.density, ViolenceStyleText.cappedFontScale(density.fontScale))
     val heading = ViolenceStyleText.split(title)
+    // One ping every few seconds from the hero rule's end, only while the style may move. Read while drawing.
+    val ping: androidx.compose.runtime.State<Float>? = if (hero && style.motion) {
+        androidx.compose.animation.core.rememberInfiniteTransition(label = "rulePing").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = androidx.compose.animation.core.infiniteRepeatable<Float>(
+                animation = androidx.compose.animation.core.tween<Float>(3_200, easing = androidx.compose.animation.core.LinearEasing),
+            ),
+            label = "rulePingPhase",
+        )
+    } else {
+        null
+    }
     Column(
         Modifier
             .padding(start = PAGE_GUTTER + 8.dp, end = PAGE_GUTTER + 8.dp, top = 10.dp, bottom = 10.dp)
@@ -162,7 +175,7 @@ fun ViolenceSectionHeader(
                         }
                     }
                 }
-                Canvas(Modifier.heightIn(min = 12.dp)) { drawHairline(style, hero) }
+                Canvas(Modifier.heightIn(min = 12.dp)) { drawRule(style, hero, ping?.value) }
                 if (onShowAll != null) {
                     Box(
                         Modifier
@@ -191,7 +204,7 @@ fun ViolenceSectionHeader(
             val titleP = measurables[0].measure(Constraints(maxWidth = titleMax))
             val lineW = ViolenceStyleText.hairlineWidth(constraints.maxWidth, titleP.width, actionW, gapPx, minPx)
             val h = max(titleP.height, action?.height ?: 0)
-            val lineP = measurables[1].measure(Constraints.fixed(lineW, 12.dp.roundToPx()))
+            val lineP = measurables[1].measure(Constraints.fixed(lineW, 40.dp.roundToPx()))
             layout(constraints.maxWidth, h) {
                 titleP.placeRelative(0, (h - titleP.height) / 2)
                 if (lineW > 0) {
@@ -213,22 +226,72 @@ fun ViolenceSectionHeader(
     }
 }
 
-/** The hairline, and for the hero heading the glowing dot with two halos. Plain strokes and circles, no blur. */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHairline(style: ViolenceSharedStyle, hero: Boolean) {
+/**
+ * The rule after a heading: a beam of light that grows out of nothing and ends in a four-point star.
+ * The beam is the line with two soft layers under it, so it reads as lit and not drawn. The hero
+ * heading ends in a larger star with a small companion that twinkles while the style may move
+ * ([pulse], 0..1, one twinkle per cycle); a section's rule ends in a small star that stays still.
+ * Strokes, a path and gradients only, no blur, so it costs nothing to redraw.
+ */
+private fun DrawScope.drawRule(style: ViolenceSharedStyle, hero: Boolean, pulse: Float?) {
     val y = size.height / 2f
-    val endX = if (hero) size.width - 6.dp.toPx() else size.width
-    drawLine(
-        color = Color.White.copy(alpha = if (hero) 0.32f else 0.24f),
-        start = Offset(0f, y),
-        end = Offset(endX, y),
-        strokeWidth = 1.dp.toPx(),
-    )
-    if (hero) {
-        val c = Offset(size.width - 3.dp.toPx(), y)
-        drawCircle(style.accent.copy(alpha = 0.10f), radius = 12.dp.toPx(), center = c)
-        drawCircle(style.accent.copy(alpha = 0.28f), radius = 7.dp.toPx(), center = c)
-        drawCircle(style.accent, radius = 3.dp.toPx(), center = c)
+    val accent = if (style.neutral) Color.White else style.accent
+    val reach = if (hero) 11.dp.toPx() else 6.dp.toPx()
+    val endX = size.width - reach * 2f - 4.dp.toPx()
+    if (endX <= 0f) return
+    val strength = (style.strength / 0.62f).coerceIn(0.6f, 1.3f)
+
+    // The beam: a wide faint layer, a narrower brighter one, and the line itself.
+    val layers = if (hero) listOf(9f to 0.07f, 4.5f to 0.15f, 1.4f to 0.95f) else listOf(5f to 0.06f, 1.2f to 0.80f)
+    for ((width, alpha) in layers) {
+        drawLine(
+            brush = Brush.horizontalGradient(
+                0f to Color.Transparent,
+                0.55f to accent.copy(alpha = alpha * 0.35f * strength),
+                1f to accent.copy(alpha = (alpha * strength).coerceAtMost(1f)),
+                startX = 0f,
+                endX = endX,
+            ),
+            start = Offset(0f, y),
+            end = Offset(endX, y),
+            strokeWidth = width.dp.toPx(),
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
     }
+
+    // The star, a little beyond the end of the beam.
+    val twinkle = if (pulse != null) 1f + 0.16f * kotlin.math.sin(pulse * 2f * Math.PI.toFloat()) else 1f
+    val c = Offset(size.width - reach - 1.dp.toPx(), y)
+    drawCircle(
+        brush = Brush.radialGradient(
+            0f to accent.copy(alpha = (if (hero) 0.55f else 0.35f) * strength),
+            1f to Color.Transparent,
+            center = c,
+            radius = reach * 3f,
+        ),
+        radius = reach * 3f,
+        center = c,
+    )
+    drawSparkle(c, reach * twinkle, accent)
+    if (hero) {
+        // A small companion up and to the left, twinkling the other way.
+        val small = Offset(c.x - reach * 1.9f, y - reach * 1.5f)
+        drawSparkle(small, reach * 0.42f * (2f - twinkle), accent.copy(alpha = 0.85f))
+    }
+}
+
+/** A four-point star: four curved points meeting at a centre, filled white with a thin accent rim. */
+private fun DrawScope.drawSparkle(c: Offset, r: Float, accent: Color) {
+    val star = androidx.compose.ui.graphics.Path().apply {
+        moveTo(c.x, c.y - r)
+        quadraticBezierTo(c.x + r * 0.10f, c.y - r * 0.10f, c.x + r, c.y)
+        quadraticBezierTo(c.x + r * 0.10f, c.y + r * 0.10f, c.x, c.y + r)
+        quadraticBezierTo(c.x - r * 0.10f, c.y + r * 0.10f, c.x - r, c.y)
+        quadraticBezierTo(c.x - r * 0.10f, c.y - r * 0.10f, c.x, c.y - r)
+        close()
+    }
+    drawPath(star, accent.copy(alpha = 0.55f), style = Stroke(r * 0.28f))
+    drawPath(star, Color.White)
 }
 
 /**
