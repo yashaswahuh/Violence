@@ -22,12 +22,17 @@ object ViolenceChromeColors {
     const val TINT_ACCENT_MIX = 0.12f
     const val TINT_ALPHA = 0.45f
 
-    fun tint(accent: Int, alpha: Float = TINT_ALPHA): Int {
+    /** The light version's glass tint: a near-white with the same 12 percent of the accent, a little more opaque. */
+    const val TINT_BASE_LIGHT: Int = 0xFFF6F6FA.toInt()
+    const val TINT_ALPHA_LIGHT = 0.58f
+
+    fun tint(accent: Int, alpha: Float = TINT_ALPHA, light: Boolean = false): Int {
+        val base = if (light) TINT_BASE_LIGHT else TINT_BASE
         val mixed = AccentMath.argb(
             255,
-            mix(AccentMath.red(TINT_BASE), AccentMath.red(accent)),
-            mix(AccentMath.green(TINT_BASE), AccentMath.green(accent)),
-            mix(AccentMath.blue(TINT_BASE), AccentMath.blue(accent)),
+            mix(AccentMath.red(base), AccentMath.red(accent)),
+            mix(AccentMath.green(base), AccentMath.green(accent)),
+            mix(AccentMath.blue(base), AccentMath.blue(accent)),
         )
         return AccentMath.withAlpha(mixed, alpha)
     }
@@ -41,8 +46,14 @@ fun violenceGlassTint(): Color? {
     if (!LocalViolenceStyle.current.enabled) return null
     val accent = LocalViolenceAccent.current.accent
     val solid = LocalViolenceStyle.current.reduceTransparency
-    return remember(accent, solid) {
-        Color(ViolenceChromeColors.tint(accent, if (solid) ViolenceGlassColors.SOLID_TINT_ALPHA else ViolenceChromeColors.TINT_ALPHA))
+    val light = LocalViolenceLight.current
+    return remember(accent, solid, light) {
+        val alpha = when {
+            solid -> ViolenceGlassColors.SOLID_TINT_ALPHA
+            light -> ViolenceChromeColors.TINT_ALPHA_LIGHT
+            else -> ViolenceChromeColors.TINT_ALPHA
+        }
+        Color(ViolenceChromeColors.tint(accent, alpha, light))
     }
 }
 
@@ -55,9 +66,16 @@ fun violenceGlassTint(): Color? {
 fun Modifier.violenceGlassEdge(shape: Shape, width: Dp, color: Color): Modifier {
     if (!LocalViolenceStyle.current.enabled) return border(width, color, shape)
     val tokens = LocalViolenceAccent.current
-    val brush = remember(tokens.accent, tokens.neutral) {
-        val bottom = if (tokens.neutral) Color.White.copy(alpha = 0.14f) else Color(tokens.accent).copy(alpha = 0.14f)
-        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.22f), bottom))
+    val light = LocalViolenceLight.current
+    val brush = remember(tokens.accent, tokens.neutral, light) {
+        if (light) {
+            // On the light page a dark hairline reads; a white one would vanish.
+            val bottom = if (tokens.neutral) Color.Black.copy(alpha = 0.08f) else Color(tokens.accent).copy(alpha = 0.22f)
+            Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.10f), bottom))
+        } else {
+            val bottom = if (tokens.neutral) Color.White.copy(alpha = 0.14f) else Color(tokens.accent).copy(alpha = 0.14f)
+            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.22f), bottom))
+        }
     }
     return border(0.75.dp, brush, shape)
 }

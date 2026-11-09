@@ -194,6 +194,18 @@ object BackgroundGeometry {
         return AccentMath.argb(255, r.toInt().coerceIn(0, 255), g.toInt().coerceIn(0, 255), b.toInt().coerceIn(0, 255))
     }
 
+    /** The light version's base: the light page colour tinted 5 percent toward the glow colour. */
+    fun baseColorLight(glowArgb: Int): Int {
+        fun mix(page: Int, glow: Int) = (page + (glow - page) * 0.05f).toInt().coerceIn(0, 255)
+        val page = AccentMath.LIGHT_BACKGROUND
+        return AccentMath.argb(
+            255,
+            mix(AccentMath.red(page), AccentMath.red(glowArgb)),
+            mix(AccentMath.green(page), AccentMath.green(glowArgb)),
+            mix(AccentMath.blue(page), AccentMath.blue(glowArgb)),
+        )
+    }
+
     /** Black tinted 4 percent toward the glow colour (STYLE_SPEC.md section 2). */
     fun baseColor(glowArgb: Int): Int = AccentMath.argb(
         255,

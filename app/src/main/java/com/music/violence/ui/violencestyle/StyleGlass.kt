@@ -73,12 +73,18 @@ object ViolenceGlassColors {
     const val PANEL_BASE: Int = 0xFF121214.toInt()
     const val PANEL_ACCENT_MIX = 0.08f
 
-    fun panelTint(accent: Int): Int = AccentMath.argb(
-        255,
-        (AccentMath.red(PANEL_BASE) + (AccentMath.red(accent) - AccentMath.red(PANEL_BASE)) * PANEL_ACCENT_MIX).toInt(),
-        (AccentMath.green(PANEL_BASE) + (AccentMath.green(accent) - AccentMath.green(PANEL_BASE)) * PANEL_ACCENT_MIX).toInt(),
-        (AccentMath.blue(PANEL_BASE) + (AccentMath.blue(accent) - AccentMath.blue(PANEL_BASE)) * PANEL_ACCENT_MIX).toInt(),
-    )
+    /** The light version's panel tint: `#F3F3F8` with the same 8 percent of the accent. */
+    const val PANEL_BASE_LIGHT: Int = 0xFFF3F3F8.toInt()
+
+    fun panelTint(accent: Int, light: Boolean = false): Int {
+        val base = if (light) PANEL_BASE_LIGHT else PANEL_BASE
+        return AccentMath.argb(
+            255,
+            (AccentMath.red(base) + (AccentMath.red(accent) - AccentMath.red(base)) * PANEL_ACCENT_MIX).toInt(),
+            (AccentMath.green(base) + (AccentMath.green(accent) - AccentMath.green(base)) * PANEL_ACCENT_MIX).toInt(),
+            (AccentMath.blue(base) + (AccentMath.blue(accent) - AccentMath.blue(base)) * PANEL_ACCENT_MIX).toInt(),
+        )
+    }
 
     /** Peak alpha of the glow above an album or playlist page: 0.30 at Medium, 0.19 to 0.40 across the intensities. */
     fun detailGlowAlpha(intensity: StyleIntensity): Float = 0.30f * glowStrength(intensity)
@@ -205,7 +211,8 @@ fun Modifier.violenceTabSemantics(selected: Boolean): Modifier {
 fun violencePanelTint(): Color? {
     if (!LocalViolenceStyle.current.enabled) return null
     val accent = LocalViolenceAccent.current.accent
-    return remember(accent) { Color(ViolenceGlassColors.panelTint(accent)) }
+    val light = LocalViolenceLight.current
+    return remember(accent, light) { Color(ViolenceGlassColors.panelTint(accent, light)) }
 }
 
 /** True while the style is on and transparency is reduced: panels use their near-solid alpha. */
@@ -259,5 +266,6 @@ fun violenceGroupFill(): Color? {
     if (!style.enabled) return null
     val accent = LocalViolenceAccent.current.accent
     val alpha = ViolenceGlassColors.groupFillAlpha(style.reduceTransparency)
-    return remember(accent, alpha) { Color(AccentMath.withAlpha(ViolenceGlassColors.panelTint(accent), alpha)) }
+    val light = LocalViolenceLight.current
+    return remember(accent, alpha, light) { Color(AccentMath.withAlpha(ViolenceGlassColors.panelTint(accent, light), alpha)) }
 }

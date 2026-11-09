@@ -30,13 +30,13 @@ import java.security.MessageDigest
 
 /**
  * Violence is sideloaded, so there is nothing to push an update notice on its own. This reads one
- * small JSON file from a free static host (`UPDATE_INFO_URL`, see fork-docs/RELEASE_GUIDE.md) at
+ * small JSON file from a free static host (`UPDATE_INFO_URL`) at
  * most once a day, compares its `versionCode` with the running build, and, when it is newer, offers
  * the APK: downloaded into the app cache, checked against the file's SHA-256, and handed to the
  * system package installer, so the whole round trip stays inside the app.
  *
- * With no `UPDATE_INFO_URL` in the build (the default) the checker does nothing at all and there is
- * no network call. Nothing points at the original author's repository.
+ * With no `UPDATE_INFO_URL` in the build (the default) the checker reads the GitHub Releases of
+ * [GITHUB_REPO], this fork's own repository. Nothing points at the original author's repository.
  *
  * The file, `update.json`:
  * ```

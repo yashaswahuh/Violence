@@ -606,51 +606,74 @@ private fun ColumnScope.Leaderboard(
     val context = LocalContext.current
     val lead = rows.firstOrNull() ?: return
     val shape = if (circular) CircleShape else RoundedCornerShape(10.dp)
+    // On a tall phone the number one is a large cover with its name under it, and the list's rows are
+    // roomier, so the card is filled rather than a small row at the top and four at the bottom with
+    // nothing between. A short phone keeps the compact layout, which already uses all of its height.
+    val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp
+    val tall = screenHeight >= 780
+    val heroSize = if (tall) (screenHeight * 0.23f).dp.coerceIn(150.dp, 210.dp) else 116.dp
+    val rowArt = if (tall) 48.dp else 36.dp
+    val rowGap = if (tall) 10.dp else 6.dp
     Headline(headline)
     Spacer(Modifier.height(18.dp))
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Cover(lead.artworkUrl, lead.title, 116.dp, shape, HEADER_ART_PX, elevated = true)
-        Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
+    // Whatever room is left is shared between above the number one and below it.
+    if (tall) Spacer(Modifier.weight(0.45f))
+    val facts: @Composable () -> Unit = {
+        lead.subtitle?.let {
             Text(
-                text = lead.title,
-                style = MaterialTheme.typography.headlineMedium,
-                fontSize = 26.sp,
-                lineHeight = 30.sp,
-                fontWeight = FontWeight.W800,
-                color = Color.White,
-                maxLines = 3,
+                text = it,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.7f),
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            lead.subtitle?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "${formatListening(context, lead.ms)} · " + context.resources.getQuantityString(
+                R.plurals.replay_play_count,
+                lead.plays,
+                grouped(lead.plays.toLong()),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.55f),
+        )
+    }
+    val leadName: @Composable () -> Unit = {
+        Text(
+            text = lead.title,
+            style = MaterialTheme.typography.headlineMedium,
+            fontSize = if (tall) 32.sp else 26.sp,
+            lineHeight = if (tall) 36.sp else 30.sp,
+            fontWeight = FontWeight.W800,
+            color = Color.White,
+            maxLines = if (tall) 2 else 3,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    if (tall) {
+        Cover(lead.artworkUrl, lead.title, heroSize, shape, HEADER_ART_PX, elevated = true)
+        Spacer(Modifier.height(16.dp))
+        leadName()
+        facts()
+    } else {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Cover(lead.artworkUrl, lead.title, heroSize, shape, HEADER_ART_PX, elevated = true)
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                leadName()
+                facts()
             }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "${formatListening(context, lead.ms)} · " + context.resources.getQuantityString(
-                    R.plurals.replay_play_count,
-                    lead.plays,
-                    grouped(lead.plays.toLong()),
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.55f),
-            )
         }
     }
-    Spacer(Modifier.weight(1f))
+    Spacer(Modifier.weight(if (tall) 0.55f else 1f))
     rows.drop(1).forEach { row ->
         Row(
-            Modifier.fillMaxWidth().padding(vertical = 6.dp),
+            Modifier.fillMaxWidth().padding(vertical = rowGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             RankBadge(row.rank, AccentRed)
-            Cover(row.artworkUrl, row.title, 36.dp, shape, ROW_ART_PX)
+            Cover(row.artworkUrl, row.title, rowArt, shape, ROW_ART_PX)
             Spacer(Modifier.width(12.dp))
             Text(
                 text = row.title,

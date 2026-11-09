@@ -148,13 +148,6 @@ object ViolenceStyleSettings {
     private fun put(key: String, value: String) {
         prefs?.edit()?.putString(key, value)?.apply()
     }
-
-    /**
-     * The theme override for dark-only handling: while the style is on the app resolves to its dark
-     * theme (owner decision: a light version comes later). Null while off, so the caller's own
-     * theme choice is used unchanged.
-     */
-    fun forceDark(styleEnabled: Boolean): Boolean? = if (styleEnabled) true else null
 }
 
 /** Startup hooks for safe mode. Called from MainActivity (two lines). */

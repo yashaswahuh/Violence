@@ -5,7 +5,7 @@
 -->
 <resources>
     <string name="vs_title">Violence Style (experimental)</string>
-    <string name="vs_description">An experimental skin: new fonts, a glowing background and tinted glass. With this off the app looks exactly as it does today. While it is on, the app uses the dark theme.</string>
+    <string name="vs_description">An experimental skin: new fonts, a glowing background and tinted glass. With this off the app looks exactly as it does today. While it is on, it follows your theme: a dark look in dark mode and a light look in light mode.</string>
     <string name="vs_background">Background</string>
     <string name="vs_bg_aurora">Aurora</string>
     <string name="vs_bg_corner">Corner</string>
@@ -48,7 +48,7 @@
     <string name="vs_automix_cover">Automix cover animation</string>
     <string name="vs_automix_cover_subtitle">When Automix blends one song into the next, the cover art glides from the old song to the new one in time with the mix. Experimental.</string>
     <string name="vs_lyrics_quote">Quote design for lyrics and Replay cards (Test 1.0)</string>
-    <string name="vs_lyrics_quote_subtitle">Adds a second look to shared lyrics and your Replay: a serif pull-quote on the cover\'s own colour, with the cover as a vinyl record. The Replay version writes you a quote and a listening personality. Experimental.</string>
+    <string name="vs_lyrics_quote_subtitle">Adds a second look to shared lyrics and your Replay: a serif pull-quote on the cover\'s own colour, with the cover as a framed print. The Replay version writes you a quote and a listening personality. Experimental.</string>
     <string name="lyrics_card_use_quote">Quote design</string>
     <string name="lyrics_card_use_classic">Classic design</string>
     <string name="vs_glass_recommended_title">Liquid Glass recommended</string>
