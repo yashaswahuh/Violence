@@ -1,0 +1,54 @@
+{
+  "versionCode": 35,
+  "versionName": "v0.9.5",
+  "changelog": [
+    "Pre-release v0.9.5"
+  ],
+  "apks": {
+    "phone-v8a": {
+      "url": "violence-v0.9.5-android-arm64-v8a.apk",
+      "sha256": "a78d8beea781c60246a57dcfeb22d45e027f75146d36e6280ded11242054ed1f",
+      "bytes": 89893845
+    },
+    "android-v8a": {
+      "url": "violence-v0.9.5-android-arm64-v8a.apk",
+      "sha256": "a78d8beea781c60246a57dcfeb22d45e027f75146d36e6280ded11242054ed1f",
+      "bytes": 89893845
+    },
+    "phone-v7a": {
+      "url": "violence-v0.9.5-android-armeabi-v7a.apk",
+      "sha256": "7e334269339852d01713d038c2bd4f2850dbdc868ce8ae861deda3f20f6e5402",
+      "bytes": 79554815
+    },
+    "android-v7a": {
+      "url": "violence-v0.9.5-android-armeabi-v7a.apk",
+      "sha256": "7e334269339852d01713d038c2bd4f2850dbdc868ce8ae861deda3f20f6e5402",
+      "bytes": 79554815
+    },
+    "phone-x86_64": {
+      "url": "violence-v0.9.5-android-x86_64.apk",
+      "sha256": "ef25f660a3ea1ac58fe3aaf43d381345da2f5866c4ef0988552ab971c2c7b74f",
+      "bytes": 96540200
+    },
+    "android-x86_64": {
+      "url": "violence-v0.9.5-android-x86_64.apk",
+      "sha256": "ef25f660a3ea1ac58fe3aaf43d381345da2f5866c4ef0988552ab971c2c7b74f",
+      "bytes": 96540200
+    },
+    "tv-v8a": {
+      "url": "violence-v0.9.5-tv-arm64-v8a.apk",
+      "sha256": "d6cce7c2b546502036cadc29ed89f3fcbc368ae512e13a0643a590f3bb1275ad",
+      "bytes": 79940696
+    },
+    "tv-v7a": {
+      "url": "violence-v0.9.5-tv-armeabi-v7a.apk",
+      "sha256": "efdf746db18c6f273d194c2da9d7623ccf383de61ea1b94738b5b76756ef9a08",
+      "bytes": 70420862
+    },
+    "tv-x86_64": {
+      "url": "violence-v0.9.5-tv-x86_64.apk",
+      "sha256": "2fb567f2d759fb4f2391f33a01fbe8f828bb6cc1d48c2fc117200f24e1e90e43",
+      "bytes": 86177457
+    }
+  }
+}
