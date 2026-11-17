@@ -380,6 +380,8 @@ jobs:
     if: always() && !cancelled() && needs.prepare.result == 'success'
     runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-latest' }}
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           pattern: "*-artifacts"
@@ -398,6 +400,7 @@ jobs:
           name: Violence ${{ needs.prepare.outputs.tag_version }}
           prerelease: true
           draft: false
+          body_path: RELEASE_NOTES.md
           files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
