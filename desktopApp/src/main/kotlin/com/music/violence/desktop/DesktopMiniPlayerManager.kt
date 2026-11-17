@@ -30,6 +30,7 @@ internal object DesktopMiniPlayerManager {
     val positionMs = MutableStateFlow(0L)
     val durationMs = MutableStateFlow(0L)
     val activeLyricText = MutableStateFlow<String?>(null)
+    val isLiked = MutableStateFlow(false)
 
     @Volatile
     private var cachedLyricLines: List<LyricLine> = emptyList()
@@ -38,6 +39,7 @@ internal object DesktopMiniPlayerManager {
     var onNext: () -> Unit = {}
     var onPrevious: () -> Unit = {}
     var onSeek: (Long) -> Unit = {}
+    var onToggleLike: () -> Unit = {}
 
     fun toggle() = setMiniMode(!_isMiniMode.value)
 
@@ -162,8 +164,15 @@ internal object DesktopMiniPlayerManager {
         }.getOrDefault(java.awt.Point(x, y))
     }
 
-    fun savePosition(x: Int, y: Int) {
-        persistence.saveInt(KEY_POS_X, x)
-        persistence.saveInt(KEY_POS_Y, y)
+    fun savePosition(x: Int, y: Int, width: Int = 360, height: Int = 90) {
+        val clamped = clampToScreen(x, y, width, height)
+        persistence.saveInt(KEY_POS_X, clamped.x)
+        persistence.saveInt(KEY_POS_Y, clamped.y)
+    }
+
+    fun resetPosition(width: Int = 360, height: Int = 90): java.awt.Point {
+        persistence.saveInt(KEY_POS_X, Int.MIN_VALUE)
+        persistence.saveInt(KEY_POS_Y, Int.MIN_VALUE)
+        return getInitialPosition(width, height)
     }
 }

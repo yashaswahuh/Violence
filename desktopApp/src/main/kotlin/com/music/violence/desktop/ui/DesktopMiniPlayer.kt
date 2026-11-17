@@ -27,16 +27,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -67,34 +67,37 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
+import com.music.violence.desktop.DesktopAppearanceSettings
 import com.music.violence.desktop.DesktopArtwork
 import com.music.violence.desktop.DesktopMiniPlayerManager
 import com.music.violence.desktop.DesktopPlatform
-import com.music.violence.desktop.platform.WindowsNativeDrag
+import com.music.violence.ui.icons.ViolenceIcons
 import org.jetbrains.compose.resources.painterResource
 import violence.desktopapp.generated.resources.Res
 import violence.desktopapp.generated.resources.logo
+import violence.desktopapp.generated.resources.logo_mark
 import java.awt.MouseInfo
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 
-private val ViolenceRimRed = Color(0xFFE22D4B)
-private val ViolenceGradientStart = Color(0xFFFF3B5C)
-private val ViolenceGradientEnd = Color(0xFFE22D4B)
+private val DefaultViolenceCrimson = Color(0xFFE22D4B)
+private val DefaultViolenceBright = Color(0xFFFF3B5C)
 private val MiniSecondary = Color(0xFF9E9EA8)
 
 /**
  * Undecorated, always-on-top floating PiP Mini-Player Window.
- * Size: 340.dp × 96.dp.
+ * Size: 360.dp × 92.dp.
  */
 @Composable
 fun DesktopMiniPlayerWindow(
     onClose: () -> Unit,
 ) {
     val initialPos = remember {
-        DesktopMiniPlayerManager.getInitialPosition(width = 340, height = 96)
+        DesktopMiniPlayerManager.getInitialPosition(width = 360, height = 92)
     }
     val state = rememberWindowState(
-        width = 340.dp,
-        height = 96.dp,
+        width = 360.dp,
+        height = 92.dp,
         position = WindowPosition(initialPos.x.dp, initialPos.y.dp),
     )
 
@@ -111,14 +114,34 @@ fun DesktopMiniPlayerWindow(
     ) {
         val composeWindow = window
 
-        LaunchedEffect(composeWindow) {
-            val clamped = DesktopMiniPlayerManager.clampToScreen(
+        // Continuous bounds clamping listener: prevents any system or move event from sliding the
+        // window outside the usable display area.
+        DisposableEffect(composeWindow) {
+            val componentListener = object : ComponentAdapter() {
+                override fun componentMoved(e: ComponentEvent) {
+                    val loc = composeWindow.location
+                    val w = composeWindow.width.takeIf { it > 0 } ?: 360
+                    val h = composeWindow.height.takeIf { it > 0 } ?: 92
+                    val clamped = DesktopMiniPlayerManager.clampToScreen(loc.x, loc.y, w, h)
+                    if (clamped.x != loc.x || clamped.y != loc.y) {
+                        composeWindow.setLocation(clamped.x, clamped.y)
+                    }
+                }
+            }
+            composeWindow.addComponentListener(componentListener)
+
+            // Clamp immediately on launch
+            val initialClamped = DesktopMiniPlayerManager.clampToScreen(
                 composeWindow.location.x,
                 composeWindow.location.y,
-                composeWindow.width.takeIf { it > 0 } ?: 340,
-                composeWindow.height.takeIf { it > 0 } ?: 96,
+                composeWindow.width.takeIf { it > 0 } ?: 360,
+                composeWindow.height.takeIf { it > 0 } ?: 92,
             )
-            composeWindow.setLocation(clamped.x, clamped.y)
+            composeWindow.setLocation(initialClamped.x, initialClamped.y)
+
+            onDispose {
+                composeWindow.removeComponentListener(componentListener)
+            }
         }
 
         Box(
@@ -127,9 +150,23 @@ fun DesktopMiniPlayerWindow(
                 .onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyUp) {
                         val isCommand = if (DesktopPlatform.isMac) event.isMetaPressed else event.isCtrlPressed
-                        if (isCommand && event.key == Key.M) {
-                            DesktopMiniPlayerManager.exitMiniMode()
-                            return@onPreviewKeyEvent true
+                        when {
+                            (isCommand && event.key == Key.M) || event.key == Key.Escape -> {
+                                DesktopMiniPlayerManager.exitMiniMode()
+                                return@onPreviewKeyEvent true
+                            }
+                            event.key == Key.Spacebar || event.key == Key.MediaPlayPause -> {
+                                DesktopMiniPlayerManager.onPlayPause()
+                                return@onPreviewKeyEvent true
+                            }
+                            event.key == Key.MediaNext -> {
+                                DesktopMiniPlayerManager.onNext()
+                                return@onPreviewKeyEvent true
+                            }
+                            event.key == Key.MediaPrevious -> {
+                                DesktopMiniPlayerManager.onPrevious()
+                                return@onPreviewKeyEvent true
+                            }
                         }
                     }
                     false
@@ -168,13 +205,6 @@ private fun Modifier.miniPlayerDrag(composeWindow: ComposeWindow): Modifier =
             lastPressAt = down.uptimeMillis
             lastPressPosition = down.position
 
-            // Native Windows DWM drag (supports Windhawk, Aero Snap, FancyZones natively without feedback loops)
-            if (WindowsNativeDrag.startDrag(composeWindow)) {
-                down.consume()
-                DesktopMiniPlayerManager.savePosition(composeWindow.location.x, composeWindow.location.y)
-                return@awaitEachGesture
-            }
-
             val windowAtStart = composeWindow.location
             val pointerAtStart = MouseInfo.getPointerInfo()?.location ?: return@awaitEachGesture
             var lastClamped = windowAtStart
@@ -188,8 +218,8 @@ private fun Modifier.miniPlayerDrag(composeWindow: ComposeWindow): Modifier =
                 val clamped = DesktopMiniPlayerManager.clampToScreen(
                     rawX,
                     rawY,
-                    composeWindow.width.takeIf { it > 0 } ?: 340,
-                    composeWindow.height.takeIf { it > 0 } ?: 96,
+                    composeWindow.width.takeIf { it > 0 } ?: 360,
+                    composeWindow.height.takeIf { it > 0 } ?: 92,
                     pointer,
                 )
                 lastClamped = clamped
@@ -197,7 +227,12 @@ private fun Modifier.miniPlayerDrag(composeWindow: ComposeWindow): Modifier =
             }
 
             // Save last clamped position on drag release
-            DesktopMiniPlayerManager.savePosition(lastClamped.x, lastClamped.y)
+            DesktopMiniPlayerManager.savePosition(
+                lastClamped.x,
+                lastClamped.y,
+                composeWindow.width.takeIf { it > 0 } ?: 360,
+                composeWindow.height.takeIf { it > 0 } ?: 92,
+            )
         }
     }
 
@@ -212,26 +247,37 @@ fun DesktopMiniPlayerCard(
     val positionMs by DesktopMiniPlayerManager.positionMs.collectAsState()
     val durationMs by DesktopMiniPlayerManager.durationMs.collectAsState()
     val activeLyric by DesktopMiniPlayerManager.activeLyricText.collectAsState()
+    val isLiked by DesktopMiniPlayerManager.isLiked.collectAsState()
+    val style by DesktopAppearanceSettings.styleState.collectAsState()
 
     val progressFraction = remember(positionMs, durationMs) {
         if (durationMs > 0L) (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
     }
     val animatedProgress by animateFloatAsState(targetValue = progressFraction)
 
-    val cardShape = remember { RoundedCornerShape(18.dp) }
-    val rimBrush = remember {
+    val cardShape = remember { RoundedCornerShape(20.dp) }
+
+    // Dynamic accent resolution: uses user-selected custom color / style accent or Violence crimson
+    val accentColor = remember(style.enabled, style.customColor) {
+        if (style.enabled && style.customColor != 0) Color(style.customColor) else DefaultViolenceCrimson
+    }
+    val accentBright = remember(accentColor) {
+        if (accentColor == DefaultViolenceCrimson) DefaultViolenceBright else accentColor
+    }
+
+    val rimBrush = remember(accentColor) {
         Brush.verticalGradient(
             listOf(
-                Color.White.copy(alpha = 0.28f),
-                ViolenceRimRed.copy(alpha = 0.40f),
+                Color.White.copy(alpha = 0.24f),
+                accentColor.copy(alpha = 0.38f),
             ),
         )
     }
     val bgBrush = remember {
         Brush.verticalGradient(
             listOf(
-                Color(0xF517171F),
-                Color(0xF80E0E13),
+                Color(0xF2111117),
+                Color(0xF90A0A0E),
             ),
         )
     }
@@ -243,11 +289,11 @@ fun DesktopMiniPlayerCard(
             .background(bgBrush)
             .border(0.75.dp, rimBrush, cardShape)
             .drawBehind {
-                // Top inner specular highlight sheen
+                // Top inner specular highlight sheen (Violence signature)
                 drawLine(
-                    color = Color.White.copy(alpha = 0.16f),
-                    start = Offset(18.dp.toPx(), 1.dp.toPx()),
-                    end = Offset(size.width - 18.dp.toPx(), 1.dp.toPx()),
+                    color = Color.White.copy(alpha = 0.20f),
+                    start = Offset(20.dp.toPx(), 1.dp.toPx()),
+                    end = Offset(size.width - 20.dp.toPx(), 1.dp.toPx()),
                     strokeWidth = 1.dp.toPx(),
                 )
             },
@@ -255,16 +301,26 @@ fun DesktopMiniPlayerCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 12.dp, end = 12.dp, top = 9.dp, bottom = 12.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Album Thumbnail with Violence glowing rim
+            // Album Thumbnail with Violence glowing rim and radiosity underglow
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(52.dp)
+                    .drawBehind {
+                        if (isPlaying) {
+                            // Soft radiosity glow behind artwork
+                            drawCircle(
+                                color = accentColor.copy(alpha = 0.35f),
+                                radius = 28.dp.toPx(),
+                                center = center,
+                            )
+                        }
+                    }
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF1E1E24))
-                    .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(12.dp)),
+                    .background(Color(0xFF191920))
+                    .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 if (!song?.thumbnailUrl.isNullOrBlank()) {
@@ -274,10 +330,9 @@ fun DesktopMiniPlayerCard(
                         px = 128,
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Rounded.MusicNote,
-                        contentDescription = "No Artwork",
-                        tint = ViolenceRimRed.copy(alpha = 0.85f),
+                    Image(
+                        painter = painterResource(Res.drawable.logo_mark),
+                        contentDescription = "Violence",
                         modifier = Modifier.size(26.dp),
                     )
                 }
@@ -296,7 +351,7 @@ fun DesktopMiniPlayerCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = song?.title?.ifBlank { "Nothing Playing" } ?: "Nothing Playing",
+                        text = song?.title?.ifBlank { "Nothing Playing" } ?: "Violence",
                         color = Color.White,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
@@ -308,6 +363,15 @@ fun DesktopMiniPlayerCard(
                     )
 
                     Spacer(Modifier.width(4.dp))
+
+                    // Heart / Favorite button
+                    MiniIconButton(
+                        icon = if (isLiked) ViolenceIcons.HeartFilled else ViolenceIcons.Heart,
+                        description = if (isLiked) "Remove from liked" else "Like",
+                        tint = if (isLiked) accentBright else MiniSecondary,
+                        onClick = { DesktopMiniPlayerManager.onToggleLike() },
+                        iconSize = 13.dp,
+                    )
 
                     MiniIconButton(
                         icon = Icons.Rounded.OpenInFull,
@@ -334,12 +398,12 @@ fun DesktopMiniPlayerCard(
                             modifier = Modifier
                                 .size(5.dp)
                                 .clip(CircleShape)
-                                .background(ViolenceRimRed),
+                                .background(accentBright),
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             text = activeLyric!!,
-                            color = Color(0xFFFF4D6D),
+                            color = accentBright,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
@@ -348,7 +412,7 @@ fun DesktopMiniPlayerCard(
                         )
                     } else {
                         Text(
-                            text = song?.artist ?: "Violence",
+                            text = song?.artist ?: "Not playing",
                             color = MiniSecondary,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Normal,
@@ -365,7 +429,7 @@ fun DesktopMiniPlayerCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     MiniControlButton(
-                        icon = Icons.Rounded.SkipPrevious,
+                        icon = Icons.Rounded.FastRewind,
                         description = "Previous",
                         onClick = { DesktopMiniPlayerManager.onPrevious() },
                         size = 18.dp,
@@ -373,16 +437,18 @@ fun DesktopMiniPlayerCard(
 
                     Spacer(Modifier.width(6.dp))
 
-                    // Hero Play/Pause button with signature Violence red gradient
+                    // Hero Play/Pause button with signature Violence gradient
                     HeroPlayButton(
                         isPlaying = isPlaying,
+                        accentBright = accentBright,
+                        accentDark = accentColor,
                         onClick = { DesktopMiniPlayerManager.onPlayPause() },
                     )
 
                     Spacer(Modifier.width(6.dp))
 
                     MiniControlButton(
-                        icon = Icons.Rounded.SkipNext,
+                        icon = Icons.Rounded.FastForward,
                         description = "Next",
                         onClick = { DesktopMiniPlayerManager.onNext() },
                         size = 18.dp,
@@ -405,7 +471,7 @@ fun DesktopMiniPlayerCard(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 3.dp)
+                .padding(horizontal = 16.dp, vertical = 2.5.dp)
                 .height(8.dp)
                 .pointerInput(durationMs) {
                     detectTapGestures { offset ->
@@ -420,7 +486,7 @@ fun DesktopMiniPlayerCard(
                     val trackY = size.height - trackHeight
                     // Inset dark track
                     drawRoundRect(
-                        color = Color.White.copy(alpha = 0.10f),
+                        color = Color.White.copy(alpha = 0.12f),
                         topLeft = Offset(0f, trackY),
                         size = Size(size.width, trackHeight),
                         cornerRadius = CornerRadius(trackHeight / 2, trackHeight / 2),
@@ -431,8 +497,8 @@ fun DesktopMiniPlayerCard(
                         drawRoundRect(
                             brush = Brush.horizontalGradient(
                                 listOf(
-                                    Color(0xFFFF3B5C),
-                                    Color(0xFFE22D4B),
+                                    accentBright,
+                                    accentColor,
                                 ),
                             ),
                             topLeft = Offset(0f, trackY),
@@ -454,24 +520,26 @@ fun DesktopMiniPlayerCard(
 @Composable
 private fun HeroPlayButton(
     isPlaying: Boolean,
+    accentBright: Color,
+    accentDark: Color,
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
 
-    val gradient = remember(hovered) {
+    val gradient = remember(hovered, accentBright, accentDark) {
         if (hovered) {
             Brush.linearGradient(
                 listOf(
-                    Color(0xFFFF5270),
-                    Color(0xFFF03555),
+                    accentBright,
+                    accentDark.copy(alpha = 0.90f),
                 ),
             )
         } else {
             Brush.linearGradient(
                 listOf(
-                    Color(0xFFFF3B5C),
-                    Color(0xFFE22D4B),
+                    accentBright.copy(alpha = 0.92f),
+                    accentDark,
                 ),
             )
         }
@@ -501,13 +569,14 @@ private fun MiniIconButton(
     description: String,
     onClick: () -> Unit,
     iconSize: androidx.compose.ui.unit.Dp,
+    tint: Color = MiniSecondary,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
 
     Box(
         modifier = Modifier
-            .size(20.dp)
+            .size(22.dp)
             .clip(CircleShape)
             .background(if (hovered) Color.White.copy(alpha = 0.14f) else Color.Transparent)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
@@ -516,7 +585,7 @@ private fun MiniIconButton(
         Icon(
             imageVector = icon,
             contentDescription = description,
-            tint = if (hovered) Color.White else MiniSecondary,
+            tint = if (hovered && tint == MiniSecondary) Color.White else tint,
             modifier = Modifier.size(iconSize),
         )
     }

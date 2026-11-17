@@ -49,6 +49,11 @@ internal object DesktopAppearanceSettings {
     private val _styleHeadingFont = enumFlag(KEY_STYLE_HEADING_FONT, StyleDefaults.HEADING_FONT, StyleHeadingFont.entries.toTypedArray())
     private val _styleReduceTransparency = flag(KEY_STYLE_REDUCE_TRANSPARENCY, false)
 
+    private val _styleState = MutableStateFlow(buildStyleState())
+
+    /** Master StateFlow emitting the live StyleState snapshot whenever any appearance or style option changes. */
+    val styleState: StateFlow<StyleState> = _styleState
+
     /** Freezes the main player's gradient instead of drifting. */
     val reduceAnimation: StateFlow<Boolean> = _reduceAnimation
 
@@ -98,7 +103,9 @@ internal object DesktopAppearanceSettings {
     fun setStyleReduceTransparency(value: Boolean) = write(KEY_STYLE_REDUCE_TRANSPARENCY, value, _styleReduceTransparency)
 
     /** Builds the current StyleState snapshot. */
-    fun currentStyleState(): StyleState {
+    fun currentStyleState(): StyleState = _styleState.value
+
+    private fun buildStyleState(): StyleState {
         val enabled = _violenceStyleEnabled.value
         return if (!enabled) StyleState.DISABLED else StyleState(
             enabled = true,
@@ -117,19 +124,26 @@ internal object DesktopAppearanceSettings {
         )
     }
 
+    private fun updateStyleState() {
+        _styleState.value = buildStyleState()
+    }
+
     private fun write(key: String, value: Boolean, into: MutableStateFlow<Boolean>) {
         DesktopPersistence().saveBoolean(key, value)
         into.value = value
+        updateStyleState()
     }
 
     private fun <T : Enum<T>> writeEnum(key: String, value: T, into: MutableStateFlow<T>) {
         DesktopPersistence().saveString(key, value.name)
         into.value = value
+        updateStyleState()
     }
 
     private fun writeInt(key: String, value: Int, into: MutableStateFlow<Int>) {
         DesktopPersistence().saveInt(key, value)
         into.value = value
+        updateStyleState()
     }
 
     internal const val KEY_REDUCE_ANIMATION = "reduce_animation"

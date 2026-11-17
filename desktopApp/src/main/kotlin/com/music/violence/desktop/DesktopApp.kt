@@ -2,6 +2,9 @@ package com.music.violence.desktop
 
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.foundation.layout.ColumnScope
 import com.music.violence.desktop.platform.WindowsTaskbarToolbar
 import androidx.compose.foundation.lazy.LazyListState
 import com.music.violence.ui.components.LocalShelfRowChrome
@@ -487,7 +490,8 @@ internal fun desktopColorScheme(styleState: StyleState? = null, tokens: AccentTo
 @Composable
 internal fun desktopTypography(): Typography {
     val enabled by DesktopAppearanceSettings.violenceStyleEnabled.collectAsState()
-    return desktopTypography(enabled)
+    val styleState by DesktopAppearanceSettings.styleState.collectAsState()
+    return desktopTypography(enabled, styleState.headingFont)
 }
 
 private enum class DesktopDestination(val id: String, val label: String) {
@@ -650,6 +654,8 @@ fun ViolenceDesktopApp() {
     var replaySummary by remember { mutableStateOf(DesktopListeningStats.summary()) }
     var statsCountedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
     var playlistTarget by remember { mutableStateOf<Song?>(null) }
+    data class DesktopPlaylistActionTarget(val id: String, val title: String, val isLocal: Boolean)
+    var playlistActionTarget by remember { mutableStateOf<DesktopPlaylistActionTarget?>(null) }
     // One busy flag and one message for every playlist edit: only one of them can be in flight,
     // because each is driven by a dialog that is modal.
     var playlistBusy by remember { mutableStateOf(false) }
@@ -1066,6 +1072,26 @@ fun ViolenceDesktopApp() {
     /** Puts a track at the end of what the listener queued — not the end of the queue. */
     fun addToQueue(song: Song) = enqueue(song, next = false)
 
+    /** Queues multiple songs at once. */
+    fun enqueueAllSongs(songs: List<Song>, next: Boolean) {
+        val party = DesktopListenTogether.state.value
+        if (party.controlsLocked) return
+        val validSongs = songs.filterNot { it.isUnresolvedSpotify }
+        if (validSongs.isEmpty()) return
+        val currentSource = currentQueueSource()
+        val radio = liveQueue.current?.radioName
+        val queued = validSongs.map { canonicalSong(it).copy(radioName = radio).withSource(currentSource) }
+        liveQueue = liveQueue.enqueueAll(queued, playNext = next)
+        saveQueue()
+        partySyncHolder[0]?.onLocalIntent()
+        DesktopPlayerHost.showMessage(
+            if (next) "Playing ${queued.size} songs next" else "Added ${queued.size} songs to queue",
+        )
+    }
+
+    fun playNextSongs(songs: List<Song>) = enqueueAllSongs(songs, next = true)
+    fun addToQueueSongs(songs: List<Song>) = enqueueAllSongs(songs, next = false)
+
     /** Starts the station YouTube Music builds around one track. */
     fun startRadio(song: Song) {
         if (partyTrackChangeBlocked()) return
@@ -1475,6 +1501,7 @@ fun ViolenceDesktopApp() {
     fun closePlaylistDialogs() {
         overlays.playlistDialog = false
         playlistTarget = null
+        playlistActionTarget = null
         overlays.rename = false
         overlays.delete = false
         overlays.reorder = false
@@ -1536,6 +1563,89 @@ fun ViolenceDesktopApp() {
                 songs = playlist.songs,
             ),
         )
+    }
+
+    fun playAccountPlaylist(playlist: ShelfItem, shuffle: Boolean) {
+        val open = openedCollection
+        if (open != null && open.browseId == playlist.browseId && open.songs.isNotEmpty()) {
+            playSongs(if (shuffle) open.songs.shuffled() else open.songs, 0, collectionSource(open))
+            return
+        }
+        val targetBrowseId = playlist.browseId ?: return
+        scope.launch {
+            DesktopSearchClient.browse(targetBrowseId).onSuccess { coll ->
+                if (coll.songs.isNotEmpty()) {
+                    playSongs(if (shuffle) coll.songs.shuffled() else coll.songs, 0, collectionSource(coll))
+                }
+            }
+        }
+    }
+
+    fun queueAccountPlaylist(playlist: ShelfItem, playNext: Boolean) {
+        val open = openedCollection
+        if (open != null && open.browseId == playlist.browseId && open.songs.isNotEmpty()) {
+            enqueueAllSongs(open.songs, next = playNext)
+            return
+        }
+        val targetBrowseId = playlist.browseId ?: return
+        scope.launch {
+            DesktopSearchClient.browse(targetBrowseId).onSuccess { coll ->
+                if (coll.songs.isNotEmpty()) {
+                    enqueueAllSongs(coll.songs, next = playNext)
+                }
+            }
+        }
+    }
+
+    fun downloadAccountPlaylist(playlist: ShelfItem) {
+        val open = openedCollection
+        if (open != null && open.browseId == playlist.browseId && open.songs.isNotEmpty()) {
+            downloadAll(open.songs)
+            return
+        }
+        val targetBrowseId = playlist.browseId ?: return
+        scope.launch {
+            DesktopSearchClient.browse(targetBrowseId).onSuccess { coll ->
+                if (coll.songs.isNotEmpty()) {
+                    downloadAll(coll.songs)
+                }
+            }
+        }
+    }
+
+    fun shareAccountPlaylist(playlist: ShelfItem) {
+        val id = playlist.browseId ?: return
+        val url = "https://music.youtube.com/playlist?list=${id.removePrefix("VL")}"
+        DesktopExternalLinks.copy(url)
+        DesktopPlayerHost.showMessage("Link copied")
+    }
+
+    fun playLocalPlaylist(playlist: DesktopPlaylist, shuffle: Boolean) {
+        if (playlist.songs.isNotEmpty()) {
+            playSongs(
+                if (shuffle) playlist.songs.shuffled() else playlist.songs,
+                0,
+                DesktopQueueSource(playlist.title, PlaybackSourceType.BROWSE, playlist.id),
+            )
+        }
+    }
+
+    fun queueLocalPlaylist(playlist: DesktopPlaylist, playNext: Boolean) {
+        enqueueAllSongs(playlist.songs, next = playNext)
+    }
+
+    fun downloadLocalPlaylist(playlist: DesktopPlaylist) {
+        downloadAll(playlist.songs)
+    }
+
+    fun promptRenamePlaylist(id: String, title: String, isLocal: Boolean) {
+        playlistActionTarget = DesktopPlaylistActionTarget(id, title, isLocal)
+        overlays.rename = true
+    }
+
+    fun promptDeletePlaylist(id: String, title: String, isLocal: Boolean) {
+        playlistActionTarget = DesktopPlaylistActionTarget(id, title, isLocal)
+        overlays.delete = true
     }
 
     /**
@@ -1779,12 +1889,17 @@ fun ViolenceDesktopApp() {
         DesktopMiniPlayerManager.onPlayPause = ::togglePlayPauseFromUser
         DesktopMiniPlayerManager.onNext = ::playNext
         DesktopMiniPlayerManager.onPrevious = ::playPrevious
+        DesktopMiniPlayerManager.onToggleLike = { selectedSong?.let(::toggleLike) }
         DesktopMiniPlayerManager.onSeek = { positionMs ->
             if (!DesktopListenTogether.state.value.controlsLocked) {
                 playbackEngine.seekTo(positionMs)
                 partySync.onLocalIntent()
             }
         }
+    }
+
+    LaunchedEffect(selectedSong?.videoId, likedIds) {
+        DesktopMiniPlayerManager.isLiked.value = selectedSong?.videoId in likedIds
     }
 
     LaunchedEffect(Unit) {
@@ -2849,21 +2964,33 @@ fun ViolenceDesktopApp() {
         }
     }
 
-    fun renameOpenPlaylist(title: String) {
-        val collection = openedCollection ?: return
+    fun renameTargetPlaylist(title: String) {
+        val target = playlistActionTarget ?: openedCollection?.let {
+            DesktopPlaylistActionTarget(it.playlistId, it.title, isLocal = false)
+        } ?: return
+        val newTitle = title.trim()
+        if (newTitle.isBlank()) return
         playlistBusy = true
         playlistError = null
+        if (target.isLocal) {
+            playlists = playlists.map { if (it.id == target.id) it.copy(title = newTitle) else it }
+            persistence.savePlaylists(playlists)
+            if (openedCollection?.browseId == target.id) {
+                openedCollection = openedCollection?.copy(title = newTitle)
+            }
+            closePlaylistDialogs()
+            return
+        }
+        val targetPlaylistId = target.id.removePrefix("VL")
         scope.launch {
-            DesktopSearchClient.renamePlaylist(collection.playlistId, title)
+            DesktopSearchClient.renamePlaylist(targetPlaylistId, newTitle)
                 .onSuccess {
-                    // Renamed in place as well as re-fetched: the page that ordered it is still on
-                    // screen showing the old name, and the library reload behind it takes a moment.
                     openedCollection = openedCollection
-                        ?.takeIf { it.browseId == collection.browseId }
-                        ?.copy(title = title)
+                        ?.takeIf { it.browseId == target.id || it.playlistId == target.id }
+                        ?.copy(title = newTitle)
                         ?: openedCollection
                     editPlaylistShelf { items ->
-                        items.map { if (it.browseId == collection.browseId) it.copy(title = title) else it }
+                        items.map { if (it.browseId == target.id) it.copy(title = newTitle) else it }
                     }
                     closePlaylistDialogs()
                     libraryStale = true
@@ -2875,17 +3002,30 @@ fun ViolenceDesktopApp() {
         }
     }
 
-    fun deleteOpenPlaylist() {
-        val collection = openedCollection ?: return
+    fun deleteTargetPlaylist() {
+        val target = playlistActionTarget ?: openedCollection?.let {
+            DesktopPlaylistActionTarget(it.playlistId, it.title, isLocal = false)
+        } ?: return
         playlistBusy = true
         playlistError = null
+        if (target.isLocal) {
+            playlists = playlists.filterNot { it.id == target.id }
+            persistence.savePlaylists(playlists)
+            if (openedCollection?.browseId == target.id) {
+                openedCollection = null
+            }
+            closePlaylistDialogs()
+            return
+        }
+        val targetPlaylistId = target.id.removePrefix("VL")
         scope.launch {
-            DesktopSearchClient.deletePlaylist(collection.playlistId)
+            DesktopSearchClient.deletePlaylist(targetPlaylistId)
                 .onSuccess {
                     closePlaylistDialogs()
-                    // Its page is the one open, and a deleted playlist has nothing left to show.
-                    if (openedCollection?.browseId == collection.browseId) openedCollection = null
-                    editPlaylistShelf { items -> items.filterNot { it.browseId == collection.browseId } }
+                    if (openedCollection?.browseId == target.id || openedCollection?.playlistId == target.id) {
+                        openedCollection = null
+                    }
+                    editPlaylistShelf { items -> items.filterNot { it.browseId == target.id } }
                     libraryStale = true
                 }
                 .onFailure {
@@ -3250,8 +3390,8 @@ fun ViolenceDesktopApp() {
         partySyncHolder[0]?.onLocalIntent()
     }
 
-    val violenceStyleEnabled by DesktopAppearanceSettings.violenceStyleEnabled.collectAsState()
-    val styleState = DesktopAppearanceSettings.currentStyleState()
+    val styleState by DesktopAppearanceSettings.styleState.collectAsState()
+    val violenceStyleEnabled = styleState.enabled
 
     val songArtworkUrl = selectedSong?.thumbnailUrl
     var stableArtworkUrl by remember { mutableStateOf(songArtworkUrl) }
@@ -3308,7 +3448,7 @@ fun ViolenceDesktopApp() {
         val argb = (a shl 24) or (r shl 16) or (g shl 8) or b
         AccentTokens.from(argb)
     }
-    val typography = desktopTypography(violenceStyleEnabled)
+    val typography = desktopTypography(violenceStyleEnabled, styleState.headingFont)
     val sharedStyle = remember(violenceStyleEnabled, tokens, styleState, typography) {
         if (!violenceStyleEnabled) null else {
             ViolenceSharedStyle(
@@ -3528,6 +3668,17 @@ fun ViolenceDesktopApp() {
                         onOpenAccountPlaylist = { openShelfItem(it, PLAYLISTS_SHELF) },
                         onOpenLocalPlaylist = ::openPlaylist,
                         onOpenSettings = ::openSettings,
+                        onPlayAccountPlaylist = ::playAccountPlaylist,
+                        onQueueAccountPlaylist = ::queueAccountPlaylist,
+                        onDownloadAccountPlaylist = ::downloadAccountPlaylist,
+                        onShareAccountPlaylist = ::shareAccountPlaylist,
+                        onRenameAccountPlaylist = { playlist -> playlist.browseId?.let { promptRenamePlaylist(it, playlist.title, false) } },
+                        onDeleteAccountPlaylist = { playlist -> playlist.browseId?.let { promptDeletePlaylist(it, playlist.title, false) } },
+                        onPlayLocalPlaylist = ::playLocalPlaylist,
+                        onQueueLocalPlaylist = ::queueLocalPlaylist,
+                        onDownloadLocalPlaylist = ::downloadLocalPlaylist,
+                        onRenameLocalPlaylist = { playlist -> promptRenamePlaylist(playlist.id, playlist.title, true) },
+                        onDeleteLocalPlaylist = { playlist -> promptDeletePlaylist(playlist.id, playlist.title, true) },
                         focusSearch = searchFocusRequested,
                         onSearchFocused = { searchFocusRequested = false },
                     )
@@ -3904,20 +4055,22 @@ fun ViolenceDesktopApp() {
                         )
                     }
                     if (overlays.rename) {
+                        val currentTitle = playlistActionTarget?.title ?: openedCollection?.title.orEmpty()
                         DesktopRenamePlaylistDialog(
-                            current = openedCollection?.title.orEmpty(),
+                            current = currentTitle,
                             busy = playlistBusy,
                             error = playlistError,
-                            onRename = ::renameOpenPlaylist,
+                            onRename = ::renameTargetPlaylist,
                             onDismiss = ::closePlaylistDialogs,
                         )
                     }
                     if (overlays.delete) {
+                        val currentTitle = playlistActionTarget?.title ?: openedCollection?.title.orEmpty()
                         DesktopDeletePlaylistDialog(
-                            title = openedCollection?.title.orEmpty(),
+                            title = currentTitle,
                             busy = playlistBusy,
                             error = playlistError,
-                            onDelete = ::deleteOpenPlaylist,
+                            onDelete = ::deleteTargetPlaylist,
                             onDismiss = ::closePlaylistDialogs,
                         )
                     }
@@ -5093,6 +5246,17 @@ private fun DesktopSidebar(
     onOpenAccountPlaylist: (ShelfItem) -> Unit,
     onOpenLocalPlaylist: (DesktopPlaylist) -> Unit,
     onOpenSettings: () -> Unit,
+    onPlayAccountPlaylist: (ShelfItem, Boolean) -> Unit = { _, _ -> },
+    onQueueAccountPlaylist: (ShelfItem, Boolean) -> Unit = { _, _ -> },
+    onDownloadAccountPlaylist: (ShelfItem) -> Unit = {},
+    onShareAccountPlaylist: (ShelfItem) -> Unit = {},
+    onRenameAccountPlaylist: (ShelfItem) -> Unit = {},
+    onDeleteAccountPlaylist: (ShelfItem) -> Unit = {},
+    onPlayLocalPlaylist: (DesktopPlaylist, Boolean) -> Unit = { _, _ -> },
+    onQueueLocalPlaylist: (DesktopPlaylist, Boolean) -> Unit = { _, _ -> },
+    onDownloadLocalPlaylist: (DesktopPlaylist) -> Unit = {},
+    onRenameLocalPlaylist: (DesktopPlaylist) -> Unit = {},
+    onDeleteLocalPlaylist: (DesktopPlaylist) -> Unit = {},
     /** Search was picked: the sidebar's box is the page's field, so it takes the focus. */
     focusSearch: Boolean,
     onSearchFocused: () -> Unit,
@@ -5210,22 +5374,164 @@ private fun DesktopSidebar(
             ) {
                 items(visibleAccount, key = { "account:${it.browseId}" }) { playlist ->
                     DesktopSidebarItem(
-                        Icons.AutoMirrored.Rounded.PlaylistPlay,
-                        playlist.title,
-                        openedCollectionId == playlist.browseId,
+                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        label = playlist.title,
+                        selected = openedCollectionId == playlist.browseId,
                         onClick = { onOpenAccountPlaylist(playlist) },
                         onHide = {
                             DesktopSidebarVisibility.hide("account:${playlist.browseId}", playlist.title)
+                        },
+                        menuContent = { onDismiss ->
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["play", "Play"]) },
+                                leadingIcon = { Icon(Icons.Rounded.PlayArrow, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onPlayAccountPlaylist(playlist, false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["shuffle", "Shuffle"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Shuffle, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onPlayAccountPlaylist(playlist, true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["play_next", "Play next"]) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onQueueAccountPlaylist(playlist, true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["add_to_queue", "Add to queue"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Queue, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onQueueAccountPlaylist(playlist, false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["download_all", "Download all"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Download, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onDownloadAccountPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["share", "Copy link"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Share, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onShareAccountPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["rename", "Rename"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onRenameAccountPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["delete", "Delete"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Delete, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onDeleteAccountPlaylist(playlist)
+                                },
+                            )
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
+                                leadingIcon = { Icon(Icons.Rounded.VisibilityOff, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    DesktopSidebarVisibility.hide("account:${playlist.browseId}", playlist.title)
+                                },
+                            )
                         },
                     )
                 }
                 items(visibleLocal, key = { "local:${it.id}" }) { playlist ->
                     DesktopSidebarItem(
-                        Icons.AutoMirrored.Rounded.PlaylistPlay,
-                        playlist.title,
-                        openedCollectionId == playlist.id,
+                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        label = playlist.title,
+                        selected = openedCollectionId == playlist.id,
                         onClick = { onOpenLocalPlaylist(playlist) },
                         onHide = { DesktopSidebarVisibility.hide("local:${playlist.id}", playlist.title) },
+                        menuContent = { onDismiss ->
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["play", "Play"]) },
+                                leadingIcon = { Icon(Icons.Rounded.PlayArrow, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onPlayLocalPlaylist(playlist, false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["shuffle", "Shuffle"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Shuffle, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onPlayLocalPlaylist(playlist, true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["play_next", "Play next"]) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onQueueLocalPlaylist(playlist, true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["add_to_queue", "Add to queue"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Queue, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onQueueLocalPlaylist(playlist, false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["download_all", "Download all"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Download, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onDownloadLocalPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["rename", "Rename"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onRenameLocalPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["delete", "Delete"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Delete, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onDeleteLocalPlaylist(playlist)
+                                },
+                            )
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
+                                leadingIcon = { Icon(Icons.Rounded.VisibilityOff, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    DesktopSidebarVisibility.hide("local:${playlist.id}", playlist.title)
+                                },
+                            )
+                        },
                     )
                 }
                 if (visibleAccount.isEmpty() && visibleLocal.isEmpty()) {
@@ -5266,6 +5572,7 @@ private fun DesktopSidebarItem(
     selected: Boolean,
     /** When set, a right-click offers to hide the row — see [DesktopSidebarVisibility]. */
     onHide: (() -> Unit)? = null,
+    menuContent: (@Composable ColumnScope.(onDismiss: () -> Unit) -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val style = LocalViolenceStyle.current
@@ -5278,6 +5585,7 @@ private fun DesktopSidebarItem(
     val iconTint = if (selected) {
         if (style.enabled) Color(tokens.accent) else DesktopAccent
     } else DesktopSecondary
+    val hasMenu = menuContent != null || onHide != null
     Box {
         Row(
             Modifier
@@ -5288,8 +5596,8 @@ private fun DesktopSidebarItem(
                 .then(if (selected && style.enabled) Modifier.violenceCapsuleGlowFor(style, tokens) else Modifier)
                 .clickable(onClick = onClick)
                 .then(
-                    if (onHide == null) Modifier
-                    else Modifier.pointerInput(onHide) {
+                    if (!hasMenu) Modifier
+                    else Modifier.pointerInput(Unit) {
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -5314,15 +5622,19 @@ private fun DesktopSidebarItem(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (onHide != null) {
+        if (hasMenu) {
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
-                    onClick = {
-                        menuOpen = false
-                        onHide()
-                    },
-                )
+                if (menuContent != null) {
+                    menuContent { menuOpen = false }
+                } else if (onHide != null) {
+                    DropdownMenuItem(
+                        text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
+                        onClick = {
+                            menuOpen = false
+                            onHide()
+                        },
+                    )
+                }
             }
         }
     }
