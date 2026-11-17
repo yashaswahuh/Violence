@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ServerClock } from './clock';
-import { appLink, cleanCode, extractCode, inviteLink, parseInvite } from './invite';
+import { appLink, cleanCode, extractCode, extractInvite, inviteLink, parseInvite } from './invite';
 import { EMPTY_PLAYBACK, type PartyMember, type PartyQueue, type PartyTrack } from './models';
 import { autoplaySupplierId, detectSingleMove, partyQueueIndexOf, partyUpcomingAfter } from './queueReading';
 
@@ -181,5 +181,15 @@ describe('extractCode', () => {
     expect(extractCode('')).toBeNull();
     expect(extractCode('AB12')).toBeNull();
     expect(extractCode('ABC1234')).toBeNull();
+  });
+
+  it('extractInvite preserves server URL from links and extracts plain codes', () => {
+    expect(extractInvite('https://yashaswahuh.is-a.dev/Violence/party/K7M2PQ?server=https%3A%2F%2Fjam.example.com')).toEqual({
+      code: 'K7M2PQ',
+      serverUrl: 'https://jam.example.com',
+    });
+    expect(extractInvite('K7M2PQ')).toEqual({ code: 'K7M2PQ', serverUrl: null });
+    expect(extractInvite('k7-m2-pq')).toEqual({ code: 'K7M2PQ', serverUrl: null });
+    expect(extractInvite('')).toBeNull();
   });
 });

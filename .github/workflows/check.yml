@@ -3,7 +3,27 @@ name: Check
 on:
   push:
     branches: [violence-nk, violence-main, main]
+    paths:
+      - 'app/**'
+      - 'tv/**'
+      - 'shared/**'
+      - 'sharedUi/**'
+      - 'native/**'
+      - 'gradle/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle.properties'
   pull_request:
+    paths:
+      - 'app/**'
+      - 'tv/**'
+      - 'shared/**'
+      - 'sharedUi/**'
+      - 'native/**'
+      - 'gradle/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle.properties'
   public:
   workflow_dispatch:
 
