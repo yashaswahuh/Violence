@@ -1,5 +1,10 @@
 package com.music.violence.desktop
 
+import com.sun.jna.WString
+import com.sun.jna.platform.win32.Advapi32Util
+import com.sun.jna.platform.win32.Shell32
+import com.sun.jna.platform.win32.WinReg
+import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -42,10 +47,40 @@ internal object DesktopWindowsMedia {
             .isSuccess
     }
 
+    /**
+     * Initializes the explicit AppUserModelID ("Violence") for this process and registers
+     * fallback registry keys in HKCU so Windows SMTC, the volume flyout, and Action Center
+     * identify the application as "Violence" with its icon rather than "Unknown app".
+     */
+    fun initAppUserModelId() {
+        if (!DesktopPlatform.isWindows) return
+        runCatching {
+            Shell32.INSTANCE.SetCurrentProcessExplicitAppUserModelID(WString("Violence"))
+        }.onFailure {
+            DesktopTrackLog.log("Failed to set explicit AppUserModelID: ${it.message}")
+        }
+        runCatching {
+            val userClassesKey = "Software\\Classes\\AppUserModelId\\Violence"
+            Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, userClassesKey)
+            Advapi32Util.registrySetStringValue(WinReg.HKEY_CURRENT_USER, userClassesKey, "DisplayName", "Violence")
+            val exeCandidate = System.getProperty("compose.application.resources.dir")?.let {
+                File(it).parentFile?.resolve("Violence.exe")?.takeIf { f -> f.exists() }?.absolutePath
+            } ?: System.getProperty("java.home")?.let {
+                File(it).resolve("bin").resolve("Violence.exe").takeIf { f -> f.exists() }?.absolutePath
+            }
+            if (!exeCandidate.isNullOrBlank()) {
+                Advapi32Util.registrySetStringValue(WinReg.HKEY_CURRENT_USER, userClassesKey, "IconUri", "$exeCandidate,0")
+            }
+        }.onFailure {
+            DesktopTrackLog.log("Failed to register AppUserModelID registry keys: ${it.message}")
+        }
+    }
+
     fun start(controller: Controller) {
         // Held whether or not the library is there, so what a button does is
         // decided in one place and can be checked without Windows.
         this.controller = controller
+        initAppUserModelId()
         if (!available || !started.compareAndSet(false, true)) return
         if (!nativeStart()) {
             started.set(false)

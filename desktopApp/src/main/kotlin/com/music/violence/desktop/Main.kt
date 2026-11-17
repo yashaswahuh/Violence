@@ -30,6 +30,7 @@ import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
 
 fun main(args: Array<String> = emptyArray()) {
+    DesktopWindowsMedia.initAppUserModelId()
     if (args.isNotEmpty()) {
         val linkCandidate = args[0].trim()
         if (linkCandidate.startsWith("violence://") || linkCandidate.startsWith("http://") || linkCandidate.startsWith("https://")) {

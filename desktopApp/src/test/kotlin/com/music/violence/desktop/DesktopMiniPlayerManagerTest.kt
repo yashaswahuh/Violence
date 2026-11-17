@@ -14,6 +14,7 @@ class DesktopMiniPlayerManagerTest {
     @AfterTest
     fun tearDown() {
         DesktopMiniPlayerManager.exitMiniMode()
+        DesktopMiniPlayerManager.setLyricsExpanded(false)
         DesktopMiniPlayerManager.updatePlayback(null, false, 0L, 0L)
         DesktopMiniPlayerManager.setLyrics(emptyList(), 0L)
     }
@@ -110,6 +111,49 @@ class DesktopMiniPlayerManagerTest {
             assertTrue(clamped.x >= 0)
             assertTrue(clamped.y >= 0)
         }
+    }
+
+    @Test
+    fun testLyricsExpandedToggleAndState() {
+        DesktopMiniPlayerManager.setLyricsExpanded(false)
+        assertFalse(DesktopMiniPlayerManager.isLyricsExpanded.value)
+
+        DesktopMiniPlayerManager.toggleLyricsExpanded()
+        assertTrue(DesktopMiniPlayerManager.isLyricsExpanded.value)
+
+        DesktopMiniPlayerManager.toggleLyricsExpanded()
+        assertFalse(DesktopMiniPlayerManager.isLyricsExpanded.value)
+
+        DesktopMiniPlayerManager.setLyricsExpanded(true)
+        assertTrue(DesktopMiniPlayerManager.isLyricsExpanded.value)
+
+        // Exiting mini mode resets lyrics expanded mode
+        DesktopMiniPlayerManager.setMiniMode(false)
+        assertFalse(DesktopMiniPlayerManager.isLyricsExpanded.value)
+    }
+
+    @Test
+    fun testActiveLyricIndexAndLines() {
+        val lines = listOf(
+            LyricLine(timeMs = 1_000L, text = "Line one"),
+            LyricLine(timeMs = 4_000L, text = "Line two"),
+            LyricLine(timeMs = 8_000L, text = "Line three"),
+        )
+        DesktopMiniPlayerManager.setLyrics(lines, 0L)
+        assertEquals(3, DesktopMiniPlayerManager.lyricLines.value.size)
+        assertEquals(-1, DesktopMiniPlayerManager.activeLyricIndex.value)
+
+        DesktopMiniPlayerManager.updatePlayback(null, true, pos = 1_500L, dur = 20_000L)
+        assertEquals(0, DesktopMiniPlayerManager.activeLyricIndex.value)
+        assertEquals("Line one", DesktopMiniPlayerManager.activeLyricText.value)
+
+        DesktopMiniPlayerManager.updatePlayback(null, true, pos = 5_000L, dur = 20_000L)
+        assertEquals(1, DesktopMiniPlayerManager.activeLyricIndex.value)
+        assertEquals("Line two", DesktopMiniPlayerManager.activeLyricText.value)
+
+        DesktopMiniPlayerManager.updatePlayback(null, true, pos = 12_000L, dur = 20_000L)
+        assertEquals(2, DesktopMiniPlayerManager.activeLyricIndex.value)
+        assertEquals("Line three", DesktopMiniPlayerManager.activeLyricText.value)
     }
 }
 

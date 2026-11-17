@@ -283,6 +283,8 @@ void apply(const Update& update) {
     ISystemMediaTransportControlsDisplayUpdater* updater = nullptr;
     if (SUCCEEDED(g_controls->get_DisplayUpdater(&updater)) && updater != nullptr) {
         updater->put_Type(MediaPlaybackType_Music);
+        const Hstring app_id(L"Violence");
+        updater->put_AppMediaId(app_id.get());
         IMusicDisplayProperties* music = nullptr;
         if (SUCCEEDED(updater->get_MusicProperties(&music)) && music != nullptr) {
             const Hstring title(update.title);
@@ -349,6 +351,15 @@ bool create_controls() {
 }
 
 void pump() {
+    typedef HRESULT (WINAPI *pfnSetCurrentProcessExplicitAppUserModelID)(PCWSTR);
+    HMODULE shell = GetModuleHandleW(L"shell32.dll");
+    if (!shell) shell = LoadLibraryW(L"shell32.dll");
+    if (shell) {
+        auto pfn = reinterpret_cast<pfnSetCurrentProcessExplicitAppUserModelID>(
+            GetProcAddress(shell, "SetCurrentProcessExplicitAppUserModelID"));
+        if (pfn) pfn(L"Violence");
+    }
+
     const HRESULT apartment = RoInitialize(RO_INIT_SINGLETHREADED);
 
     WNDCLASSEXW description{};
