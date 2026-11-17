@@ -227,7 +227,8 @@ jobs:
         run: |
           tag="${{ needs.prepare.outputs.tag_version }}"
           mkdir -p dist
-          desktopApp/packaging/appimage.sh \
+          chmod +x desktopApp/packaging/appimage.sh
+          bash desktopApp/packaging/appimage.sh \
             desktopApp/build/compose/binaries/main/app/Violence \
             dist/violence-${tag}-linux-x86_64.AppImage \
             appimagetool
