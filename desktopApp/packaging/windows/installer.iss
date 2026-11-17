@@ -2,7 +2,7 @@
 #ifndef MyAppVersion
 #define MyAppVersion "0.9.5"
 #endif
-#define MyAppPublisher "Violence"
+#define MyAppPublisher "Yashaswa Chhatbar"
 #define MyAppExeName "Violence.exe"
 
 [Setup]

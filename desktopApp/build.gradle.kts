@@ -555,8 +555,8 @@ compose.desktop {
             packageName = "Violence"
             packageVersion = nativePackageVersion
             description = if (targetOs == "windows") "Violence" else "Aesthetic YouTube Music client"
-            vendor = "Violence contributors"
-            copyright = "Copyright © 2026 Violence contributors"
+            vendor = "Yashaswa Chhatbar"
+            copyright = "Copyright © 2026 Yashaswa Chhatbar"
 
             modules(
                 "java.base",
