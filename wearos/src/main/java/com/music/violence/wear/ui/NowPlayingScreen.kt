@@ -5,7 +5,6 @@ import androidx.annotation.DrawableRes
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -15,10 +14,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,7 +25,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -70,16 +68,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.wear.compose.foundation.requestFocusOnHierarchyActive
 import androidx.wear.compose.material3.FilledTonalIconButton
 import androidx.wear.compose.material3.Icon
-import androidx.wear.compose.material3.IconButton
 import androidx.wear.compose.material3.IconButtonDefaults
-import androidx.wear.compose.material3.IconToggleButton
-import androidx.wear.compose.material3.IconToggleButtonDefaults
 import androidx.wear.compose.material3.Text
 import com.music.violence.wear.R
 import com.music.violence.wear.data.NowPlaying
@@ -93,24 +89,27 @@ class PlayerActions(
     val togglePlay: () -> Unit,
     val next: () -> Unit,
     val previous: () -> Unit,
-    val toggleLike: () -> Unit,
     val volume: (Int) -> Unit,
     val seekTo: (Long) -> Unit,
-    val openQueue: () -> Unit,
+    val openOutput: () -> Unit,
     val openMore: () -> Unit,
 )
 
 /**
- * The phone's player, on a round screen, in Material 3 Expressive.
+ * The phone's player, on a round screen, in the Pixel Watch's Material 3
+ * Expressive layout.
  *
- * The cover is the *scene*: a blurred, saturated copy fills the screen behind
- * everything ([ArtBackdrop]) and the controls take the song's own accent
- * ([accentFor]). Progress is a wave along the bezel ([WavyBezel]) that ripples
- * while the music plays and goes flat when it pauses. The play button is a
- * shape that morphs — a circle when paused, a rounded square when playing — and
- * every press is a spring. Hold it to scrub; the bezel and crown follow.
+ * The cover is the scene: a lightly blurred copy fills the screen behind
+ * everything ([ArtBackdrop]) and every control takes the song's own tones
+ * ([paletteFor]). The play button is a scalloped "cookie" while the music
+ * plays and relaxes into a circle on pause, with a wavy progress ring round it
+ * ([WavyRing]) that ripples while playing and goes flat when paused. Previous
+ * and next are tall pills either side; Output and More sit as glass pills
+ * below, with the crown-volume badge on the Output pill's corner. Hold the play
+ * button to scrub; the crown is the phone's volume.
  *
- * The crown is the phone's volume, as on every watch media app.
+ * Everything is placed from a 384-unit-wide grid scaled to the screen (`u`
+ * below), so it lands the same on a 40 mm and a 47 mm watch.
  */
 @Composable
 fun NowPlayingScreen(
@@ -121,9 +120,9 @@ fun NowPlayingScreen(
 ) {
     val view = LocalView.current
     var rotary by remember { mutableFloatStateOf(0f) }
-    // The playhead, drawn along the bezel. Read only in the draw pass.
+    // The playhead, drawn round the play button. Read only in the draw pass.
     val progress = rememberProgress(np)
-    val accent = remember(np.colors) { accentFor(np.colors) }
+    val palette = remember(np.colors) { paletteFor(np.colors) }
     // Bumped on every crown step; the readout shows while it keeps changing.
     var volumeNudge by remember { mutableIntStateOf(0) }
 
@@ -180,95 +179,118 @@ fun NowPlayingScreen(
                 true
             }
             // The crown goes to whichever screen is on top, so this one takes
-            // focus back whenever Up Next or More is swiped away.
+            // focus back whenever More or Output is swiped away.
             .requestFocusOnHierarchyActive()
             .focusable(),
     ) {
-        val w = maxWidth
-        val h = maxHeight
+        // One grid unit: the screen is 384 of them across.
+        val u = maxWidth / 384f
 
         ArtBackdrop(blur = artworkBlur, colors = np.colors)
-        WavyBezel(
-            progress = progress,
-            scrubMs = scrubMs,
-            durationMs = np.durationMs,
-            playing = np.advancing,
-            color = accent,
+
+        key(np.mediaId) {
+            Text(
+                text = np.title,
+                style = WearType.display.copy(fontSize = (u.value * 27f).sp, shadow = TextShadow),
+                color = Color.White,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = u * 60)
+                    .widthIn(max = u * 290)
+                    // Twice, then rest: a title that scrolls forever is a
+                    // screen that never stops redrawing.
+                    .basicMarquee(iterations = 2, initialDelayMillis = 1_200, repeatDelayMillis = 2_000),
+            )
+        }
+        Text(
+            text = np.artist,
+            style = WearType.subtitle.copy(fontSize = (u.value * 18f).sp, shadow = TextShadow),
+            color = Color.White.copy(alpha = 0.82f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = u * 94)
+                .widthIn(max = u * 250),
         )
 
-        Column(
-            Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // Previous and next: tall tonal pills, either side.
+        TransportPill(
+            icon = R.drawable.ic_previous,
+            description = stringResource(R.string.previous),
+            palette = palette,
+            iconSize = u * 42,
+            corner = u * 34,
+            onClick = actions.previous,
+            modifier = Modifier.offset(x = u * 22, y = u * 144).size(width = u * 74, height = u * 96),
+        )
+        TransportPill(
+            icon = R.drawable.ic_next,
+            description = stringResource(R.string.next),
+            palette = palette,
+            iconSize = u * 42,
+            corner = u * 34,
+            enabled = np.hasNext,
+            onClick = actions.next,
+            modifier = Modifier.offset(x = u * 288, y = u * 144).size(width = u * 74, height = u * 96),
+        )
+
+        PlayButton(
+            np = np,
+            palette = palette,
+            progress = progress,
+            scrubMs = scrubMs,
+            onToggle = actions.togglePlay,
+            onScrubStart = {
+                scrubHeld = true
+                scrubMs = np.positionAt(System.currentTimeMillis())
+                scrubActivity++
+            },
+            onScrubBy = ::scrubBy,
+            onScrubRelease = {
+                scrubHeld = false
+                scrubActivity++
+            },
+            onCommit = ::commitScrub,
+            modifier = Modifier.offset(x = u * 128, y = u * 128).size(u * 128),
+        )
+
+        // Output and More: glass pills below the button.
+        BottomPill(
+            icon = R.drawable.ic_headphones,
+            description = stringResource(R.string.output),
+            palette = palette,
+            iconSize = u * 42,
+            onClick = actions.openOutput,
+            modifier = Modifier.offset(x = u * 80, y = u * 284).size(width = u * 116, height = u * 52),
+        )
+        BottomPill(
+            icon = R.drawable.ic_more,
+            description = stringResource(R.string.more),
+            palette = palette,
+            iconSize = u * 38,
+            onClick = actions.openMore,
+            modifier = Modifier.offset(x = u * 208, y = u * 284).size(width = u * 96, height = u * 52),
+        )
+        // The crown-volume badge: on the Output pill's top corner and nowhere else.
+        Box(
+            Modifier
+                .offset(x = u * 163, y = u * 271)
+                .size(u * 30)
+                .border(u * 2.5f, Color.Black.copy(alpha = 0.5f), CircleShape)
+                .clip(CircleShape)
+                .background(palette.accent),
+            contentAlignment = Alignment.Center,
         ) {
-            // Below the curved clock.
-            Spacer(Modifier.height(h * 0.125f))
-            key(np.mediaId) {
-                Text(
-                    text = np.title,
-                    style = WearType.display.copy(shadow = TextShadow),
-                    color = Color.White,
-                    maxLines = 1,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .widthIn(max = w * 0.74f)
-                        // Twice, then rest: a title that scrolls forever is a
-                        // screen that never stops redrawing.
-                        .basicMarquee(iterations = 2, initialDelayMillis = 1_200, repeatDelayMillis = 2_000),
-                )
-            }
-            Text(
-                text = np.artist,
-                style = WearType.subtitle.copy(shadow = TextShadow),
-                color = Color.White.copy(alpha = 0.78f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(max = w * 0.66f),
+            Icon(
+                painter = painterResource(R.drawable.ic_volume),
+                contentDescription = stringResource(R.string.volume),
+                tint = palette.onAccent,
+                modifier = Modifier.size(u * 16),
             )
-
-            Spacer(Modifier.height(h * 0.025f))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TransportButton(
-                    icon = R.drawable.ic_previous,
-                    description = stringResource(R.string.previous),
-                    size = w * 0.19f,
-                    iconSize = w * 0.10f,
-                    onClick = actions.previous,
-                )
-                Spacer(Modifier.width(w * 0.01f))
-                PlayButton(
-                    np = np,
-                    size = h * 0.375f,
-                    accent = accent,
-                    scrubMs = scrubMs,
-                    onToggle = actions.togglePlay,
-                    onScrubStart = {
-                        scrubHeld = true
-                        scrubMs = np.positionAt(System.currentTimeMillis())
-                        scrubActivity++
-                    },
-                    onScrubBy = ::scrubBy,
-                    onScrubRelease = {
-                        scrubHeld = false
-                        scrubActivity++
-                    },
-                    onCommit = ::commitScrub,
-                )
-                Spacer(Modifier.width(w * 0.01f))
-                TransportButton(
-                    icon = R.drawable.ic_next,
-                    description = stringResource(R.string.next),
-                    size = w * 0.19f,
-                    iconSize = w * 0.10f,
-                    enabled = np.hasNext,
-                    onClick = actions.next,
-                )
-            }
-
-            Spacer(Modifier.height(h * 0.025f))
-
-            ActionPill(np = np, buttonSize = w * 0.15f, actions = actions)
         }
 
         VolumeReadout(volume = volume, nudge = volumeNudge, edgeInset = 5.dp)
@@ -278,24 +300,61 @@ fun NowPlayingScreen(
 /** A soft shadow so white text holds on any cover. */
 private val TextShadow = Shadow(color = Color.Black.copy(alpha = 0.55f), offset = Offset(0f, 2f), blurRadius = 8f)
 
-/** Previous / next: a glass tonal button that morphs its corners as it is pressed. */
+/** Previous / next: a tall tonal pill in the song's accent whose corners tighten as it is pressed. */
 @Composable
-private fun TransportButton(
+private fun TransportPill(
     @DrawableRes icon: Int,
     description: String,
-    size: Dp,
+    palette: Palette,
     iconSize: Dp,
+    corner: Dp,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
     FilledTonalIconButton(
         onClick = onClick,
-        modifier = Modifier.size(size),
+        modifier = modifier,
         enabled = enabled,
-        shapes = IconButtonDefaults.animatedShapes(),
+        shapes = IconButtonDefaults.animatedShapes(
+            shape = RoundedCornerShape(corner),
+            pressedShape = RoundedCornerShape(corner * 0.55f),
+        ),
         colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = Glass,
-            contentColor = Color.White,
+            containerColor = palette.accent,
+            contentColor = palette.onAccent,
+            disabledContainerColor = palette.accent.copy(alpha = 0.30f),
+            disabledContentColor = palette.onAccent.copy(alpha = 0.45f),
+        ),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = description,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+/** Output and More: a wide pill of dark glass tinted by the song's hue, with a light glyph. */
+@Composable
+private fun BottomPill(
+    @DrawableRes icon: Int,
+    description: String,
+    palette: Palette,
+    iconSize: Dp,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        modifier = modifier,
+        shapes = IconButtonDefaults.animatedShapes(
+            shape = RoundedCornerShape(50),
+            pressedShape = RoundedCornerShape(30),
+        ),
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = palette.glass,
+            contentColor = palette.text,
         ),
     ) {
         Icon(
@@ -307,68 +366,12 @@ private fun TransportButton(
 }
 
 /**
- * Love, Up Next and More in one glass capsule, the way Material 3 Expressive
- * groups related actions. Love is a toggle: it fills with Ember and its corners
- * morph when it is on.
- */
-@Composable
-private fun ActionPill(np: NowPlaying, buttonSize: Dp, actions: PlayerActions) {
-    Row(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.32f))
-            .padding(horizontal = 4.dp, vertical = 3.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Only where the phone's player shows one: signed in, not a local file.
-        if (np.canLike) {
-            IconToggleButton(
-                checked = np.liked,
-                onCheckedChange = { actions.toggleLike() },
-                modifier = Modifier.size(buttonSize),
-                shapes = IconToggleButtonDefaults.animatedShapes(),
-                colors = IconToggleButtonDefaults.colors(
-                    uncheckedContainerColor = Color.Transparent,
-                    uncheckedContentColor = Color.White,
-                    checkedContainerColor = Ember,
-                    checkedContentColor = Color(0xFF14101F),
-                ),
-            ) {
-                Icon(
-                    painter = painterResource(if (np.liked) R.drawable.ic_heart_filled else R.drawable.ic_heart),
-                    contentDescription = stringResource(if (np.liked) R.string.loved else R.string.love),
-                    modifier = Modifier.size(buttonSize * 0.5f),
-                )
-            }
-        }
-        PillButton(R.drawable.ic_queue, stringResource(R.string.up_next), buttonSize, actions.openQueue)
-        PillButton(R.drawable.ic_more, stringResource(R.string.more), buttonSize, actions.openMore)
-    }
-}
-
-@Composable
-private fun PillButton(@DrawableRes icon: Int, description: String, size: Dp, onClick: () -> Unit) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier.size(size),
-        shapes = IconButtonDefaults.animatedShapes(),
-        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White),
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = description,
-            modifier = Modifier.size(size * 0.5f),
-        )
-    }
-}
-
-/**
- * The play button: solid in the song's accent, with the glyph over it. It
- * morphs between a circle (paused) and a rounded square (playing) on a spring,
- * dips with a bounce when pressed, and while the phone is still finding a
- * stream — play pressed, nothing audible yet — a ring turns round it, so a slow
- * YouTube resolve reads as "working" rather than as a tap that didn't land.
+ * The play button: a cookie in the song's accent with the glyph over it and a
+ * wavy progress ring round it. The cookie relaxes into a circle on pause, on a
+ * spring, and dips with a bounce when pressed. While the phone is still finding
+ * a stream — play pressed, nothing audible yet — the ring turns instead of
+ * showing progress, so a slow YouTube resolve reads as "working" rather than as
+ * a tap that didn't land.
  *
  * Held, it becomes a scrubber, as on Spotify's watch player: drag sideways
  * through the song, or turn the bezel. The centre reads out the target
@@ -377,14 +380,15 @@ private fun PillButton(@DrawableRes icon: Int, description: String, size: Dp, on
 @Composable
 private fun PlayButton(
     np: NowPlaying,
-    size: Dp,
-    accent: Color,
+    palette: Palette,
+    progress: State<Float>,
     scrubMs: Long?,
     onToggle: () -> Unit,
     onScrubStart: () -> Unit,
     onScrubBy: (Long) -> Unit,
     onScrubRelease: () -> Unit,
     onCommit: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
     val density = LocalDensity.current
@@ -405,59 +409,28 @@ private fun PlayButton(
     val scale by animateFloatAsState(
         when {
             scrubbing -> 1.06f
-            pressed -> 0.90f
+            pressed -> 0.92f
             else -> 1f
         },
         spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMedium),
         label = "press",
     )
-    val face = size * 0.86f
-    val corner by animateDpAsState(
-        if (np.playing) face * 0.30f else face / 2f,
+    // Scalloped while playing, a plain circle when paused.
+    val lobeDepth by animateFloatAsState(
+        if (np.playing) 0.075f else 0f,
         spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow),
-        label = "morph",
+        label = "cookie",
     )
-    val glyph = onAccent(accent)
     // Read by the gesture blocks, which live across recompositions.
     val latestScrubbing by rememberUpdatedState(scrubbing)
     val latestDuration by rememberUpdatedState(np.durationMs)
     val toggleLabel = stringResource(if (np.playing) R.string.pause else R.string.play)
 
-    Box(
-        modifier = Modifier
-            .size(size)
+    BoxWithConstraints(
+        modifier = modifier
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-            }
-            .drawBehind {
-                val stroke = (if (scrubMs != null) 4.dp else 2.5.dp).toPx()
-                val inset = stroke / 2f
-                val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
-                val topLeft = Offset(inset, inset)
-                val turning = spin?.value
-                val fraction = if (scrubMs != null && np.durationMs > 0) scrubMs.toFloat() / np.durationMs else 0f
-                if (turning != null) {
-                    drawArc(
-                        color = Color.White,
-                        startAngle = turning - 90f,
-                        sweepAngle = 70f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = arcSize,
-                        style = Stroke(stroke, cap = StrokeCap.Round),
-                    )
-                } else if (fraction * 360f > 0.5f) {
-                    drawArc(
-                        color = Color.White,
-                        startAngle = -90f,
-                        sweepAngle = 360f * fraction.coerceIn(0f, 1f),
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = arcSize,
-                        style = Stroke(stroke, cap = StrokeCap.Round),
-                    )
-                }
             }
             .clip(CircleShape)
             .semantics {
@@ -504,11 +477,36 @@ private fun PlayButton(
             },
         contentAlignment = Alignment.Center,
     ) {
+        val cookie = maxWidth * 0.72f
+        val spinning = spin
+        if (spinning == null) {
+            WavyRing(
+                progress = progress,
+                scrubMs = scrubMs,
+                durationMs = np.durationMs,
+                playing = np.advancing,
+                color = palette.text,
+            )
+        } else {
+            Canvas(Modifier.fillMaxSize()) {
+                val stroke = size.minDimension * (4f / 128f)
+                val inset = size.minDimension * (5f / 128f) + stroke / 2f
+                drawArc(
+                    color = palette.text,
+                    startAngle = spinning.value - 90f,
+                    sweepAngle = 70f,
+                    useCenter = false,
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - inset * 2f, size.height - inset * 2f),
+                    style = Stroke(stroke, cap = StrokeCap.Round),
+                )
+            }
+        }
         Box(
             Modifier
-                .size(face)
-                .clip(RoundedCornerShape(corner))
-                .background(accent),
+                .size(cookie)
+                .clip(CookieShape(lobes = 10, amplitude = lobeDepth))
+                .background(palette.accent),
             contentAlignment = Alignment.Center,
         ) {
             if (scrubMs != null) {
@@ -517,12 +515,12 @@ private fun PlayButton(
                     Text(
                         text = formatTime(scrubMs),
                         style = WearType.title.copy(fontFeatureSettings = "tnum"),
-                        color = glyph,
+                        color = palette.onAccent,
                     )
                     Text(
                         text = formatDelta(scrubMs - from),
                         style = WearType.caption.copy(fontFeatureSettings = "tnum"),
-                        color = glyph.copy(alpha = 0.7f),
+                        color = palette.onAccent.copy(alpha = 0.7f),
                     )
                 }
             } else {
@@ -530,8 +528,8 @@ private fun PlayButton(
                     Icon(
                         painter = painterResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = null,
-                        tint = glyph,
-                        modifier = Modifier.size(face * 0.42f),
+                        tint = palette.onAccent,
+                        modifier = Modifier.size(cookie * 0.48f),
                     )
                 }
             }
