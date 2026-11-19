@@ -49,6 +49,12 @@ interface RemoteSpeaker {
 
     /** Something started the phone's own (paused) player while this is the speaker. */
     fun onLocalStartedPlaying(player: Player)
+
+    /**
+     * True once, right after the phone's player was moved because the receiver finished a track and went on
+     * to the next one by itself (as opposed to a skip). The service books that as a finished listen.
+     */
+    fun takeAdvancedOnItsOwn(): Boolean = false
 }
 
 /**
@@ -82,6 +88,7 @@ class Speakers(private val all: List<RemoteSpeaker>) : RemoteSpeaker {
     override fun onLocalQueueChanged() = all.forEach { it.onLocalQueueChanged() }
     override fun onLocalRepeatChanged(repeatMode: Int) = all.forEach { it.onLocalRepeatChanged(repeatMode) }
     override fun onLocalStartedPlaying(player: Player) = all.forEach { it.onLocalStartedPlaying(player) }
+    override fun takeAdvancedOnItsOwn(): Boolean = all.map { it.takeAdvancedOnItsOwn() }.any { it }
 }
 
 /** A receiver that never is one — the TV build's watch speaker. */

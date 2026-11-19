@@ -870,74 +870,10 @@ class PlaybackService : MediaLibraryService() {
             // The player this fired on, which is by definition the one the
             // session is currently pointed at.
             val exoPlayer = player ?: return
-            // The only number that describes what a listener actually
-            // waits through. Every other timing in this app measures one
-            // leg of getting a track started — a resolve, a client walk, an
-            // extraction — and a leg being fast has repeatedly turned out
-            // to say nothing about whether sound arrived quickly, because
-            // the legs that were measured were the ones running in the
-            // background for tracks nobody was waiting on.
-            if (isPlaying) {
-                trackSelectedAt?.let {
-                    TrackLog.d(
-                        "Violence",
-                        "TIMING first audio: ${SystemClock.elapsedRealtime() - it}ms since track selected",
-                        about = exoPlayer.currentMediaItem?.mediaId,
-                    )
-                    trackSelectedAt = null
-                }
-                // Sound is out of the speaker, so whatever happens to this track
-                // from here is a failure mid-song. Also the one thing that can
-                // say the queue is not simply unplayable end to end.
-                audibleMediaId = exoPlayer.currentMediaItem?.mediaId
-                consecutiveErrorSkips = 0
-            }
-            if (isPlaying) registerCurrentPlay()
-            // Nothing to read ahead for while paused, and a pause is often
-            // the last thing that happens before the process goes idle.
-            if (isPlaying) prefetchAround(exoPlayer) else cancelPrefetch()
-            if (isPlaying) lookForBetterCopy(exoPlayer)
-            savePlaybackState(exoPlayer)
-            // Not strictly needed for the glyph — onPlayWhenReadyChanged has
-            // already flipped that — but this is where hasNext/hasPrevious and
-            // the artwork are known to be settled.
-            publishWidgetState()
-
-            val song = exoPlayer.currentMediaItem?.toSong()
-            val durationMs = exoPlayer.duration.takeIf { it > 0 }
-            scrobbleManager?.onPlayerStateChanged(isPlaying, song, durationMs)
-
-            // The listening record has to be told a pause happened, not merely
-            // stop being told about play: its sampler measures the gap between
-            // ticks, and an unclosed one across a pause is an afternoon on the
-            // lock screen arriving as an afternoon of listening.
-            if (!isPlaying) ListeningRecorder.onStopped()
-
-            // ListenBrainz: "now playing" on play/resume too, not just on
-            // transition — a track started from idle or resumed from pause
-            // otherwise stays silent on the site.
-            if (isPlaying && song != null) {
-                if (listenBrainzSong?.videoId != song.videoId || listenBrainzStartMs == 0L) {
-                    listenBrainzSong = song
-                    listenBrainzStartMs = System.currentTimeMillis()
-                    listenBrainzDurationMs = durationMs
-                } else if (listenBrainzDurationMs == null) {
-                    listenBrainzDurationMs = durationMs
-                }
-                submitListenBrainzPlayingNow(song, exoPlayer.currentPosition, durationMs)
-            }
-
-            // Discord: a pause has to clear the presence, not just stop
-            // refreshing it. Discord's countdown runs on its own clock from the
-            // timestamps it was given, so a presence left up while paused goes
-            // on advancing through a song that has stopped — and finishes it.
-            if (isPlaying) {
-                pushDiscordPresence(exoPlayer)
-                startLyricsTicker()
-            } else {
-                clearDiscordPresence()
-                stopLyricsTicker()
-            }
+            // A receiver is the speaker: this player is held paused, so what it reports is not what is
+            // being heard. The receiver's own changes arrive through [handlePlayingChanged] instead.
+            if (speakers.active) return
+            handlePlayingChanged(exoPlayer, isPlaying)
         }
 
         /**
@@ -1021,7 +957,10 @@ class PlaybackService : MediaLibraryService() {
             onTrackBecameCurrent(
                 mediaItem,
                 previousEnded = reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
-                    reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT,
+                    reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT ||
+                    // The receiver played the last one to the end and went on by itself; the phone's
+                    // player only followed, and reports that as a seek.
+                    speakers.takeAdvancedOnItsOwn(),
                 reason = reason,
             )
             // Prune consumed USER_QUEUE entries when playback enters CONTEXT,
@@ -1886,6 +1825,7 @@ class PlaybackService : MediaLibraryService() {
         deferPlayToParty = { partySync?.shouldDeferPlay() == true },
         lockedTransport = { playing -> partySync?.onLockedTransport(playing) == true },
         cast = speakers,
+        onRemoteIsPlaying = { playing -> this@PlaybackService.player?.let { handlePlayingChanged(it, playing) } },
     ) { lastPublishedSubtitle }
 
     /**
@@ -3601,6 +3541,99 @@ class PlaybackService : MediaLibraryService() {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
+    /**
+     * Everything the service books when sound starts or stops: the first-audio timing, history, scrobbles,
+     * ListenBrainz, the listening record and Discord.
+     *
+     * Reached from two places, because there are two things that can be playing. The phone's own player
+     * reports through [Player.Listener.onIsPlayingChanged]; a Cast receiver (or the watch) that is the
+     * speaker reports through the session player, and the phone's own player, held paused, never says
+     * anything. Before this was shared, a song played on a receiver was never scrobbled, never reached
+     * Recents and was missing from the listening record, since all of that waited on a player that was
+     * silent the whole time.
+     */
+    private fun handlePlayingChanged(exoPlayer: ExoPlayer, isPlaying: Boolean) {
+        // The only number that describes what a listener actually
+        // waits through. Every other timing in this app measures one
+        // leg of getting a track started — a resolve, a client walk, an
+        // extraction — and a leg being fast has repeatedly turned out
+        // to say nothing about whether sound arrived quickly, because
+        // the legs that were measured were the ones running in the
+        // background for tracks nobody was waiting on.
+        if (isPlaying) {
+            trackSelectedAt?.let {
+                TrackLog.d(
+                    "Violence",
+                    "TIMING first audio: ${SystemClock.elapsedRealtime() - it}ms since track selected",
+                    about = exoPlayer.currentMediaItem?.mediaId,
+                )
+                trackSelectedAt = null
+            }
+            // Sound is out of the speaker, so whatever happens to this track
+            // from here is a failure mid-song. Also the one thing that can
+            // say the queue is not simply unplayable end to end.
+            audibleMediaId = exoPlayer.currentMediaItem?.mediaId
+            consecutiveErrorSkips = 0
+        }
+        if (isPlaying) registerCurrentPlay()
+        // Nothing to read ahead for while paused, and a pause is often
+        // the last thing that happens before the process goes idle.
+        // The phone is not the one fetching while a receiver plays, so there is nothing to read ahead for.
+        if (isPlaying && !speakers.active) prefetchAround(exoPlayer) else cancelPrefetch()
+        if (isPlaying && !speakers.active) lookForBetterCopy(exoPlayer)
+        savePlaybackState(exoPlayer)
+        // Not strictly needed for the glyph — onPlayWhenReadyChanged has
+        // already flipped that — but this is where hasNext/hasPrevious and
+        // the artwork are known to be settled.
+        publishWidgetState()
+
+        val song = exoPlayer.currentMediaItem?.toSong()
+        val durationMs = durationNow(exoPlayer).takeIf { it > 0 }
+        scrobbleManager?.onPlayerStateChanged(isPlaying, song, durationMs)
+
+        // The listening record has to be told a pause happened, not merely
+        // stop being told about play: its sampler measures the gap between
+        // ticks, and an unclosed one across a pause is an afternoon on the
+        // lock screen arriving as an afternoon of listening.
+        if (!isPlaying) ListeningRecorder.onStopped()
+
+        // ListenBrainz: "now playing" on play/resume too, not just on
+        // transition — a track started from idle or resumed from pause
+        // otherwise stays silent on the site.
+        if (isPlaying && song != null) {
+            if (listenBrainzSong?.videoId != song.videoId || listenBrainzStartMs == 0L) {
+                listenBrainzSong = song
+                listenBrainzStartMs = System.currentTimeMillis()
+                listenBrainzDurationMs = durationMs
+            } else if (listenBrainzDurationMs == null) {
+                listenBrainzDurationMs = durationMs
+            }
+            submitListenBrainzPlayingNow(song, positionNow(exoPlayer), durationMs)
+        }
+
+        // Discord: a pause has to clear the presence, not just stop
+        // refreshing it. Discord's countdown runs on its own clock from the
+        // timestamps it was given, so a presence left up while paused goes
+        // on advancing through a song that has stopped — and finishes it.
+        if (isPlaying) {
+            pushDiscordPresence(exoPlayer)
+            startLyricsTicker()
+        } else {
+            clearDiscordPresence()
+            stopLyricsTicker()
+        }
+    }
+
+    /** Whether sound is coming out of whatever is the speaker: a receiver's clock while one is, the phone's player otherwise. */
+    private fun audibleNow(p: Player): Boolean = if (speakers.active) speakers.isPlaying else p.isPlaying
+
+    /** Where the playhead is, on the speaker that is playing. */
+    private fun positionNow(p: Player): Long = if (speakers.active) speakers.positionMs else p.currentPosition
+
+    /** How long the playing track is, as the speaker that is playing knows it. */
+    private fun durationNow(p: Player): Long =
+        if (speakers.active && speakers.durationMs != C.TIME_UNSET) speakers.durationMs else p.duration
+
     private fun registerCurrentPlay() {
         player?.currentMediaItem?.mediaId?.let(PlaybackTracker::onPlaying)
     }
@@ -3765,8 +3798,9 @@ class PlaybackService : MediaLibraryService() {
         // never counted.
         ListeningRecorder.onStopped()
         val newSong = mediaItem?.toSong()
-        val durationMs = exoPlayer.duration.takeIf { it > 0 }
-        if (exoPlayer.isPlaying) {
+        val audible = audibleNow(exoPlayer)
+        val durationMs = durationNow(exoPlayer).takeIf { it > 0 }
+        if (audible) {
             scrobbleManager?.onSongStart(newSong, durationMs)
         }
 
@@ -3782,9 +3816,9 @@ class PlaybackService : MediaLibraryService() {
             submitListenBrainzFinished(prevSong, prevStart, listenBrainzDurationMs)
         }
         listenBrainzSong = newSong
-        listenBrainzStartMs = if (exoPlayer.isPlaying) System.currentTimeMillis() else 0L
+        listenBrainzStartMs = if (audible) System.currentTimeMillis() else 0L
         listenBrainzDurationMs = durationMs
-        if (newSong != null && exoPlayer.isPlaying) {
+        if (newSong != null && audible) {
             submitListenBrainzPlayingNow(newSong, 0L, durationMs)
         }
 
@@ -3798,7 +3832,7 @@ class PlaybackService : MediaLibraryService() {
         // Discord: the whole of "live updating" for a card whose bar Discord
         // draws itself. Only a track change needs a new presence; the countdown
         // in between is Discord's own arithmetic.
-        if (exoPlayer.isPlaying) pushDiscordPresence(exoPlayer)
+        if (audible) pushDiscordPresence(exoPlayer)
 
         // "Sleep after this song": the queue moving on by itself is the
         // moment the track the user meant has finished. REPEAT counts
@@ -3807,9 +3841,9 @@ class PlaybackService : MediaLibraryService() {
             exoPlayer.pause()
             SleepTimer.cancel()
         }
-        if (exoPlayer.isPlaying) registerCurrentPlay()
+        if (audible) registerCurrentPlay()
         savePlaybackState(exoPlayer)
-        prefetchAround(exoPlayer)
+        if (!speakers.active) prefetchAround(exoPlayer)
         // The second look belongs to the track it was started for; the
         // queue moving on ends it — unless it is already proving what it
         // found, see [cancelStaleUpgradeJob] — and starts the new
@@ -3824,7 +3858,7 @@ class PlaybackService : MediaLibraryService() {
         // onMediaItemTransition, and [adoptPlayer] calls this handler by hand.
         publishWidgetState()
         loadLyricsForCurrentTrack()
-        if (exoPlayer.isPlaying) startLyricsTicker()
+        if (audible) startLyricsTicker()
     }
 
     /** The background hunt for a better copy of whatever is playing. */
@@ -6501,8 +6535,8 @@ class PlaybackService : MediaLibraryService() {
                 // that happened to be first would go on reporting a player that
                 // has been silent since the last crossfade.
                 val player = this@PlaybackService.player
-                if (player != null && player.isPlaying) {
-                    lastPositionSeconds = player.currentPosition / 1000
+                if (player != null && audibleNow(player)) {
+                    lastPositionSeconds = positionNow(player) / 1000
                     player.currentMediaItem?.mediaId?.let {
                         PlaybackTracker.onProgress(it, lastPositionSeconds)
                     }
@@ -6512,22 +6546,22 @@ class PlaybackService : MediaLibraryService() {
                     // that ticks exactly while audio is coming out, which is what
                     // makes it the right place to count from.
                     player.currentMediaItem?.toSong()?.let {
-                        ListeningRecorder.onSample(it, player.duration)
+                        ListeningRecorder.onSample(it, durationNow(player))
                     }
-                    // Only two primitive preference values. Queue JSON is
-                    // written from onTimelineChanged, never from this loop.
-                    savePlaybackState(player)
-                    // The renderer can settle on its format a moment after the
-                    // track change, which no callback of ours follows up on.
-                    publishNerdStats()
-                    // The backstop for the second look. The callbacks that
-                    // start it fire at moments a track may not be resolved
-                    // yet — the resolve happens on the loader thread when the
-                    // source is opened, which for a track skipped to directly
-                    // is after its own transition has been and gone. Cheap to
-                    // repeat: it returns immediately unless the track is
-                    // pending and nothing is already looking.
-                    lookForBetterCopy(player)
+                    // On a receiver the phone's own player is paused and has nothing of its own to
+                    // measure, save or look for.
+                    if (!speakers.active) {
+                        // Only two primitive preference values. Queue JSON is
+                        // written from onTimelineChanged, never from this loop.
+                        savePlaybackState(player)
+                        // The renderer can settle on its format a moment after the
+                        // track change, which no callback of ours follows up on.
+                        publishNerdStats()
+                        // The backstop for the second look. Cheap to repeat: it
+                        // returns immediately unless the track is pending and
+                        // nothing is already looking.
+                        lookForBetterCopy(player)
+                    }
                 }
                 delay(PROGRESS_SAMPLE_MS)
             }
@@ -7626,8 +7660,8 @@ class PlaybackService : MediaLibraryService() {
         // Read on the main thread, before the push is handed to IO: by the time
         // a coroutine gets to run, the queue may have moved on, and ExoPlayer's
         // state is only legal to read from the thread it was built on.
-        val positionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
-        val durationMs = exoPlayer.duration.takeIf { it > 0 } ?: 0L
+        val positionMs = positionNow(exoPlayer).coerceAtLeast(0L)
+        val durationMs = durationNow(exoPlayer).takeIf { it > 0 } ?: 0L
         // The listener's own rate, not the player's instantaneous one.
         //
         // This is called from the middle of a track change, which is exactly
@@ -7905,7 +7939,7 @@ class PlaybackService : MediaLibraryService() {
         val exoPlayer = player ?: return
         val currentSong = exoPlayer.currentMediaItem?.toSong() ?: return
         val lines = serviceLyrics
-        val pos = crossfade?.loopPositionMs() ?: exoPlayer.currentPosition
+        val pos = crossfade?.loopPositionMs() ?: positionNow(exoPlayer)
         val subtitleText = if (lines != null && lines.isNotEmpty() && AppSettings.syncedLyrics.value) {
             val idx = lines.indexOfLast { it.timeMs <= pos }
             val currentLine = lines.getOrNull(idx)
@@ -7915,7 +7949,9 @@ class PlaybackService : MediaLibraryService() {
                 currentSong.artist
             }
         } else {
-            currentSong.artist
+            // On a receiver, say which one under the title: the lock screen has no other way to.
+            val castName = CastController.state.value.connectedName?.takeIf { speakers.active }
+            if (castName != null) "${currentSong.artist} · $castName" else currentSong.artist
         }
 
         if (subtitleText != lastPublishedSubtitle) {
@@ -7982,6 +8018,8 @@ class PlaybackService : MediaLibraryService() {
         private val lockedTransport: (Boolean) -> Boolean,
         /** Cast or the watch, whichever is the speaker — its clock is what this reports. */
         private val cast: RemoteSpeaker,
+        /** The receiver started or stopped sounding; the service books it like the phone's own. */
+        private val onRemoteIsPlaying: (Boolean) -> Unit,
         private val getSubtitle: () -> String?,
     ) : ForwardingPlayer(player), CastSink {
 
@@ -8029,14 +8067,24 @@ class PlaybackService : MediaLibraryService() {
         /** The DAC's own volume stands in for the device's, unless a receiver is the speaker. */
         private val dac: Boolean get() = !cast.active && DacVolume.level.value != null
 
+        /**
+         * Whether the volume belongs to a device other than this phone: the receiver, or a DAC.
+         *
+         * Media3 only offers volume control to the system (the volume keys, the lock screen, the
+         * notification) when the player lists the volume commands, and ExoPlayer lists them only
+         * for its own stream. Without them a session that says it is remote is read as having a
+         * fixed volume, which is why the volume could be moved in the app and nowhere else.
+         */
+        private val remoteVolume: Boolean get() = cast.active || dac
+
         private fun dacVolume(): Int = ((DacVolume.level.value ?: 0f) * 100).roundToInt()
 
         override fun getAvailableCommands(): Player.Commands =
-            if (dac) super.getAvailableCommands().buildUpon().addAll(*DEVICE_VOLUME_COMMANDS).build()
+            if (remoteVolume) super.getAvailableCommands().buildUpon().addAll(*DEVICE_VOLUME_COMMANDS).build()
             else super.getAvailableCommands()
 
         override fun isCommandAvailable(command: Int): Boolean =
-            (dac && command in DEVICE_VOLUME_COMMANDS) || super.isCommandAvailable(command)
+            (remoteVolume && command in DEVICE_VOLUME_COMMANDS) || super.isCommandAvailable(command)
 
         /**
          * The DAC volume came or went ([routeChanged]), or moved. Told by the
@@ -8225,6 +8273,7 @@ class PlaybackService : MediaLibraryService() {
                 reportedIsPlaying = playing
                 flags.add(Player.EVENT_IS_PLAYING_CHANGED)
                 listeners.forEach { it.onIsPlayingChanged(playing) }
+                onRemoteIsPlaying(playing)
             }
             // Always: a controller extrapolates the position from the last one
             // it was given, and has to be re-anchored whenever the receiver
@@ -8249,9 +8298,17 @@ class PlaybackService : MediaLibraryService() {
         }
 
         override fun onRemoteRouteChanged() {
+            // The volume commands come and go with the receiver, so whoever reads them is told.
+            val commands = availableCommands
+            listeners.forEach { it.onAvailableCommandsChanged(commands) }
             val info = getDeviceInfo()
             listeners.forEach { it.onDeviceInfoChanged(info) }
-            val events = Player.Events(FlagSet.Builder().add(Player.EVENT_DEVICE_INFO_CHANGED).build())
+            val events = Player.Events(
+                FlagSet.Builder()
+                    .add(Player.EVENT_AVAILABLE_COMMANDS_CHANGED)
+                    .add(Player.EVENT_DEVICE_INFO_CHANGED)
+                    .build(),
+            )
             listeners.forEach { it.onEvents(this, events) }
             onRemoteVolumeChanged()
         }

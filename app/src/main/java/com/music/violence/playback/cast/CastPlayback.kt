@@ -26,6 +26,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import kotlin.coroutines.resume
 
@@ -119,6 +120,14 @@ class CastPlayback(
 
     private var lastItemId = MediaQueueItem.INVALID_ITEM_ID
 
+    /** The track [lastItemId] holds, once known; what a later change is told apart from. */
+    private var lastMediaId: String? = null
+
+    /** The receiver moved the phone's player on by itself; read once by [takeAdvancedOnItsOwn]. */
+    private var advancedOnItsOwn = false
+
+    private var resyncJob: Job? = null
+
     /** What the receiver was doing when its session started to end. */
     private var endPositionMs = 0L
     private var endMediaId: String? = null
@@ -128,6 +137,8 @@ class CastPlayback(
         get() = active && !loading && client?.mediaStatus?.playerState == MediaStatus.PLAYER_STATE_PLAYING
 
     override val playWhenReady: Boolean get() = wantsPlay
+
+    override fun takeAdvancedOnItsOwn(): Boolean = advancedOnItsOwn.also { advancedOnItsOwn = false }
 
     /** In [Player]'s own terms, so the session player can answer with it directly. */
     override val playbackState: Int
@@ -206,7 +217,12 @@ class CastPlayback(
 
     private fun beginSession(newSession: CastSession, resumed: Boolean) {
         val remote = newSession.remoteMediaClient ?: return
-        if (active && remote === client) return
+        if (active && remote === client) {
+            // A session coming back (a dropped connection won again): nothing was heard from the
+            // receiver while it was away, so what it is doing now is asked for rather than assumed.
+            remote.requestStatus()
+            return
+        }
         release()
         session = newSession
         client = remote
@@ -222,19 +238,19 @@ class CastPlayback(
             // The phone goes quiet first, whatever happens next, so the two
             // are never both audible.
             player.pause()
-            val onReceiver = remote.mediaStatus?.queueItems
-                ?.firstOrNull { it.itemId == remote.mediaStatus?.currentItemId }
-                ?.mediaId()
+            val onReceiver = remote.mediaStatus?.let { currentMediaId(it) }
             if (resumed && currentId != null && currentId == onReceiver) {
                 // A session that survived the app: the receiver is already on
                 // this track, so it keeps going instead of being restarted.
                 lastItemId = remote.mediaStatus?.currentItemId ?: MediaQueueItem.INVALID_ITEM_ID
+                lastMediaId = onReceiver
                 wantsPlay = remote.mediaStatus?.playerState == MediaStatus.PLAYER_STATE_PLAYING
                 scheduleReconcile()
             } else {
                 load(player.currentMediaItem, position, play = wasPlaying)
             }
         }
+        startResync()
         sink?.onRemoteRouteChanged()
         sink?.onRemotePlaybackChanged()
     }
@@ -242,9 +258,7 @@ class CastPlayback(
     fun onSessionEnding(ending: CastSession) {
         val remote = ending.remoteMediaClient ?: client ?: return
         endPositionMs = remote.approximateStreamPosition.coerceAtLeast(0L)
-        endMediaId = remote.mediaStatus?.let { status ->
-            status.queueItems.firstOrNull { it.itemId == status.currentItemId }?.mediaId()
-        }
+        endMediaId = remote.mediaStatus?.let { currentMediaId(it) }
         endWasPlaying = wantsPlay && remote.mediaStatus?.playerState == MediaStatus.PLAYER_STATE_PLAYING
     }
 
@@ -278,6 +292,9 @@ class CastPlayback(
     fun release() {
         loadJob?.cancel()
         reconcileJob?.cancel()
+        resyncJob?.cancel()
+        resyncJob = null
+        advancedOnItsOwn = false
         client?.unregisterCallback(callback)
         client = null
         session = null
@@ -286,6 +303,22 @@ class CastPlayback(
         wantsPlay = false
         finished = false
         lastItemId = MediaQueueItem.INVALID_ITEM_ID
+        lastMediaId = null
+    }
+
+    /**
+     * The receiver's status is pushed to the phone, and a push that is lost (a Wi-Fi nap, a brief drop, the
+     * app in the background) leaves the app showing paused, or the song before, while the speaker plays on.
+     * Asking again every so often costs one small message and puts that right by itself.
+     */
+    private fun startResync() {
+        resyncJob?.cancel()
+        resyncJob = scope.launch {
+            while (active) {
+                delay(RESYNC_MS)
+                client?.requestStatus()
+            }
+        }
     }
 
     // ---- the phone's player moved -------------------------------------------
@@ -367,16 +400,58 @@ class CastPlayback(
 
         val itemId = status.currentItemId
         if (itemId != MediaQueueItem.INVALID_ITEM_ID && itemId != lastItemId) {
-            lastItemId = itemId
-            val mediaId = status.getQueueItemById(itemId)?.mediaId()
-            val player = localPlayer()
-            if (mediaId != null && player != null && player.currentMediaItem?.mediaId != mediaId) {
-                indexOfMediaId(player, mediaId)?.let { player.seekTo(it, 0L) }
-            }
-            scheduleReconcile()
+            followReceiverTo(status, itemId)
         }
         sink?.onRemotePlaybackChanged()
     }
+
+    /**
+     * The receiver is on another track than the one last seen: moves the phone's player to the same one.
+     *
+     * Which track that is has to be worked out, because the receiver does not always say: a queued item
+     * other than the playing one often arrives without its media, and then it cannot be read back from
+     * the queue. The playing item's own media is used next, and failing that the position in the queue,
+     * which the phone keeps in step with its own. If none of them answers yet nothing is recorded, so the
+     * next status asks again instead of the move being forgotten, which is what left the app on the song
+     * before while the speaker was already playing the next one.
+     */
+    private fun followReceiverTo(status: MediaStatus, itemId: Int) {
+        val player = localPlayer()
+        val fromQueue = status.getQueueItemById(itemId)?.mediaId()
+        val fromInfo = status.mediaInfo?.customData?.optString(KEY_MEDIA_ID)?.ifEmpty { null }
+            ?.takeIf { it != lastMediaId || lastItemId == MediaQueueItem.INVALID_ITEM_ID }
+        val mediaId = fromQueue ?: fromInfo
+        val previousItemId = lastItemId
+        if (player != null) {
+            val outcome = CastFollow.decide(
+                mediaId = mediaId,
+                localMediaIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId },
+                localIndex = player.currentMediaItemIndex.coerceAtLeast(0),
+                previousItemId = if (previousItemId == MediaQueueItem.INVALID_ITEM_ID) CastFollow.NO_ITEM else previousItemId,
+                itemId = itemId,
+                receiverOrder = status.queueItems.map { it.itemId },
+            )
+            when (outcome) {
+                // Not told which track it is yet: leave the change unrecorded so the next status, or the
+                // periodic ask in [startResync], looks at it again. Asking at once would only be answered
+                // by another status, and so on.
+                CastFollow.Outcome.Unknown -> return
+                is CastFollow.Outcome.MoveTo -> {
+                    advancedOnItsOwn = previousItemId != MediaQueueItem.INVALID_ITEM_ID
+                    player.seekTo(outcome.index, 0L)
+                }
+                CastFollow.Outcome.Stay -> Unit
+            }
+        }
+        lastItemId = itemId
+        lastMediaId = mediaId ?: player?.currentMediaItem?.mediaId
+        scheduleReconcile()
+    }
+
+    /** The track the receiver is on, from the item itself or, failing that, the playing item's media. */
+    private fun currentMediaId(status: MediaStatus): String? =
+        status.getQueueItemById(status.currentItemId)?.mediaId()
+            ?: status.mediaInfo?.customData?.optString(KEY_MEDIA_ID)?.ifEmpty { null }
 
     /** The receiver played its last queued track to the end. */
     private fun onReceiverFinished() {
@@ -450,8 +525,17 @@ class CastPlayback(
                 .setAutoplay(play)
                 .setCurrentTime(positionMs)
                 .build()
-            val result = remote.load(request).awaitResult()
+            val result = withTimeoutOrNull(LOAD_TIMEOUT_MS) { remote.load(request).awaitResult() }
             if (generation != loadGeneration || !active) return@run
+            if (result == null) {
+                // No answer, which is not the same as a refusal: the receiver may be playing it. Stop
+                // waiting, and let its own status say what it is doing.
+                Log.w(TAG, "load: no answer from the receiver")
+                loading = false
+                remote.requestStatus()
+                sink?.onRemotePlaybackChanged()
+                return@run
+            }
             if (!result.status.isSuccess) {
                 Log.w(TAG, "load failed: ${result.status.statusCode}")
                 loading = false
@@ -461,6 +545,7 @@ class CastPlayback(
                 return@run
             }
             lastItemId = remote.mediaStatus?.currentItemId ?: lastItemId
+            lastMediaId = item?.mediaId ?: lastMediaId
             loading = false
             sink?.onRemotePlaybackChanged()
             scheduleReconcile()
@@ -558,10 +643,7 @@ class CastPlayback(
 
     private fun MediaQueueItem.mediaId(): String? = media?.customData?.optString(KEY_MEDIA_ID)?.ifEmpty { null }
 
-    private fun remoteMediaId(): String? {
-        val status = client?.mediaStatus ?: return null
-        return status.getQueueItemById(status.currentItemId)?.mediaId()
-    }
+    private fun remoteMediaId(): String? = client?.mediaStatus?.let { currentMediaId(it) }
 
     /**
      * The row of [mediaId] nearest the one playing — a track queued twice is
@@ -603,6 +685,12 @@ class CastPlayback(
         private const val AHEAD = 3
         private const val RECONCILE_DELAY_MS = 300L
         private const val SEEK_GRACE_MS = 1_500L
+
+        /** How often the receiver is asked what it is doing, in case a push of its status was lost. */
+        private const val RESYNC_MS = 10_000L
+
+        /** The longest a load waits for the receiver to answer before it stops waiting. */
+        private const val LOAD_TIMEOUT_MS = 25_000L
 
         /**
          * What a stream is, for a receiver that is told rather than left to
