@@ -77,6 +77,22 @@ export function extractCode(text: string | null | undefined): string | null {
   return candidates.length === 1 ? candidates[0]! : null;
 }
 
+/**
+ * Extracts both party code and server URL from an invite link, or just the code from plain text.
+ */
+export function extractInvite(text: string | null | undefined): { code: string; serverUrl: string | null } | null {
+  const input = text?.trim() ?? '';
+  if (!input) return null;
+  for (const token of input.split(/\s+/)) {
+    if (token.includes('://')) {
+      const parsed = parseInvite(token.replace(/^[<("',.]+|[>)",'.]+$/g, ''));
+      if (parsed) return parsed;
+    }
+  }
+  const code = extractCode(input);
+  return code ? { code, serverUrl: null } : null;
+}
+
 /** The configured base for shared links (VITE_INVITE_BASE_URL), or '' when none. */
 export function inviteBase(raw: string = config.inviteBaseUrl): string {
   const trimmed = raw.trim().replace(/\/+$/, '');

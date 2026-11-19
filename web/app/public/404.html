@@ -5,14 +5,13 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Violence</title>
     <script>
-      // GitHub Pages has no server-side routing: a refresh or a shared link to a page of the app
-      // (/Violence/party/ABC123, /Violence/settings, later /Violence/song/..., /Violence/profile/...)
-      // finds no file and Pages serves THIS page with a 404. It remembers where the visitor was
-      // headed, then loads the app's index.html, which restores that exact path before the router
-      // starts (see the first script in index.html). Every route is handled the same way, so new
-      // routes need nothing here. /party/<CODE> in particular is left alone: it is a page of its own
-      // (the invite landing page), not an alias of /invite/<CODE>.
       (function () {
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          if (window.location.protocol === 'http:' || window.location.hostname === 'www.yashaswahuh.is-a.dev' || window.location.hostname === 'yashaswahuh.github.io') {
+            window.location.replace('https://yashaswahuh.is-a.dev' + window.location.pathname + window.location.search + window.location.hash);
+            return;
+          }
+        }
         var path = window.location.pathname || '/';
         var search = window.location.search || '';
         var hash = window.location.hash || '';

@@ -2,6 +2,9 @@ package com.music.violence.desktop
 
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.foundation.layout.ColumnScope
 import com.music.violence.desktop.platform.WindowsTaskbarToolbar
 import androidx.compose.foundation.lazy.LazyListState
 import com.music.violence.ui.components.LocalShelfRowChrome
@@ -324,6 +327,9 @@ import com.music.violence.data.settings.SmartAnalysis
 import com.music.violence.data.settings.TrackAnalysisState
 import com.music.violence.data.settings.TransitionWindow
 import com.music.violence.ui.icons.ViolenceIcons
+import androidx.compose.foundation.BorderStroke
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
@@ -384,14 +390,45 @@ internal val DesktopAccent = Color.White
 /** Deleting, signing out, and anything that failed — the one place a colour survives, as on Android. */
 internal val DesktopDestructive = Color(0xFFFF453A)
 
-/** A chip the way Android draws a chosen segment: solid white with black on it, or nothing at all. */
+/** Frosted glass chip colors with accent glow when selected. */
 @Composable
 internal fun desktopChipColors() = FilterChipDefaults.filterChipColors(
-    containerColor = Color.Transparent,
+    containerColor = Color.White.copy(alpha = 0.08f),
     labelColor = DesktopSecondary,
-    selectedContainerColor = Color.White,
-    selectedLabelColor = Color.Black,
+    selectedContainerColor = if (LocalViolenceStyle.current.enabled && !LocalViolenceAccent.current.neutral) Color(LocalViolenceAccent.current.accent) else Color.White,
+    selectedLabelColor = if (LocalViolenceStyle.current.enabled && !LocalViolenceAccent.current.neutral) Color.White else Color.Black,
 )
+
+@Composable
+internal fun desktopChipBorder(selected: Boolean): BorderStroke {
+    val style = LocalViolenceStyle.current
+    val tokens = LocalViolenceAccent.current
+    val color = if (selected) {
+        if (style.enabled && !tokens.neutral) Color(tokens.accent).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.40f)
+    } else {
+        Color.White.copy(alpha = 0.12f)
+    }
+    return BorderStroke(0.75.dp, color)
+}
+
+@Composable
+private fun DesktopFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(10.dp),
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = label,
+        modifier = modifier,
+        shape = shape,
+        colors = desktopChipColors(),
+        border = desktopChipBorder(selected),
+    )
+}
 
 /** Android's switch: a white track with a black knob on, a faint wash off. */
 @Composable
@@ -487,7 +524,8 @@ internal fun desktopColorScheme(styleState: StyleState? = null, tokens: AccentTo
 @Composable
 internal fun desktopTypography(): Typography {
     val enabled by DesktopAppearanceSettings.violenceStyleEnabled.collectAsState()
-    return desktopTypography(enabled)
+    val styleState by DesktopAppearanceSettings.styleState.collectAsState()
+    return desktopTypography(enabled, styleState.headingFont)
 }
 
 private enum class DesktopDestination(val id: String, val label: String) {
@@ -650,6 +688,8 @@ fun ViolenceDesktopApp() {
     var replaySummary by remember { mutableStateOf(DesktopListeningStats.summary()) }
     var statsCountedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
     var playlistTarget by remember { mutableStateOf<Song?>(null) }
+    data class DesktopPlaylistActionTarget(val id: String, val title: String, val isLocal: Boolean)
+    var playlistActionTarget by remember { mutableStateOf<DesktopPlaylistActionTarget?>(null) }
     // One busy flag and one message for every playlist edit: only one of them can be in flight,
     // because each is driven by a dialog that is modal.
     var playlistBusy by remember { mutableStateOf(false) }
@@ -1066,6 +1106,26 @@ fun ViolenceDesktopApp() {
     /** Puts a track at the end of what the listener queued — not the end of the queue. */
     fun addToQueue(song: Song) = enqueue(song, next = false)
 
+    /** Queues multiple songs at once. */
+    fun enqueueAllSongs(songs: List<Song>, next: Boolean) {
+        val party = DesktopListenTogether.state.value
+        if (party.controlsLocked) return
+        val validSongs = songs.filterNot { it.isUnresolvedSpotify }
+        if (validSongs.isEmpty()) return
+        val currentSource = currentQueueSource()
+        val radio = liveQueue.current?.radioName
+        val queued = validSongs.map { canonicalSong(it).copy(radioName = radio).withSource(currentSource) }
+        liveQueue = liveQueue.enqueueAll(queued, playNext = next)
+        saveQueue()
+        partySyncHolder[0]?.onLocalIntent()
+        DesktopPlayerHost.showMessage(
+            if (next) "Playing ${queued.size} songs next" else "Added ${queued.size} songs to queue",
+        )
+    }
+
+    fun playNextSongs(songs: List<Song>) = enqueueAllSongs(songs, next = true)
+    fun addToQueueSongs(songs: List<Song>) = enqueueAllSongs(songs, next = false)
+
     /** Starts the station YouTube Music builds around one track. */
     fun startRadio(song: Song) {
         if (partyTrackChangeBlocked()) return
@@ -1475,6 +1535,7 @@ fun ViolenceDesktopApp() {
     fun closePlaylistDialogs() {
         overlays.playlistDialog = false
         playlistTarget = null
+        playlistActionTarget = null
         overlays.rename = false
         overlays.delete = false
         overlays.reorder = false
@@ -1536,6 +1597,89 @@ fun ViolenceDesktopApp() {
                 songs = playlist.songs,
             ),
         )
+    }
+
+    fun playAccountPlaylist(playlist: ShelfItem, shuffle: Boolean) {
+        val open = openedCollection
+        if (open != null && open.browseId == playlist.browseId && open.songs.isNotEmpty()) {
+            playSongs(if (shuffle) open.songs.shuffled() else open.songs, 0, collectionSource(open))
+            return
+        }
+        val targetBrowseId = playlist.browseId ?: return
+        scope.launch {
+            DesktopSearchClient.browse(targetBrowseId).onSuccess { coll ->
+                if (coll.songs.isNotEmpty()) {
+                    playSongs(if (shuffle) coll.songs.shuffled() else coll.songs, 0, collectionSource(coll))
+                }
+            }
+        }
+    }
+
+    fun queueAccountPlaylist(playlist: ShelfItem, playNext: Boolean) {
+        val open = openedCollection
+        if (open != null && open.browseId == playlist.browseId && open.songs.isNotEmpty()) {
+            enqueueAllSongs(open.songs, next = playNext)
+            return
+        }
+        val targetBrowseId = playlist.browseId ?: return
+        scope.launch {
+            DesktopSearchClient.browse(targetBrowseId).onSuccess { coll ->
+                if (coll.songs.isNotEmpty()) {
+                    enqueueAllSongs(coll.songs, next = playNext)
+                }
+            }
+        }
+    }
+
+    fun downloadAccountPlaylist(playlist: ShelfItem) {
+        val open = openedCollection
+        if (open != null && open.browseId == playlist.browseId && open.songs.isNotEmpty()) {
+            downloadAll(open.songs)
+            return
+        }
+        val targetBrowseId = playlist.browseId ?: return
+        scope.launch {
+            DesktopSearchClient.browse(targetBrowseId).onSuccess { coll ->
+                if (coll.songs.isNotEmpty()) {
+                    downloadAll(coll.songs)
+                }
+            }
+        }
+    }
+
+    fun shareAccountPlaylist(playlist: ShelfItem) {
+        val id = playlist.browseId ?: return
+        val url = "https://music.youtube.com/playlist?list=${id.removePrefix("VL")}"
+        DesktopExternalLinks.copy(url)
+        DesktopPlayerHost.showMessage("Link copied")
+    }
+
+    fun playLocalPlaylist(playlist: DesktopPlaylist, shuffle: Boolean) {
+        if (playlist.songs.isNotEmpty()) {
+            playSongs(
+                if (shuffle) playlist.songs.shuffled() else playlist.songs,
+                0,
+                DesktopQueueSource(playlist.title, PlaybackSourceType.BROWSE, playlist.id),
+            )
+        }
+    }
+
+    fun queueLocalPlaylist(playlist: DesktopPlaylist, playNext: Boolean) {
+        enqueueAllSongs(playlist.songs, next = playNext)
+    }
+
+    fun downloadLocalPlaylist(playlist: DesktopPlaylist) {
+        downloadAll(playlist.songs)
+    }
+
+    fun promptRenamePlaylist(id: String, title: String, isLocal: Boolean) {
+        playlistActionTarget = DesktopPlaylistActionTarget(id, title, isLocal)
+        overlays.rename = true
+    }
+
+    fun promptDeletePlaylist(id: String, title: String, isLocal: Boolean) {
+        playlistActionTarget = DesktopPlaylistActionTarget(id, title, isLocal)
+        overlays.delete = true
     }
 
     /**
@@ -1779,12 +1923,17 @@ fun ViolenceDesktopApp() {
         DesktopMiniPlayerManager.onPlayPause = ::togglePlayPauseFromUser
         DesktopMiniPlayerManager.onNext = ::playNext
         DesktopMiniPlayerManager.onPrevious = ::playPrevious
+        DesktopMiniPlayerManager.onToggleLike = { selectedSong?.let(::toggleLike) }
         DesktopMiniPlayerManager.onSeek = { positionMs ->
             if (!DesktopListenTogether.state.value.controlsLocked) {
                 playbackEngine.seekTo(positionMs)
                 partySync.onLocalIntent()
             }
         }
+    }
+
+    LaunchedEffect(selectedSong?.videoId, likedIds) {
+        DesktopMiniPlayerManager.isLiked.value = selectedSong?.videoId in likedIds
     }
 
     LaunchedEffect(Unit) {
@@ -2849,21 +2998,33 @@ fun ViolenceDesktopApp() {
         }
     }
 
-    fun renameOpenPlaylist(title: String) {
-        val collection = openedCollection ?: return
+    fun renameTargetPlaylist(title: String) {
+        val target = playlistActionTarget ?: openedCollection?.let {
+            DesktopPlaylistActionTarget(it.playlistId, it.title, isLocal = false)
+        } ?: return
+        val newTitle = title.trim()
+        if (newTitle.isBlank()) return
         playlistBusy = true
         playlistError = null
+        if (target.isLocal) {
+            playlists = playlists.map { if (it.id == target.id) it.copy(title = newTitle) else it }
+            persistence.savePlaylists(playlists)
+            if (openedCollection?.browseId == target.id) {
+                openedCollection = openedCollection?.copy(title = newTitle)
+            }
+            closePlaylistDialogs()
+            return
+        }
+        val targetPlaylistId = target.id.removePrefix("VL")
         scope.launch {
-            DesktopSearchClient.renamePlaylist(collection.playlistId, title)
+            DesktopSearchClient.renamePlaylist(targetPlaylistId, newTitle)
                 .onSuccess {
-                    // Renamed in place as well as re-fetched: the page that ordered it is still on
-                    // screen showing the old name, and the library reload behind it takes a moment.
                     openedCollection = openedCollection
-                        ?.takeIf { it.browseId == collection.browseId }
-                        ?.copy(title = title)
+                        ?.takeIf { it.browseId == target.id || it.playlistId == target.id }
+                        ?.copy(title = newTitle)
                         ?: openedCollection
                     editPlaylistShelf { items ->
-                        items.map { if (it.browseId == collection.browseId) it.copy(title = title) else it }
+                        items.map { if (it.browseId == target.id) it.copy(title = newTitle) else it }
                     }
                     closePlaylistDialogs()
                     libraryStale = true
@@ -2875,17 +3036,30 @@ fun ViolenceDesktopApp() {
         }
     }
 
-    fun deleteOpenPlaylist() {
-        val collection = openedCollection ?: return
+    fun deleteTargetPlaylist() {
+        val target = playlistActionTarget ?: openedCollection?.let {
+            DesktopPlaylistActionTarget(it.playlistId, it.title, isLocal = false)
+        } ?: return
         playlistBusy = true
         playlistError = null
+        if (target.isLocal) {
+            playlists = playlists.filterNot { it.id == target.id }
+            persistence.savePlaylists(playlists)
+            if (openedCollection?.browseId == target.id) {
+                openedCollection = null
+            }
+            closePlaylistDialogs()
+            return
+        }
+        val targetPlaylistId = target.id.removePrefix("VL")
         scope.launch {
-            DesktopSearchClient.deletePlaylist(collection.playlistId)
+            DesktopSearchClient.deletePlaylist(targetPlaylistId)
                 .onSuccess {
                     closePlaylistDialogs()
-                    // Its page is the one open, and a deleted playlist has nothing left to show.
-                    if (openedCollection?.browseId == collection.browseId) openedCollection = null
-                    editPlaylistShelf { items -> items.filterNot { it.browseId == collection.browseId } }
+                    if (openedCollection?.browseId == target.id || openedCollection?.playlistId == target.id) {
+                        openedCollection = null
+                    }
+                    editPlaylistShelf { items -> items.filterNot { it.browseId == target.id } }
                     libraryStale = true
                 }
                 .onFailure {
@@ -3250,8 +3424,8 @@ fun ViolenceDesktopApp() {
         partySyncHolder[0]?.onLocalIntent()
     }
 
-    val violenceStyleEnabled by DesktopAppearanceSettings.violenceStyleEnabled.collectAsState()
-    val styleState = DesktopAppearanceSettings.currentStyleState()
+    val styleState by DesktopAppearanceSettings.styleState.collectAsState()
+    val violenceStyleEnabled = styleState.enabled
 
     val songArtworkUrl = selectedSong?.thumbnailUrl
     var stableArtworkUrl by remember { mutableStateOf(songArtworkUrl) }
@@ -3308,7 +3482,7 @@ fun ViolenceDesktopApp() {
         val argb = (a shl 24) or (r shl 16) or (g shl 8) or b
         AccentTokens.from(argb)
     }
-    val typography = desktopTypography(violenceStyleEnabled)
+    val typography = desktopTypography(violenceStyleEnabled, styleState.headingFont)
     val sharedStyle = remember(violenceStyleEnabled, tokens, styleState, typography) {
         if (!violenceStyleEnabled) null else {
             ViolenceSharedStyle(
@@ -3473,10 +3647,12 @@ fun ViolenceDesktopApp() {
                         isLoading = playback.isLoading,
                         previousEnabled = liveQueue.hasPrevious ||
                             playback.positionMs > BACK_RESTARTS_AFTER_MS,
-                        progress = if (playback.durationMs > 0L) {
-                            playback.positionMs.toFloat() / playback.durationMs.toFloat()
-                        } else {
-                            0f
+                        progressProvider = {
+                            if (playback.durationMs > 0L) {
+                                playback.positionMs.toFloat() / playback.durationMs.toFloat()
+                            } else {
+                                0f
+                            }
                         },
                         volume = playback.volume,
                         shuffle = shuffle,
@@ -3528,6 +3704,17 @@ fun ViolenceDesktopApp() {
                         onOpenAccountPlaylist = { openShelfItem(it, PLAYLISTS_SHELF) },
                         onOpenLocalPlaylist = ::openPlaylist,
                         onOpenSettings = ::openSettings,
+                        onPlayAccountPlaylist = ::playAccountPlaylist,
+                        onQueueAccountPlaylist = ::queueAccountPlaylist,
+                        onDownloadAccountPlaylist = ::downloadAccountPlaylist,
+                        onShareAccountPlaylist = ::shareAccountPlaylist,
+                        onRenameAccountPlaylist = { playlist -> playlist.browseId?.let { promptRenamePlaylist(it, playlist.title, false) } },
+                        onDeleteAccountPlaylist = { playlist -> playlist.browseId?.let { promptDeletePlaylist(it, playlist.title, false) } },
+                        onPlayLocalPlaylist = ::playLocalPlaylist,
+                        onQueueLocalPlaylist = ::queueLocalPlaylist,
+                        onDownloadLocalPlaylist = ::downloadLocalPlaylist,
+                        onRenameLocalPlaylist = { playlist -> promptRenamePlaylist(playlist.id, playlist.title, true) },
+                        onDeleteLocalPlaylist = { playlist -> promptDeletePlaylist(playlist.id, playlist.title, true) },
                         focusSearch = searchFocusRequested,
                         onSearchFocused = { searchFocusRequested = false },
                     )
@@ -3904,20 +4091,22 @@ fun ViolenceDesktopApp() {
                         )
                     }
                     if (overlays.rename) {
+                        val currentTitle = playlistActionTarget?.title ?: openedCollection?.title.orEmpty()
                         DesktopRenamePlaylistDialog(
-                            current = openedCollection?.title.orEmpty(),
+                            current = currentTitle,
                             busy = playlistBusy,
                             error = playlistError,
-                            onRename = ::renameOpenPlaylist,
+                            onRename = ::renameTargetPlaylist,
                             onDismiss = ::closePlaylistDialogs,
                         )
                     }
                     if (overlays.delete) {
+                        val currentTitle = playlistActionTarget?.title ?: openedCollection?.title.orEmpty()
                         DesktopDeletePlaylistDialog(
-                            title = openedCollection?.title.orEmpty(),
+                            title = currentTitle,
                             busy = playlistBusy,
                             error = playlistError,
-                            onDelete = ::deleteOpenPlaylist,
+                            onDelete = ::deleteTargetPlaylist,
                             onDismiss = ::closePlaylistDialogs,
                         )
                     }
@@ -4738,7 +4927,7 @@ private fun DesktopTopBar(
     isPlaying: Boolean,
     isLoading: Boolean,
     previousEnabled: Boolean,
-    progress: Float,
+    progressProvider: () -> Float,
     volume: Float,
     shuffle: Boolean,
     repeatMode: DesktopRepeatMode,
@@ -4769,7 +4958,6 @@ private fun DesktopTopBar(
     val mixBlend = DesktopPlayerSettings.smartMixBlend.collectAsState()
     val reduceAnimation by DesktopPlayerSettings.reduceAnimation.collectAsState()
     val mixPulse = rememberMixPulse({ mixBlend.value }, enabled = !reduceAnimation, slow = true)
-    val currentProgress by rememberUpdatedState(progress)
 
     // Apple Music uses one calm strip for both player controls and window furniture. The left
     // sidebar owns the traffic lights; the rest is a balanced transport / now-playing / utility
@@ -4887,16 +5075,31 @@ private fun DesktopTopBar(
                         Modifier.weight(1f).padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Surface(
+                        val styleState = LocalViolenceStyle.current
+                        val tokens = LocalViolenceAccent.current
+                        val pillShape = RoundedCornerShape(12.dp)
+                        val pillBg = if (styleState.enabled) {
+                            val alpha = if (styleState.reduceTransparency) 0.88f else 0.44f
+                            Color(ViolenceChromeColors.tint(tokens.accent, alpha))
+                        } else {
+                            Color(0xD0181822)
+                        }
+                        val rimBrush = Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.28f),
+                                if (styleState.enabled && !tokens.neutral) Color(tokens.accent).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.06f),
+                            ),
+                        )
+                        Box(
                             modifier = Modifier
                                 .widthIn(min = 300.dp, max = 520.dp)
                                 .fillMaxWidth()
                                 .height(46.dp)
-                                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(4.dp))
-                                .clip(RoundedCornerShape(4.dp))
-                                .clickable(onClick = onOpenNowPlaying),
-                            color = Color(0xFF323236),
-                            tonalElevation = 0.dp,
+                                .desktopFrosted(pillBg, tintAlpha = 0.44f)
+                                .border(0.75.dp, rimBrush, pillShape)
+                                .clip(pillShape)
+                                .clickable(onClick = onOpenNowPlaying)
+                                .then(if (isPlaying && styleState.enabled) Modifier.violenceCapsuleGlowFor(styleState, tokens, cornerRadius = 12.dp) else Modifier),
                         ) {
                             Box(Modifier.fillMaxSize()) {
                                 if (song == null) {
@@ -4905,18 +5108,27 @@ private fun DesktopTopBar(
                                             ViolenceIcons.MusicNote,
                                             DesktopStrings["playback_channel_name", "Now playing"],
                                             tint = DesktopSecondary.copy(alpha = 0.65f),
-                                            modifier = Modifier.size(21.dp),
+                                            modifier = Modifier.size(20.dp),
                                         )
                                     }
                                 } else {
-                                    Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                                    Row(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .padding(start = 4.dp, end = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
                                         DesktopArtwork(
                                             song.thumbnailUrl,
-                                            Modifier.size(44.dp).clip(RoundedCornerShape(3.dp)),
+                                            Modifier
+                                                .size(38.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
                                             px = ROW_ART_PX,
                                         )
                                         Column(
-                                            Modifier.weight(1f).padding(start = 12.dp, end = 56.dp),
+                                            Modifier
+                                                .weight(1f)
+                                                .padding(horizontal = 10.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                         ) {
                                             Text(
@@ -4934,22 +5146,33 @@ private fun DesktopTopBar(
                                                 style = MaterialTheme.typography.labelSmall,
                                             )
                                         }
+                                        if (isPlaying) {
+                                            Icon(
+                                                Icons.Rounded.GraphicEq,
+                                                contentDescription = null,
+                                                tint = if (styleState.enabled && !tokens.neutral) Color(tokens.accent) else Color.White,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
                                     }
-                                    // Drawn rather than sized: through a blend the line covers
-                                    // the full width and pulses on the beat, as the player's
-                                    // scrubber does, and reading either in draw keeps the frame
-                                    // clock from recomposing the whole bar.
+                                    // Sleek progress bar at the bottom with audio glow
                                     Box(
                                         Modifier
-                                            .align(Alignment.BottomStart)
-                                            .padding(start = 44.dp)
+                                            .align(Alignment.BottomCenter)
                                             .fillMaxWidth()
-                                            .height(2.dp)
+                                            .height(2.5.dp)
                                             .drawBehind {
-                                                val base = currentProgress.coerceIn(0f, 1f)
+                                                val base = progressProvider().coerceIn(0f, 1f)
                                                 val fraction = base + (1f - base) * mixPulse.cover
+                                                val progressColor = if (styleState.enabled && !tokens.neutral) Color(tokens.accent) else Color.White
+                                                // Inactive track
                                                 drawRect(
-                                                    color = Color.White.copy(alpha = mixPulse.alpha(0.48f)),
+                                                    color = Color.White.copy(alpha = 0.08f),
+                                                    size = size,
+                                                )
+                                                // Active fill with pulse
+                                                drawRect(
+                                                    color = progressColor.copy(alpha = mixPulse.alpha(0.85f)),
                                                     size = Size(size.width * fraction, size.height),
                                                 )
                                             },
@@ -5093,6 +5316,17 @@ private fun DesktopSidebar(
     onOpenAccountPlaylist: (ShelfItem) -> Unit,
     onOpenLocalPlaylist: (DesktopPlaylist) -> Unit,
     onOpenSettings: () -> Unit,
+    onPlayAccountPlaylist: (ShelfItem, Boolean) -> Unit = { _, _ -> },
+    onQueueAccountPlaylist: (ShelfItem, Boolean) -> Unit = { _, _ -> },
+    onDownloadAccountPlaylist: (ShelfItem) -> Unit = {},
+    onShareAccountPlaylist: (ShelfItem) -> Unit = {},
+    onRenameAccountPlaylist: (ShelfItem) -> Unit = {},
+    onDeleteAccountPlaylist: (ShelfItem) -> Unit = {},
+    onPlayLocalPlaylist: (DesktopPlaylist, Boolean) -> Unit = { _, _ -> },
+    onQueueLocalPlaylist: (DesktopPlaylist, Boolean) -> Unit = { _, _ -> },
+    onDownloadLocalPlaylist: (DesktopPlaylist) -> Unit = {},
+    onRenameLocalPlaylist: (DesktopPlaylist) -> Unit = {},
+    onDeleteLocalPlaylist: (DesktopPlaylist) -> Unit = {},
     /** Search was picked: the sidebar's box is the page's field, so it takes the focus. */
     focusSearch: Boolean,
     onSearchFocused: () -> Unit,
@@ -5210,22 +5444,164 @@ private fun DesktopSidebar(
             ) {
                 items(visibleAccount, key = { "account:${it.browseId}" }) { playlist ->
                     DesktopSidebarItem(
-                        Icons.AutoMirrored.Rounded.PlaylistPlay,
-                        playlist.title,
-                        openedCollectionId == playlist.browseId,
+                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        label = playlist.title,
+                        selected = openedCollectionId == playlist.browseId,
                         onClick = { onOpenAccountPlaylist(playlist) },
                         onHide = {
                             DesktopSidebarVisibility.hide("account:${playlist.browseId}", playlist.title)
+                        },
+                        menuContent = { onDismiss ->
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["play", "Play"]) },
+                                leadingIcon = { Icon(Icons.Rounded.PlayArrow, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onPlayAccountPlaylist(playlist, false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["shuffle", "Shuffle"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Shuffle, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onPlayAccountPlaylist(playlist, true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["play_next", "Play next"]) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onQueueAccountPlaylist(playlist, true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["add_to_queue", "Add to queue"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Queue, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onQueueAccountPlaylist(playlist, false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["download_all", "Download all"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Download, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onDownloadAccountPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["share", "Copy link"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Share, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onShareAccountPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["rename", "Rename"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onRenameAccountPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["delete", "Delete"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Delete, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onDeleteAccountPlaylist(playlist)
+                                },
+                            )
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
+                                leadingIcon = { Icon(Icons.Rounded.VisibilityOff, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    DesktopSidebarVisibility.hide("account:${playlist.browseId}", playlist.title)
+                                },
+                            )
                         },
                     )
                 }
                 items(visibleLocal, key = { "local:${it.id}" }) { playlist ->
                     DesktopSidebarItem(
-                        Icons.AutoMirrored.Rounded.PlaylistPlay,
-                        playlist.title,
-                        openedCollectionId == playlist.id,
+                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        label = playlist.title,
+                        selected = openedCollectionId == playlist.id,
                         onClick = { onOpenLocalPlaylist(playlist) },
                         onHide = { DesktopSidebarVisibility.hide("local:${playlist.id}", playlist.title) },
+                        menuContent = { onDismiss ->
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["play", "Play"]) },
+                                leadingIcon = { Icon(Icons.Rounded.PlayArrow, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onPlayLocalPlaylist(playlist, false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["shuffle", "Shuffle"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Shuffle, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onPlayLocalPlaylist(playlist, true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["play_next", "Play next"]) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onQueueLocalPlaylist(playlist, true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["add_to_queue", "Add to queue"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Queue, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onQueueLocalPlaylist(playlist, false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["download_all", "Download all"]) },
+                                leadingIcon = { Icon(ViolenceIcons.Download, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onDownloadLocalPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["rename", "Rename"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onRenameLocalPlaylist(playlist)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["delete", "Delete"]) },
+                                leadingIcon = { Icon(Icons.Rounded.Delete, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    onDeleteLocalPlaylist(playlist)
+                                },
+                            )
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
+                                leadingIcon = { Icon(Icons.Rounded.VisibilityOff, null, modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    onDismiss()
+                                    DesktopSidebarVisibility.hide("local:${playlist.id}", playlist.title)
+                                },
+                            )
+                        },
                     )
                 }
                 if (visibleAccount.isEmpty() && visibleLocal.isEmpty()) {
@@ -5266,6 +5642,7 @@ private fun DesktopSidebarItem(
     selected: Boolean,
     /** When set, a right-click offers to hide the row — see [DesktopSidebarVisibility]. */
     onHide: (() -> Unit)? = null,
+    menuContent: (@Composable ColumnScope.(onDismiss: () -> Unit) -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val style = LocalViolenceStyle.current
@@ -5278,18 +5655,29 @@ private fun DesktopSidebarItem(
     val iconTint = if (selected) {
         if (style.enabled) Color(tokens.accent) else DesktopAccent
     } else DesktopSecondary
+    val hasMenu = menuContent != null || onHide != null
+    val sidebarShape = RoundedCornerShape(10.dp)
+    val itemRim = if (selected) {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.22f),
+                if (style.enabled && !tokens.neutral) Color(tokens.accent).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.05f),
+            ),
+        )
+    } else null
     Box {
         Row(
             Modifier
                 .fillMaxWidth()
                 .desktopHoverFill()
-                .clip(RoundedCornerShape(7.dp))
+                .clip(sidebarShape)
                 .background(itemBg)
-                .then(if (selected && style.enabled) Modifier.violenceCapsuleGlowFor(style, tokens) else Modifier)
+                .then(if (itemRim != null) Modifier.border(0.75.dp, itemRim, sidebarShape) else Modifier)
+                .then(if (selected && style.enabled) Modifier.violenceCapsuleGlowFor(style, tokens, cornerRadius = 10.dp) else Modifier)
                 .clickable(onClick = onClick)
                 .then(
-                    if (onHide == null) Modifier
-                    else Modifier.pointerInput(onHide) {
+                    if (!hasMenu) Modifier
+                    else Modifier.pointerInput(Unit) {
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -5314,15 +5702,32 @@ private fun DesktopSidebarItem(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (onHide != null) {
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
-                    onClick = {
-                        menuOpen = false
-                        onHide()
-                    },
-                )
+        if (hasMenu) {
+            val menuShape = RoundedCornerShape(12.dp)
+            val menuRim = Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.24f),
+                    if (style.enabled && !tokens.neutral) Color(tokens.accent).copy(alpha = 0.20f) else Color.White.copy(alpha = 0.05f),
+                ),
+            )
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                shape = menuShape,
+                containerColor = Color(0xF216161F),
+                border = BorderStroke(0.75.dp, menuRim),
+            ) {
+                if (menuContent != null) {
+                    menuContent { menuOpen = false }
+                } else if (onHide != null) {
+                    DropdownMenuItem(
+                        text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
+                        onClick = {
+                            menuOpen = false
+                            onHide()
+                        },
+                    )
+                }
             }
         }
     }
@@ -5522,16 +5927,32 @@ internal fun DesktopSearchField(
     onFocusChanged: (Boolean) -> Unit = {},
     placeholder: String = "Search",
 ) {
-    val searchShape = RoundedCornerShape(7.dp)
+    var isFocused by remember { mutableStateOf(false) }
+    val searchShape = RoundedCornerShape(10.dp)
+    val rimBrush = if (isFocused) {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.40f),
+                Color.White.copy(alpha = 0.15f),
+            ),
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.20f),
+                Color.White.copy(alpha = 0.05f),
+            ),
+        )
+    }
     Box(
         modifier
             .fillMaxWidth()
             .height(36.dp)
             .clip(searchShape)
-            .background(Color.White.copy(alpha = 0.07f))
-            .border(1.dp, Color.White.copy(alpha = 0.10f), searchShape)
+            .background(Color.White.copy(alpha = 0.08f))
+            .border(0.75.dp, rimBrush, searchShape)
             .clickable { focusRequester.requestFocus() }
-            .padding(horizontal = 9.dp),
+            .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         BasicTextField(
@@ -5540,7 +5961,10 @@ internal fun DesktopSearchField(
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
-                .onFocusChanged { onFocusChanged(it.isFocused) }
+                .onFocusChanged {
+                    isFocused = it.isFocused
+                    onFocusChanged(it.isFocused)
+                }
                 .onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
                         onSearch()
@@ -6458,8 +6882,7 @@ private fun DesktopSettingsScreen(
                                 Spacer(Modifier.height(10.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     listOf(0, 8, 16).forEach { bars ->
-                                        FilterChip(
-                                            colors = desktopChipColors(),
+                                        DesktopFilterChip(
                                             selected = automixPhraseBars == bars,
                                             onClick = { onAutomixPhraseBarsChange(bars) },
                                             label = { Text(phraseBarsLabel(bars)) },
@@ -6486,8 +6909,7 @@ private fun DesktopSettingsScreen(
                             Spacer(Modifier.height(10.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 AutomixPerformanceMode.entries.forEach { mode ->
-                                    FilterChip(
-                                        colors = desktopChipColors(),
+                                    DesktopFilterChip(
                                         selected = automixPerformance == mode,
                                         onClick = { onAutomixPerformanceChange(mode) },
                                         label = { Text(mode.label()) },
@@ -6749,8 +7171,7 @@ private fun DesktopSettingsScreen(
                                     StyleBackground.HAZE to "Haze",
                                     StyleBackground.OFF to "Off",
                                 ).forEach { (bg, label) ->
-                                    FilterChip(
-                                        colors = desktopChipColors(),
+                                    DesktopFilterChip(
                                         selected = backgroundChoice == bg,
                                         onClick = { DesktopAppearanceSettings.setStyleBackground(bg) },
                                         label = { Text(label) },
@@ -6768,8 +7189,7 @@ private fun DesktopSettingsScreen(
                                     StyleAccentSource.FROM_DEVICE to "Device Accent",
                                     StyleAccentSource.CUSTOM to "Custom Color",
                                 ).forEach { (source, label) ->
-                                    FilterChip(
-                                        colors = desktopChipColors(),
+                                    DesktopFilterChip(
                                         selected = accentSourceChoice == source,
                                         onClick = { DesktopAppearanceSettings.setStyleAccentSource(source) },
                                         label = { Text(label) },
@@ -6787,8 +7207,7 @@ private fun DesktopSettingsScreen(
                                     StyleHeadingFont.CORMORANT_GARAMOND to "Cormorant",
                                     StyleHeadingFont.ANTON to "Anton",
                                 ).forEach { (font, label) ->
-                                    FilterChip(
-                                        colors = desktopChipColors(),
+                                    DesktopFilterChip(
                                         selected = headingFontChoice == font,
                                         onClick = { DesktopAppearanceSettings.setStyleHeadingFont(font) },
                                         label = { Text(label) },
@@ -6806,8 +7225,7 @@ private fun DesktopSettingsScreen(
                                     StyleIntensity.MEDIUM to "Medium",
                                     StyleIntensity.HIGH to "High",
                                 ).forEach { (intensity, label) ->
-                                    FilterChip(
-                                        colors = desktopChipColors(),
+                                    DesktopFilterChip(
                                         selected = intensityChoice == intensity,
                                         onClick = { DesktopAppearanceSettings.setStyleIntensity(intensity) },
                                         label = { Text(label) },
@@ -6825,8 +7243,7 @@ private fun DesktopSettingsScreen(
                                     StyleMotion.SUBTLE to "Subtle",
                                     StyleMotion.NORMAL to "Normal",
                                 ).forEach { (motion, label) ->
-                                    FilterChip(
-                                        colors = desktopChipColors(),
+                                    DesktopFilterChip(
                                         selected = motionChoice == motion,
                                         onClick = { DesktopAppearanceSettings.setStyleMotion(motion) },
                                         label = { Text(label) },
@@ -6879,8 +7296,7 @@ private fun DesktopSettingsScreen(
                                 Spacer(Modifier.height(10.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     DesktopBackdrop.entries.forEach { option ->
-                                        FilterChip(
-                                            colors = desktopChipColors(),
+                                        DesktopFilterChip(
                                             selected = backdropChoice == option,
                                             onClick = { DesktopWindowBackdrop.set(option) },
                                             label = { Text(option.label) },
@@ -7000,8 +7416,7 @@ private fun DesktopSettingsScreen(
                     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             DesktopAudioQuality.entries.forEach { rung ->
-                                FilterChip(
-                                    colors = desktopChipColors(),
+                                DesktopFilterChip(
                                     selected = audioQuality == rung,
                                     onClick = { onAudioQualityChange(rung) },
                                     label = { Text(rung.label) },
@@ -7042,8 +7457,7 @@ private fun DesktopSettingsScreen(
                     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("PCM_16" to "16-bit PCM", "FLOAT_32" to "32-bit float").forEach { (value, label) ->
-                                FilterChip(
-                                    colors = desktopChipColors(),
+                                DesktopFilterChip(
                                     selected = outputPrecision == value,
                                     onClick = { onOutputPrecisionChange(value) },
                                     label = { Text(label) },
@@ -7071,8 +7485,7 @@ private fun DesktopSettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         listOf("STANDARD" to "Standard", "HIGH" to "High", "LOSSLESS" to "Lossless").forEach { (value, label) ->
-                            FilterChip(
-                                colors = desktopChipColors(),
+                            DesktopFilterChip(
                                 selected = downloadQuality == value,
                                 onClick = { onDownloadQualityChange(value) },
                                 label = { Text(label) },
@@ -8050,6 +8463,7 @@ internal fun desktopChromeDivider(): Color {
     }
 }
 
+@OptIn(ExperimentalHazeApi::class)
 @Composable
 private fun Modifier.desktopFrosted(
     opaque: Color,
@@ -8064,17 +8478,13 @@ private fun Modifier.desktopFrosted(
     }
     val dissolve = edge.dissolve(Color.Black, fade)
     return this.hazeEffect(state = haze) {
-        // Spelled out rather than taken from a preset.
         blurEnabled = true
-        backgroundColor = DesktopSurface
-        blurRadius = 30.dp
-        // Dark enough that white text on the pane always wins, translucent enough that the
-        // colour of what is behind it still comes through.
-        tints = listOf(HazeTint(DesktopSurface.copy(alpha = tintAlpha)))
-        noiseFactor = 0.04f
-        // Assigned either way: the scope belongs to the node and outlives the draw, so a pane that
-        // stops dissolving — the leading stretch of the top bar, when the window grows back out of
-        // compact — would otherwise keep the mask it was given in the other layout.
+        inputScale = HazeInputScale.Fixed(0.33f)
+        backgroundColor = Color.Transparent
+        blurRadius = 24.dp
+        // Translucent liquid tint derived from the given chrome/accent color
+        tints = listOf(HazeTint(opaque.copy(alpha = tintAlpha)))
+        noiseFactor = 0.03f
         mask = dissolve
     }
 }
@@ -8472,7 +8882,7 @@ private fun DesktopEmptyPage(icon: androidx.compose.ui.graphics.vector.ImageVect
     }
 }
 
-/** A titled block of settings rows. */
+/** A titled block of settings rows enclosed in a liquid frosted glass card. */
 @Composable
 private fun SettingsGroup(title: String, content: @Composable () -> Unit) {
     val query = LocalSettingsQuery.current
@@ -8489,11 +8899,16 @@ private fun SettingsGroup(title: String, content: @Composable () -> Unit) {
                 title.uppercase(),
                 color = DesktopSecondary,
                 style = MaterialTheme.typography.labelSmall,
-                // In line with the rows' own text, now that no card sets them in.
-                modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
             )
         }
-        Column {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .desktopCard(RoundedCornerShape(16.dp))
+                .padding(horizontal = 18.dp, vertical = 6.dp),
+        ) {
             CompositionLocalProvider(
                 LocalSettingsQuery provides if (wholeGroup) "" else query,
                 LocalSettingsMatches provides matched,

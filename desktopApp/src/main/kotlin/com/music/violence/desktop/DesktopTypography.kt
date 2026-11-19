@@ -8,6 +8,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.music.violence.ui.violencestyle.StyleDefaults
 import com.music.violence.ui.violencestyle.StyleHeadingFont
 import org.jetbrains.compose.resources.Font as composeFont
 import violence.desktopapp.generated.resources.Res
@@ -98,17 +99,22 @@ internal fun desktopStandardTypography(): Typography {
 }
 
 /**
- * Violence Style typography for Desktop: Inter body face with styled weights.
+ * Violence Style typography for Desktop: Display serif heading face with Inter body.
  */
 @Composable
-internal fun desktopViolenceTypography(base: Typography): Typography {
+internal fun desktopViolenceTypography(
+    base: Typography,
+    headingFont: StyleHeadingFont = StyleDefaults.HEADING_FONT,
+): Typography {
     val inter = DesktopFonts.inter()
+    val serif = DesktopFonts.heading(headingFont)
     fun TextStyle.interStyle(weight: FontWeight) = copy(fontFamily = inter, fontWeight = weight)
+    fun TextStyle.serifStyle(weight: FontWeight) = copy(fontFamily = serif, fontWeight = weight)
 
     return base.copy(
-        displayLarge = base.displayLarge.interStyle(FontWeight.W600),
-        displayMedium = base.displayMedium.interStyle(FontWeight.W600),
-        displaySmall = base.displaySmall.interStyle(FontWeight.W600),
+        displayLarge = base.displayLarge.serifStyle(FontWeight.W600),
+        displayMedium = base.displayMedium.serifStyle(FontWeight.W600),
+        displaySmall = base.displaySmall.serifStyle(FontWeight.W600),
         headlineLarge = base.headlineLarge.interStyle(FontWeight.W600),
         headlineMedium = base.headlineMedium.interStyle(FontWeight.W600),
         headlineSmall = base.headlineSmall.interStyle(FontWeight.W600),
@@ -129,8 +135,11 @@ internal fun desktopViolenceTypography(base: Typography): Typography {
  * when [enabled] is false, returns exactly the standard SF Pro typography.
  */
 @Composable
-internal fun desktopTypography(enabled: Boolean): Typography {
+internal fun desktopTypography(
+    enabled: Boolean,
+    headingFont: StyleHeadingFont = StyleDefaults.HEADING_FONT,
+): Typography {
     val standard = desktopStandardTypography()
-    return if (!enabled) standard else desktopViolenceTypography(standard)
+    return if (!enabled) standard else desktopViolenceTypography(standard, headingFont)
 }
 

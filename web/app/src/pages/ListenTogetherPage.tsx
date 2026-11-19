@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/PageHeader';
 import { useSignedIn } from '@/data/music/queries';
-import { cleanCode, extractCode, inviteLink } from '@/party/invite';
+import { cleanCode, extractCode, extractInvite, inviteLink } from '@/party/invite';
 import {
   controlsLocked,
   createParty,
@@ -83,10 +83,16 @@ function StartOrJoin({ signedIn }: { signedIn: boolean }) {
   const [settings, setSettings] = useState(partySettings);
   const autoplay = usePlayer((s) => s.autoplay);
   const create = useMutation({ mutationFn: () => createParty({ autoplayEnabled: autoplay }) });
+  const join = useMutation({
+    mutationFn: ({ codeToJoin, serverUrl }: { codeToJoin: string; serverUrl?: string | null }) =>
+      joinParty(codeToJoin, serverUrl),
+  });
   const update = (change: Partial<typeof settings>) => {
     savePartySettings(change);
     setSettings(partySettings());
   };
+
+  const invite = extractInvite(code);
 
   return (
     <>
@@ -108,8 +114,12 @@ function StartOrJoin({ signedIn }: { signedIn: boolean }) {
           className={settingsUi.controlRow}
           onSubmit={(e) => {
             e.preventDefault();
-            const cleaned = extractCode(code) ?? cleanCode(code);
-            if (cleaned) navigate(`/invite/${cleaned}`);
+            if (!invite) return;
+            if (signedIn) {
+              join.mutate({ codeToJoin: invite.code, serverUrl: invite.serverUrl });
+            } else {
+              navigate(`/invite/${invite.code}${invite.serverUrl ? `?server=${encodeURIComponent(invite.serverUrl)}` : ''}`);
+            }
           }}
         >
           <span>Join with a Code</span>
@@ -120,17 +130,17 @@ function StartOrJoin({ signedIn }: { signedIn: boolean }) {
               placeholder="Code or link"
               aria-label="Party code or invite link"
               onChange={(e) => {
-                // A pasted link (or a whole share message) is reduced to its code.
                 const raw = e.currentTarget.value;
-                setCode(extractCode(raw) ?? raw.toUpperCase());
+                setCode(raw.trim().toUpperCase());
               }}
             />
-            <button className={primary} type="submit" disabled={!(extractCode(code) ?? cleanCode(code))}>
-              Join
+            <button className={primary} type="submit" disabled={!invite || join.isPending}>
+              {join.isPending ? 'Joining…' : 'Join'}
             </button>
           </span>
         </form>
       </section>
+      {join.isError && <p className={error}>{messageOf(join.error)}</p>}
 
       <h2 className={settingsUi.sectionHeader}>You</h2>
       <section className={settingsUi.group}>
@@ -166,6 +176,7 @@ function StartOrJoin({ signedIn }: { signedIn: boolean }) {
 
 /** An invite: who's in it, then a tap to join (the tap also lets the browser start audio). */
 function InviteCard({ code, server, signedIn }: { code: string; server: string | null; signedIn: boolean }) {
+  const navigate = useNavigate();
   const preview = useQuery({ queryKey: ['party', 'preview', code, server], queryFn: () => previewParty(code, server), retry: false });
   const join = useMutation({ mutationFn: () => joinParty(code, server) });
   const data = preview.data;
@@ -173,7 +184,17 @@ function InviteCard({ code, server, signedIn }: { code: string; server: string |
     <div className={invite}>
       <p className={inviteCode}>{code}</p>
       {preview.isPending && <p className={settingsUi.footer}>Looking up the party…</p>}
-      {preview.isError && <p className={error}>{messageOf(preview.error)}</p>}
+      {preview.isError && (
+        <>
+          <p className={error}>{messageOf(preview.error)}</p>
+          <button
+            className="mt-2 text-sm text-secondary underline hover:text-primary"
+            onClick={() => navigate('/settings/listen-together')}
+          >
+            Try another code
+          </button>
+        </>
+      )}
       {data && (
         <>
           <p className={lede}>
@@ -195,6 +216,7 @@ function InviteCard({ code, server, signedIn }: { code: string; server: string |
       >
         {data?.isFull ? 'This party is full' : join.isPending ? 'Joining…' : 'Tap to Join'}
       </button>
+      {join.isError && <p className={error}>{messageOf(join.error)}</p>}
     </div>
   );
 }
@@ -241,7 +263,7 @@ function InParty() {
         ? `In sync · ${state.roundTripMs} ms round trip`
         : 'Measuring the clock…'
       : state.connection === 'connecting'
-        ? 'Reconnecting…'
+        ? (state.clockSynced ? 'Reconnecting…' : 'Connecting…')
         : 'Offline';
 
   return (

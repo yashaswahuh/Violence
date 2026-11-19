@@ -81,6 +81,18 @@ internal data class DesktopQueue(
         song.asQueueEntry(QueueTier.USER_QUEUE),
     )
 
+    /**
+     * Queues multiple songs by hand.
+     */
+    fun enqueueAll(newSongs: List<Song>, playNext: Boolean): DesktopQueue {
+        if (newSongs.isEmpty()) return this
+        val entries = newSongs.map { it.asQueueEntry(QueueTier.USER_QUEUE) }
+        val insertAt = QueueTimeline.findUserQueueInsertionIndex(songs, index, isNext = playNext)
+        val mutable = songs.toMutableList()
+        mutable.addAll(insertAt.coerceIn(0, mutable.size), entries)
+        return copy(songs = mutable)
+    }
+
     /** Adds tracks at the end — where AutoPlay's own additions go. */
     fun append(more: List<Song>): DesktopQueue =
         if (more.isEmpty()) this else copy(songs = songs + more)

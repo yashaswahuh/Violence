@@ -15,9 +15,12 @@
           }
         }
       })();
-      // The extension trusts https://yashaswahuh.is-a.dev only (web/extension/site.config.ts),
-      // so www goes there before anything loads, keeping its path and query.
-      if (location.hostname === 'www.yashaswahuh.is-a.dev') location.replace('https://yashaswahuh.is-a.dev' + location.pathname + location.search + location.hash);
+      // Enforce canonical origin https://yashaswahuh.is-a.dev in production (ensures CORS & extension match)
+      if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        if (location.protocol === 'http:' || location.hostname === 'www.yashaswahuh.is-a.dev' || location.hostname === 'yashaswahuh.github.io') {
+          location.replace('https://yashaswahuh.is-a.dev' + location.pathname + location.search + location.hash);
+        }
+      }
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />

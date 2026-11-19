@@ -23,21 +23,26 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import com.music.violence.ui.violencestyle.LocalViolenceStyle
+import com.music.violence.ui.violencestyle.LocalViolenceAccent
+import com.music.violence.ui.violencestyle.ViolenceChromeColors
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-// The look every modal card in the app shares.
+import androidx.compose.ui.graphics.Color
+
+// The look every modal card and panel in the app shares.
 
 /** The card fill. */
-internal val DesktopCardFill = Color(0xFA1A1A1D)
+internal val DesktopCardFill = Color(0xEB1A1A1D)
 
 /** A block inside a card — a settings group — lifted just off the fill. */
-internal val DesktopCardInsetFill = Color(0x14FFFFFF)
+internal val DesktopCardInsetFill = Color(0x18FFFFFF)
 
 /** The hairline that bounds a card, and separates one row from the next. */
-internal val DesktopCardEdge = Color(0x1FFFFFFF)
+internal val DesktopCardEdge = Color(0x28FFFFFF)
 
 /** What a row reads at while the pointer is on it. */
 internal val DesktopRowHover = Color(0x1AFFFFFF)
@@ -45,13 +50,63 @@ internal val DesktopRowHover = Color(0x1AFFFFFF)
 /** The scrim a modal card sits on. */
 internal val DesktopScrim = Color(0x8C000000)
 
-/** Card, hairline and all. */
-internal fun Modifier.desktopCard(shape: Shape): Modifier =
-    clip(shape).background(DesktopCardFill).border(0.5.dp, DesktopCardEdge, shape)
+/** Card, hairline and all: rich liquid frosted glass with specular top hairline rim. */
+@Composable
+internal fun Modifier.desktopCard(shape: Shape): Modifier {
+    val style = LocalViolenceStyle.current
+    val tokens = LocalViolenceAccent.current
+    val fillBrush = if (style.enabled) {
+        val baseTint = if (tokens.neutral) Color(0xEB14141B) else Color(ViolenceChromeColors.tint(tokens.accent, 0.45f))
+        Brush.verticalGradient(
+            listOf(
+                Color(0xDF181824),
+                baseTint,
+            ),
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xF21C1C24),
+                Color(0xFA121216),
+            ),
+        )
+    }
+    val rimBrush = if (style.enabled) {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.25f),
+                if (tokens.neutral) Color.White.copy(alpha = 0.08f) else Color(tokens.accent).copy(alpha = 0.22f),
+            ),
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.16f),
+                Color.White.copy(alpha = 0.04f),
+            ),
+        )
+    }
+    return clip(shape).background(fillBrush).border(0.75.dp, rimBrush, shape)
+}
 
-/** A block of rows inside a card. */
-internal fun Modifier.desktopCardInset(shape: Shape): Modifier =
-    clip(shape).background(DesktopCardInsetFill).border(0.5.dp, DesktopCardEdge, shape)
+/** A block of rows inside a card or an inset container. */
+@Composable
+internal fun Modifier.desktopCardInset(shape: Shape): Modifier {
+    val style = LocalViolenceStyle.current
+    val tokens = LocalViolenceAccent.current
+    val insetFill = if (style.enabled && !tokens.neutral) {
+        Color(tokens.accent).copy(alpha = 0.08f)
+    } else {
+        Color.White.copy(alpha = 0.06f)
+    }
+    val insetBorder = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = 0.14f),
+            Color.White.copy(alpha = 0.04f),
+        ),
+    )
+    return clip(shape).background(insetFill).border(0.5.dp, insetBorder, shape)
+}
 
 /** The rule between two rows of a card. A page of Settings has none: its rows are spaced, not ruled. */
 @Composable

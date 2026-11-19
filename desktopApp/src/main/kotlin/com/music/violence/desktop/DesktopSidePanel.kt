@@ -67,11 +67,8 @@ internal fun DesktopSidePanelColumn(
                 label = "sidePanel",
             ) { which ->
                 Box(Modifier.fillMaxSize()) {
-                    // The lyrics stand on the window itself, as in Apple Music; the queue is a list
-                    // and takes the sidebar's glass.
-                    if (which == DesktopSidePanel.QUEUE) {
-                        Box(Modifier.fillMaxSize().desktopChromeGlass())
-                    }
+                    // Both lyrics and queue take the window's liquid frosted glass
+                    Box(Modifier.fillMaxSize().desktopChromeGlass())
                     Column(Modifier.fillMaxSize()) {
                         Row(
                             modifier = Modifier

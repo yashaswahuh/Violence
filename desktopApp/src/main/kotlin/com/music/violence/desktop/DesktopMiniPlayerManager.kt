@@ -25,11 +25,27 @@ internal object DesktopMiniPlayerManager {
     /** Whether the desktop mini-player window is currently active and floating. */
     val isMiniMode: StateFlow<Boolean> = _isMiniMode.asStateFlow()
 
+    private val _isLyricsExpanded = MutableStateFlow(false)
+
+    /** Whether the mini-player is currently vertically expanded showing the full live lyrics view. */
+    val isLyricsExpanded: StateFlow<Boolean> = _isLyricsExpanded.asStateFlow()
+
+    private val _lyricLines = MutableStateFlow<List<LyricLine>>(emptyList())
+
+    /** Complete synchronized lyric lines for the currently playing track. */
+    val lyricLines: StateFlow<List<LyricLine>> = _lyricLines.asStateFlow()
+
+    private val _activeLyricIndex = MutableStateFlow(-1)
+
+    /** Index of the current active lyric line. */
+    val activeLyricIndex: StateFlow<Int> = _activeLyricIndex.asStateFlow()
+
     val currentSong = MutableStateFlow<Song?>(null)
     val isPlaying = MutableStateFlow(false)
     val positionMs = MutableStateFlow(0L)
     val durationMs = MutableStateFlow(0L)
     val activeLyricText = MutableStateFlow<String?>(null)
+    val isLiked = MutableStateFlow(false)
 
     @Volatile
     private var cachedLyricLines: List<LyricLine> = emptyList()
@@ -38,14 +54,29 @@ internal object DesktopMiniPlayerManager {
     var onNext: () -> Unit = {}
     var onPrevious: () -> Unit = {}
     var onSeek: (Long) -> Unit = {}
+    var onToggleLike: () -> Unit = {}
 
     fun toggle() = setMiniMode(!_isMiniMode.value)
 
     fun enterMiniMode() = setMiniMode(true)
 
-    fun exitMiniMode() = setMiniMode(false)
+    fun exitMiniMode() {
+        _isLyricsExpanded.value = false
+        setMiniMode(false)
+    }
+
+    fun toggleLyricsExpanded() {
+        _isLyricsExpanded.value = !_isLyricsExpanded.value
+    }
+
+    fun setLyricsExpanded(expanded: Boolean) {
+        _isLyricsExpanded.value = expanded
+    }
 
     fun setMiniMode(enabled: Boolean) {
+        if (!enabled) {
+            _isLyricsExpanded.value = false
+        }
         if (_isMiniMode.value == enabled) return
         _isMiniMode.value = enabled
         persistence.saveBoolean(KEY_MINI_MODE, enabled)
@@ -64,6 +95,7 @@ internal object DesktopMiniPlayerManager {
 
     fun setLyrics(lines: List<LyricLine>, currentPosMs: Long) {
         cachedLyricLines = lines
+        _lyricLines.value = lines
         updateActiveLyric(currentPosMs)
     }
 
@@ -71,9 +103,19 @@ internal object DesktopMiniPlayerManager {
         val lines = cachedLyricLines
         if (lines.isEmpty()) {
             activeLyricText.value = null
+            _activeLyricIndex.value = -1
             return
         }
-        val line = lines.lastOrNull { it.timeMs <= posMs && !it.isGap }
+        var activeIdx = -1
+        for (i in lines.indices) {
+            if (lines[i].timeMs <= posMs) {
+                activeIdx = i
+            } else {
+                break
+            }
+        }
+        _activeLyricIndex.value = activeIdx
+        val line = if (activeIdx in lines.indices) lines[activeIdx].takeIf { !it.isGap } else null
         activeLyricText.value = line?.text?.takeIf { it.isNotBlank() }
     }
 
@@ -162,8 +204,15 @@ internal object DesktopMiniPlayerManager {
         }.getOrDefault(java.awt.Point(x, y))
     }
 
-    fun savePosition(x: Int, y: Int) {
-        persistence.saveInt(KEY_POS_X, x)
-        persistence.saveInt(KEY_POS_Y, y)
+    fun savePosition(x: Int, y: Int, width: Int = 360, height: Int = 90) {
+        val clamped = clampToScreen(x, y, width, height)
+        persistence.saveInt(KEY_POS_X, clamped.x)
+        persistence.saveInt(KEY_POS_Y, clamped.y)
+    }
+
+    fun resetPosition(width: Int = 360, height: Int = 90): java.awt.Point {
+        persistence.saveInt(KEY_POS_X, Int.MIN_VALUE)
+        persistence.saveInt(KEY_POS_Y, Int.MIN_VALUE)
+        return getInitialPosition(width, height)
     }
 }

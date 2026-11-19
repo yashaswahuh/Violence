@@ -2,6 +2,7 @@ package com.music.violence.desktop
 
 import com.music.violence.desktop.platform.WindowsTaskbarToolbar
 import com.music.violence.desktop.ui.DesktopMiniPlayerWindow
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import com.music.violence.ui.player.PlayerPlatform
 import com.music.violence.data.DebugLog
@@ -29,6 +30,7 @@ import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
 
 fun main(args: Array<String> = emptyArray()) {
+    DesktopWindowsMedia.initAppUserModelId()
     if (args.isNotEmpty()) {
         val linkCandidate = args[0].trim()
         if (linkCandidate.startsWith("violence://") || linkCandidate.startsWith("http://") || linkCandidate.startsWith("https://")) {
@@ -211,9 +213,15 @@ private fun desktopMain() = application {
     }
 
     if (isMiniMode) {
-        DesktopMiniPlayerWindow(
-            onClose = { DesktopMiniPlayerManager.exitMiniMode() },
-        )
+        val styleState by DesktopAppearanceSettings.styleState.collectAsState()
+        MaterialTheme(
+            colorScheme = desktopColorScheme(styleState),
+            typography = desktopTypography(styleState.enabled, styleState.headingFont),
+        ) {
+            DesktopMiniPlayerWindow(
+                onClose = { DesktopMiniPlayerManager.exitMiniMode() },
+            )
+        }
     }
 }
 

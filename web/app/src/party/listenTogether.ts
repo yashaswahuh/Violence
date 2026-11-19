@@ -38,8 +38,8 @@ import {
  * the server's 45 s grace, so a refresh is invisible to everyone else.
  */
 
-/** Empty only in a dev build run without VITE_PARTY_SERVER_URL; parties then need a custom server. */
-export const DEFAULT_SERVER = sanitizeServerUrl(config.partyServerUrl) ?? '';
+/** Default server falls back to violence-jam.onrender.com if VITE_PARTY_SERVER_URL is unset. */
+export const DEFAULT_SERVER = sanitizeServerUrl(config.partyServerUrl) || 'https://violence-jam.onrender.com';
 export const MAX_UPCOMING = 25;
 const PING_INTERVAL_MS = 15_000;
 const REPORT_INTERVAL_MS = 10_000;
@@ -143,12 +143,12 @@ export function idleServer(): string {
 const NO_SERVER_MESSAGE =
   'Jam is not set up on this site yet. Enter a party server under Server below, or ask the owner.';
 const ASLEEP_MESSAGE = 'The Jam server didn’t wake up. Give it a minute and try again.';
-const WAKE_PROBE_TIMEOUT_MS = 10_000;
-const WAKE_WINDOW_MS = 85_000;
+const WAKE_PROBE_TIMEOUT_MS = 6_000;
+const WAKE_WINDOW_MS = 45_000;
 
-async function answersHealth(base: string): Promise<boolean> {
+async function answersHealth(base: string, timeoutMs = WAKE_PROBE_TIMEOUT_MS): Promise<boolean> {
   try {
-    const response = await fetch(`${base}/healthz`, { signal: AbortSignal.timeout(WAKE_PROBE_TIMEOUT_MS) });
+    const response = await fetch(`${base}/healthz`, { signal: AbortSignal.timeout(timeoutMs) });
     return response.ok && ((await response.json()) as { ok?: unknown }).ok === true;
   } catch {
     return false;
@@ -156,23 +156,22 @@ async function answersHealth(base: string): Promise<boolean> {
 }
 
 /**
- * Free hosts put an idle server to sleep, and the first request after that can wait about a
- * minute for it to start. Rather than let that look like a failure, probe /healthz, set
- * `serverWaking` (the page shows "waking up") and keep trying with a growing pause for up to
- * WAKE_WINDOW_MS. Only the built-in server is treated this way: a custom address somebody
- * typed in fails fast, as before. Throws PartyError('server_asleep') if it never wakes.
+ * Free hosts put an idle server to sleep, and the first request after that can wait about
+ * half a minute for it to start. Rather than let that look like a failure, probe /healthz,
+ * set `serverWaking` (the UI shows "waking up") and wait for it to wake up.
+ * Throws PartyError('server_asleep') if it never wakes.
  */
 async function wakeServerIfAsleep(base: string): Promise<void> {
   if (!base || base !== DEFAULT_SERVER) return;
-  if (await answersHealth(base)) return;
+  if (await answersHealth(base, 2_500)) return;
   useParty.setState({ serverWaking: true });
   try {
     const deadline = Date.now() + WAKE_WINDOW_MS;
     let pause = 2_000;
     while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, pause));
-      if (await answersHealth(base)) return;
-      pause = Math.min(pause * 1.5, 10_000);
+      if (await answersHealth(base, 8_000)) return;
+      pause = Math.min(pause * 1.5, 6_000);
     }
     throw new PartyError('server_asleep', ASLEEP_MESSAGE);
   } finally {
@@ -248,11 +247,15 @@ async function errorOf(response: Response): Promise<PartyError> {
   );
 }
 
-async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(url: string, init: RequestInit = {}, timeoutMs = 20_000): Promise<T> {
   let response: Response;
+  const signal = init.signal ?? AbortSignal.timeout(timeoutMs);
   try {
-    response = await fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...init.headers } });
-  } catch {
+    response = await fetch(url, { ...init, signal, headers: { 'Content-Type': 'application/json', ...init.headers } });
+  } catch (err: unknown) {
+    if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+      throw new PartyError('timeout', 'Connection timed out. The Jam server may be starting.');
+    }
     throw new PartyError('unreachable', UNREACHABLE);
   }
   if (!response.ok) throw await errorOf(response);
@@ -284,13 +287,21 @@ function adoptMembership(base: string, membership: PartyMembership): string {
 export async function createParty(options: { maxMembers?: number; autoplayEnabled: boolean }): Promise<string> {
   if (useParty.getState().code) await leaveParty();
   const base = idleServer();
+  requireServer(base);
   try {
-    requireServer(base);
-    await wakeServerIfAsleep(base);
-    const membership = await request<PartyMembership>(`${base}/api/parties`, {
-      method: 'POST',
-      body: JSON.stringify({ ...(await identity()), maxMembers: options.maxMembers ?? 8, autoplayEnabled: options.autoplayEnabled }),
-    });
+    const id = await identity();
+    const body = JSON.stringify({ ...id, maxMembers: options.maxMembers ?? 8, autoplayEnabled: options.autoplayEnabled });
+    let membership: PartyMembership;
+    try {
+      membership = await request<PartyMembership>(`${base}/api/parties`, { method: 'POST', body }, 15_000);
+    } catch (error) {
+      if (base === DEFAULT_SERVER) {
+        await wakeServerIfAsleep(base);
+        membership = await request<PartyMembership>(`${base}/api/parties`, { method: 'POST', body }, 15_000);
+      } else {
+        throw error;
+      }
+    }
     return adoptMembership(base, membership);
   } catch (error) {
     useParty.setState({ error: messageOf(error) });
@@ -310,13 +321,46 @@ export async function joinParty(rawCode: string, serverUrl?: string | null): Pro
   const base = sanitizeServerUrl(serverUrl) ?? idleServer();
   const current = useParty.getState();
   if (current.code === code && server === base) return code;
+  requireServer(base);
+
   try {
-    requireServer(base);
-    await wakeServerIfAsleep(base);
-    const membership = await request<PartyMembership>(`${base}/api/parties/${code}/join`, {
-      method: 'POST',
-      body: JSON.stringify(await identity()),
-    });
+    const id = await identity();
+    let membership: PartyMembership;
+    try {
+      membership = await request<PartyMembership>(
+        `${base}/api/parties/${code}/join`,
+        {
+          method: 'POST',
+          body: JSON.stringify(id),
+        },
+        15_000,
+      );
+    } catch (error) {
+      if (
+        error instanceof PartyError &&
+        (error.code === 'no_such_party' ||
+          error.code === 'party_full' ||
+          error.code === 'kicked' ||
+          error.status === 404 ||
+          error.status === 409)
+      ) {
+        throw error;
+      }
+      if (base === DEFAULT_SERVER) {
+        await wakeServerIfAsleep(base);
+        membership = await request<PartyMembership>(
+          `${base}/api/parties/${code}/join`,
+          {
+            method: 'POST',
+            body: JSON.stringify(id),
+          },
+          15_000,
+        );
+      } else {
+        throw error;
+      }
+    }
+
     const previous = current.code && token && server ? { code: current.code, token, server } : null;
     disconnect();
     if (previous) void releaseSlot(previous.server, previous.code, previous.token);
@@ -332,14 +376,20 @@ export async function previewParty(rawCode: string, serverUrl?: string | null): 
   if (!code) throw new PartyError('bad_code', `A party code is ${CODE_LENGTH} letters or digits.`);
   refuseIfRecentlyKicked(code);
   const base = sanitizeServerUrl(serverUrl) ?? idleServer();
+  requireServer(base);
+
   try {
-    requireServer(base);
-    await wakeServerIfAsleep(base);
-    return await request<PartyPreview>(`${base}/api/parties/${code}/preview`);
+    return await request<PartyPreview>(`${base}/api/parties/${code}/preview`, {}, 12_000);
   } catch (error) {
-    // A server that predates /preview answers its router's plain-text 404: still joinable.
+    if (error instanceof PartyError && (error.code === 'no_such_party' || error.status === 404)) {
+      throw error;
+    }
     if (error instanceof PartyError && error.code === 'http_404') {
       return { code, hostName: '', memberCount: 0, maxMembers: 5, isFull: false, members: [] };
+    }
+    if (base === DEFAULT_SERVER) {
+      await wakeServerIfAsleep(base);
+      return await request<PartyPreview>(`${base}/api/parties/${code}/preview`, {}, 15_000);
     }
     throw error;
   }

@@ -122,6 +122,7 @@ void apply(const Update& update) {
 
     auto updater = g_controls.DisplayUpdater();
     updater.Type(MediaPlaybackType::Music);
+    updater.AppMediaId(L"Violence");
     auto music = updater.MusicProperties();
     music.Title(update.title);
     music.Artist(update.artist);
@@ -162,6 +163,15 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
 }
 
 void pump() {
+    typedef HRESULT (WINAPI *pfnSetCurrentProcessExplicitAppUserModelID)(PCWSTR);
+    HMODULE shell = GetModuleHandleW(L"shell32.dll");
+    if (!shell) shell = LoadLibraryW(L"shell32.dll");
+    if (shell) {
+        auto pfn = reinterpret_cast<pfnSetCurrentProcessExplicitAppUserModelID>(
+            GetProcAddress(shell, "SetCurrentProcessExplicitAppUserModelID"));
+        if (pfn) pfn(L"Violence");
+    }
+
     init_apartment(apartment_type::single_threaded);
     g_thread_id = GetCurrentThreadId();
 
