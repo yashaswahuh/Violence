@@ -113,11 +113,18 @@ fun LastfmLoginAlert(
     onUsernameInputChange: (String) -> Unit,
     passwordInput: String,
     onPasswordInputChange: (String) -> Unit,
+    apiKeyInput: String = "",
+    onApiKeyInputChange: (String) -> Unit = {},
+    apiSecretInput: String = "",
+    onApiSecretInputChange: (String) -> Unit = {},
     error: String?,
     loading: Boolean,
     onSignIn: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var showCustomKeys by remember {
+        mutableStateOf(apiKeyInput.isNotBlank() || apiSecretInput.isNotBlank())
+    }
     AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
         Column(
             modifier = Modifier
@@ -152,11 +159,57 @@ fun LastfmLoginAlert(
                 placeholder = stringResource(R.string.password),
                 enabled = !loading,
                 isPassword = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = if (showCustomKeys) ImeAction.Next else ImeAction.Done,
+                ),
                 keyboardActions = KeyboardActions(
                     onDone = { if (usernameInput.isNotBlank() && passwordInput.isNotBlank()) onSignIn() },
                 ),
             )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { showCustomKeys = !showCustomKeys }
+                    .padding(vertical = 4.dp, horizontal = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.custom_api_credentials_optional),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = if (showCustomKeys) "−" else "+",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            if (showCustomKeys) {
+                Spacer(Modifier.height(6.dp))
+                PillTextField(
+                    value = apiKeyInput,
+                    onValueChange = onApiKeyInputChange,
+                    placeholder = stringResource(R.string.lastfm_api_key_optional),
+                    enabled = !loading,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                )
+                Spacer(Modifier.height(8.dp))
+                PillTextField(
+                    value = apiSecretInput,
+                    onValueChange = onApiSecretInputChange,
+                    placeholder = stringResource(R.string.lastfm_shared_secret_optional),
+                    enabled = !loading,
+                    isPassword = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (usernameInput.isNotBlank() && passwordInput.isNotBlank()) onSignIn() },
+                    ),
+                )
+            }
         }
         AlertRule()
         AlertAction(
@@ -171,6 +224,79 @@ fun LastfmLoginAlert(
             emphasised = false,
             onClick = onDismiss,
             enabled = !loading,
+        )
+    }
+}
+
+@OptIn(ExperimentalHazeMaterialsApi::class)
+@Composable
+fun LastfmApiKeyAlert(
+    hazeState: HazeState,
+    apiKeyInput: String,
+    onApiKeyInputChange: (String) -> Unit,
+    apiSecretInput: String,
+    onApiSecretInputChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 19.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.lastfm_custom_api_key),
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.W600),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = stringResource(R.string.lastfm_custom_api_key_description),
+                modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            PillTextField(
+                value = apiKeyInput,
+                onValueChange = onApiKeyInputChange,
+                placeholder = stringResource(R.string.lastfm_api_key_optional),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            )
+            Spacer(Modifier.height(8.dp))
+            PillTextField(
+                value = apiSecretInput,
+                onValueChange = onApiSecretInputChange,
+                placeholder = stringResource(R.string.lastfm_shared_secret_optional),
+                isPassword = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onSave() }),
+            )
+        }
+        AlertRule()
+        AlertAction(
+            label = stringResource(R.string.save),
+            emphasised = true,
+            onClick = onSave,
+            enabled = true,
+        )
+        if (apiKeyInput.isNotBlank() || apiSecretInput.isNotBlank()) {
+            AlertRule()
+            AlertAction(
+                label = stringResource(R.string.clear),
+                emphasised = false,
+                destructive = true,
+                onClick = onClear,
+            )
+        }
+        AlertRule()
+        AlertAction(
+            label = stringResource(R.string.cancel),
+            emphasised = false,
+            onClick = onDismiss,
         )
     }
 }

@@ -318,11 +318,11 @@ open class DiscordWebSocket(
     }
 
     open fun Payload.handleDispatch() {
-        when (this.t.toString()) {
+        when (this.t) {
             "READY" -> {
                 val ready = json.decodeFromJsonElement<Ready>(this.d!!)
                 sessionId = ready.sessionId
-                resumeGatewayUrl = ready.resumeGatewayUrl + "/?v=9&encoding=json"
+                resumeGatewayUrl = ready.resumeGatewayUrl?.let { "${it.removeSuffix("/")}/?v=9&encoding=json" }
                 logger.info(
                     "Gateway READY: resume_gateway_url updated to $resumeGatewayUrl, " +
                         "session_id updated to $sessionId",

@@ -45,6 +45,7 @@ fun AccountAndScrobblingScreen(
     onSignOut: () -> Unit,
     onOpenListenBrainzLogin: () -> Unit,
     onOpenLastfmLogin: () -> Unit,
+    onOpenLastfmApiKey: () -> Unit = {},
     onOpenDiscord: () -> Unit,
     onOpenSpotify: () -> Unit,
     contentPadding: PaddingValues,
@@ -256,6 +257,14 @@ fun AccountAndScrobblingScreen(
                             )
                         },
                         onClick = { AppSettings.setLastfmNowPlaying(!lastfmNowPlayingEnabled) },
+                    )
+                    RowDivider()
+                    val hasCustomKey = AppSettings.hasCustomLastfmKey
+                    SettingsRow(
+                        icon = SfIcons.Key,
+                        title = stringResource(R.string.lastfm_custom_api_key),
+                        subtitle = if (hasCustomKey) stringResource(R.string.using_custom_api_key) else stringResource(R.string.using_default_api_key),
+                        onClick = onOpenLastfmApiKey,
                     )
                 }
             }

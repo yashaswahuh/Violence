@@ -2136,6 +2136,8 @@ fun SettingsScreen(
     if (showLastfmLoginDialog) {
         var usernameInput by remember { mutableStateOf("") }
         var passwordInput by remember { mutableStateOf("") }
+        var apiKeyInput by remember { mutableStateOf(AppSettings.customLastfmApiKey()) }
+        var apiSecretInput by remember { mutableStateOf(AppSettings.customLastfmSecret()) }
         var lastfmError by remember { mutableStateOf<String?>(null) }
         var lastfmLoading by remember { mutableStateOf(false) }
         GlassAlertDialog(
@@ -2166,6 +2168,22 @@ fun SettingsScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = apiKeyInput,
+                        onValueChange = { apiKeyInput = it },
+                        label = { Text(stringResource(R.string.lastfm_api_key_optional)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = apiSecretInput,
+                        onValueChange = { apiSecretInput = it },
+                        label = { Text(stringResource(R.string.lastfm_shared_secret_optional)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             },
             confirmButton = {
@@ -2175,13 +2193,16 @@ fun SettingsScreen(
                         lastfmError = null
                         scrobbleScope.launch {
                             try {
-                                // Use the credentials supplied for this build.
+                                val keyToUse = apiKeyInput.trim().ifBlank { AppSettings.lastfmApiKey.value }
+                                val secretToUse = apiSecretInput.trim().ifBlank { AppSettings.lastfmSecret.value }
                                 LastFM.initialize(
-                                    apiKey = AppSettings.lastfmApiKey.value,
-                                    secret = AppSettings.lastfmSecret.value,
+                                    apiKey = keyToUse,
+                                    secret = secretToUse,
                                 )
                                 LastFM.getMobileSession(usernameInput.trim(), passwordInput)
                                     .onSuccess { auth ->
+                                        AppSettings.setLastfmApiKey(apiKeyInput.trim())
+                                        AppSettings.setLastfmSecret(apiSecretInput.trim())
                                         AppSettings.setLastfmSessionKey(auth.session.key)
                                         AppSettings.setLastfmUsername(auth.session.name)
                                         AppSettings.setLastfmEnabled(true)

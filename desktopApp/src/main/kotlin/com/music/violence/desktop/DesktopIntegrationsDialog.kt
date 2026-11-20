@@ -435,6 +435,14 @@ private fun ScrobblingSection(onOpenLastfm: () -> Unit, onOpenListenBrainz: () -
                 checked = nowPlaying,
                 onCheckedChange = DesktopScrobbleSettings::setLastfmNowPlaying,
             )
+            DesktopCardRule()
+            val hasCustomKey = DesktopScrobbleSettings.lastfmApiKey.collectAsState().value.isNotBlank()
+            PanelActionRow(
+                title = "API credentials",
+                subtitle = if (hasCustomKey) "Using custom API key (click to change)" else "Using built-in API key (click to change)",
+                destructive = false,
+                onClick = onOpenLastfm,
+            )
         }
     }
 

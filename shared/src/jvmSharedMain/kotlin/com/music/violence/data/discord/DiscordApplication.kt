@@ -24,6 +24,11 @@ object DiscordApplication {
      */
     const val LOGO_URL = "https://cdn.discordapp.com/app-assets/1566782172302413885/1566796182469091338.png"
 
+    /**
+     * Asset ID in Violence's Discord application for the logo.
+     */
+    const val LOGO_ASSET_ID = "1566796182469091338"
+
     /** Discord refuses a button label longer than this. */
     const val BUTTON_LABEL_MAX = 32
 }

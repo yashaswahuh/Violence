@@ -242,6 +242,12 @@ fun DiscordScreen(
             )
         }
 
+        if (connected) {
+            NoticeCard(
+                text = stringResource(R.string.discord_activity_privacy_notice),
+            )
+        }
+
         SettingsGroup(
             header = stringResource(R.string.rich_presence),
             footer = stringResource(R.string.discord_presence_footer),
@@ -495,7 +501,7 @@ private fun DiscordAccountCard(
 
 /** A one-off explanation with its own dismiss, shaped like a settings group. */
 @Composable
-private fun NoticeCard(text: String, onDismiss: () -> Unit) {
+private fun NoticeCard(text: String, onDismiss: (() -> Unit)? = null) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -508,23 +514,25 @@ private fun NoticeCard(text: String, onDismiss: () -> Unit) {
                 .fillMaxWidth()
                 .clip(GroupShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = if (onDismiss != null) 4.dp else 14.dp),
         ) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                text = stringResource(R.string.got_it),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onDismiss)
-                    .padding(horizontal = 8.dp, vertical = 10.dp),
-            )
+            if (onDismiss != null) {
+                Text(
+                    text = stringResource(R.string.got_it),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onDismiss)
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                )
+            }
         }
     }
 }

@@ -25,6 +25,9 @@ suspend fun fetchExternalAsset(
     superPropertiesBase64: String? = null,
 ): String? {
     if (imageUrl.startsWith("mp:")) return imageUrl
+    if (imageUrl.contains("cdn.discordapp.com/app-assets/")) {
+        return imageUrl.substringAfterLast("/").substringBefore(".")
+    }
     val api = "https://discord.com/api/v9/applications/$applicationId/external-assets"
     return runCatching {
         val response = client.post(api) {
