@@ -1,17 +1,26 @@
 # Violence for Wear OS
 
-A watch remote for the Violence phone app, in Material 3 Expressive: now
-playing over a blurred copy of the cover that fills the screen, controls in the
-song's own accent colour, a wavy progress line along the bezel that ripples
-while music plays and goes flat on pause, a play button that morphs between a
-circle and a rounded square (hold it to seek), skip, Love where the phone offers
-it, Up Next, shuffle, repeat, the phone's volume on the crown or bezel, an
-outline-only always-on player (the V logo big in the accent colour, a ring, title, time), and an
-Output picker covering the phone's outputs and **this watch**. Lists use
-`TransformingLazyColumn` and M3 buttons; the connection screens use `EdgeButton`.
-The blurred cover is made once per track on the watch (`PhoneLink.blurred`, a
-64 px box blur drawn scaled up), so it needs no GPU blur and works on every
-Wear OS version this app supports.
+A watch remote for the Violence phone app, in the Pixel Watch's Material 3
+Expressive layout. Now playing sits over the cover, only lightly blurred so the
+picture stays readable, with every control in tones taken from the song: a
+scalloped "cookie" play button (a circle when paused) with a wavy progress ring
+round it that ripples while music plays, tall previous and next pills, and
+glass Output (with the crown-volume badge) and More pills. Hold the play button
+to scrub; the crown or bezel is the phone's volume. Up Next, Shuffle, Repeat and
+Love are in More; the Output picker covers the phone's outputs and **this
+watch**. The always-on screen is black and outline-led (about 9% of pixels
+lit): a big time, the V logo inside a cookie outline in the song's accent, the
+title, artist and elapsed time, and a hairline ring with a wavy arc for
+progress. Lists use `TransformingLazyColumn` and M3 buttons; the connection
+screens use `EdgeButton`.
+
+The accent engine (`ui/Accent.kt`) picks the most colourful of the four colours
+the phone sends and builds the palette from that one hue as OKLCH tones, so the
+dark glyph on a pastel button always has the same contrast. A grey cover falls
+back to Violence violet. The soft cover is made once per track on the watch
+(`PhoneLink.blurred`, a 160 px copy with one small box blur, drawn scaled up),
+so it needs no GPU blur and works on every Wear OS version this app supports.
+Mock-ups: `fork-docs/wearos-mockups/`.
 
 The watch is never a second player with a queue of its own. As the speaker it
 is a receiver, exactly like a Cast device: the phone keeps the queue (paused)

@@ -427,23 +427,22 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) :
     }
 }
 
-private const val BLUR_SIDE = 64
-private const val BLUR_RADIUS = 3
+private const val BLUR_SIDE = 160
+private const val BLUR_RADIUS = 2
 
 /**
- * A blur that needs no GPU: shrink the cover to a tiny bitmap, smooth it with
- * two box-blur passes, and let the Image scale it back up (bilinear) when it
- * is drawn. Runs once per cover, off the main thread.
+ * A light blur that needs no GPU: shrink the cover to 160 px, smooth it with
+ * one small box-blur pass, and let the Image scale it back up (bilinear) when
+ * it is drawn. Light on purpose: the picture should stay recognisable behind
+ * the controls. Runs once per cover, off the main thread.
  */
 private fun blurred(src: Bitmap): ImageBitmap {
     val side = BLUR_SIDE
     val small = Bitmap.createScaledBitmap(src, side, side, true).copy(Bitmap.Config.ARGB_8888, true)
     val px = IntArray(side * side)
     small.getPixels(px, 0, side, 0, 0, side, side)
-    repeat(2) {
-        boxBlur(px, side, horizontal = true)
-        boxBlur(px, side, horizontal = false)
-    }
+    boxBlur(px, side, horizontal = true)
+    boxBlur(px, side, horizontal = false)
     small.setPixels(px, 0, side, 0, 0, side, side)
     return small.asImageBitmap()
 }

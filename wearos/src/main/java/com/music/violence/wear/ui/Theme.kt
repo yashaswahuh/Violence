@@ -2,13 +2,11 @@ package com.music.violence.wear.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.ColorUtils
 import androidx.wear.compose.material3.ColorScheme
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.MotionScheme
@@ -50,26 +48,6 @@ val CellEdge = Color.White.copy(alpha = 0.07f)
 
 /** A glass fill for controls that sit on the blurred cover. */
 val Glass = Color.White.copy(alpha = 0.16f)
-
-/**
- * The song's own accent: the first colour the phone's player took from the
- * cover, pushed to a light, saturated tone so it reads on the dark blurred
- * backdrop. Voltage's light tone when the phone sent none.
- */
-fun accentFor(colors: List<Color>): Color {
-    val base = colors.firstOrNull() ?: return VoltageText
-    val hsl = FloatArray(3)
-    ColorUtils.colorToHSL(base.toArgb(), hsl)
-    // A grey cover has no hue worth keeping.
-    if (hsl[1] < 0.12f) return VoltageText
-    hsl[1] = hsl[1].coerceIn(0.55f, 1f)
-    hsl[2] = 0.70f
-    return Color(ColorUtils.HSLToColor(hsl))
-}
-
-/** Dark or white, whichever reads on [accent]. */
-fun onAccent(accent: Color): Color =
-    if (ColorUtils.calculateLuminance(accent.toArgb()) > 0.42) Color(0xFF14101F) else Color.White
 
 object WearType {
     /** The track title on the player: big and heavy, the expressive way. */

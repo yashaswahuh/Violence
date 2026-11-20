@@ -135,9 +135,9 @@ private fun TransformingLazyColumnItemScope.QueueButton(
     )
 }
 
-/** Shuffle, repeat and love, with the state each is in on the phone. */
+/** Up Next, output, shuffle, repeat and love, with the state each is in on the phone. */
 @Composable
-fun MoreScreen(np: NowPlaying?, link: PhoneLink, onOpenOutput: () -> Unit) {
+fun MoreScreen(np: NowPlaying?, link: PhoneLink, onOpenQueue: () -> Unit, onOpenOutput: () -> Unit) {
     val state = rememberTransformingLazyColumnState()
     val spec = rememberTransformationSpec()
     val onWatch by link.watchSpeaker.collectAsStateWithLifecycle()
@@ -148,6 +148,16 @@ fun MoreScreen(np: NowPlaying?, link: PhoneLink, onOpenOutput: () -> Unit) {
             modifier = Modifier.background(Color.Black),
         ) {
             item(key = "header") { Header(stringResource(R.string.more), spec) }
+            item(key = "queue") {
+                ToggleRow(
+                    icon = R.drawable.ic_queue,
+                    label = stringResource(R.string.up_next),
+                    value = null,
+                    on = false,
+                    spec = spec,
+                    onClick = onOpenQueue,
+                )
+            }
             item(key = "output") {
                 ToggleRow(
                     icon = if (onWatch) R.drawable.ic_watch else R.drawable.ic_phone,

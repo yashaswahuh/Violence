@@ -55,8 +55,9 @@ fun WearApp(link: PhoneLink) {
     val ambient = LocalAmbient.current
     val np by link.nowPlaying.collectAsStateWithLifecycle()
     val showAmbient = ambient.active && np != null
-    // No pill behind the clock: the mesh runs right up to the bezel.
-    AppScaffold(timeText = { TimeText(backgroundColor = Color.Transparent) }) {
+    // No pill behind the clock: the cover runs right up to the bezel. In ambient
+    // mode the always-on screen draws its own, bigger time, so this one is hidden.
+    AppScaffold(timeText = { if (!showAmbient) TimeText(backgroundColor = Color.Transparent) }) {
         // Kept composed under the ambient player so waking up lands exactly
         // where it was. Alpha 0 is skipped at draw time, so it costs nothing
         // while the always-on screen is up.
@@ -65,7 +66,7 @@ fun WearApp(link: PhoneLink) {
             composable(PLAYER) {
                 PlayerRoute(
                     link = link,
-                    openQueue = { nav.navigate(QUEUE) },
+                    openOutput = { nav.navigate(OUTPUT) },
                     openMore = { nav.navigate(MORE) },
                 )
             }
@@ -82,7 +83,12 @@ fun WearApp(link: PhoneLink) {
                 )
             }
             composable(MORE) {
-                MoreScreen(np = np, link = link, onOpenOutput = { nav.navigate(OUTPUT) })
+                MoreScreen(
+                    np = np,
+                    link = link,
+                    onOpenQueue = { nav.navigate(QUEUE) },
+                    onOpenOutput = { nav.navigate(OUTPUT) },
+                )
             }
             composable(OUTPUT) {
                 // Straight back to the player once a choice is made.
@@ -95,7 +101,7 @@ fun WearApp(link: PhoneLink) {
 }
 
 @Composable
-private fun PlayerRoute(link: PhoneLink, openQueue: () -> Unit, openMore: () -> Unit) {
+private fun PlayerRoute(link: PhoneLink, openOutput: () -> Unit, openMore: () -> Unit) {
     val state by link.link.collectAsStateWithLifecycle()
     val heard by link.heard.collectAsStateWithLifecycle()
     val np by link.nowPlaying.collectAsStateWithLifecycle()
@@ -106,10 +112,9 @@ private fun PlayerRoute(link: PhoneLink, openQueue: () -> Unit, openMore: () -> 
             togglePlay = link::togglePlay,
             next = link::next,
             previous = link::previous,
-            toggleLike = link::toggleLike,
             volume = link::adjustVolume,
             seekTo = link::seekTo,
-            openQueue = openQueue,
+            openOutput = openOutput,
             openMore = openMore,
         )
     }
