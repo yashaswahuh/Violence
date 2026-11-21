@@ -1804,6 +1804,48 @@ fun SettingsScreen(
                     onClick = { AppSettings.setShowNerdStats(!nerdStats) },
                 )
             }
+            val universalLinksTitle = stringResource(R.string.universal_links_title)
+            row(universalLinksTitle, "links", "apple music", "spotify", "deezer", "open", "universal", "share", "experimental") {
+                val linkContext = LocalContext.current
+                var linksOn by remember { mutableStateOf(com.music.violence.share.UniversalLinks.isEnabled(linkContext)) }
+                var approval by remember { mutableStateOf(com.music.violence.share.UniversalLinks.approval(linkContext)) }
+                // Coming back from the system page: count the approved addresses again.
+                val linkLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+                androidx.compose.runtime.DisposableEffect(linkLifecycle) {
+                    val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                        if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                            approval = com.music.violence.share.UniversalLinks.approval(linkContext)
+                        }
+                    }
+                    linkLifecycle.addObserver(observer)
+                    onDispose { linkLifecycle.removeObserver(observer) }
+                }
+                val setLinks: (Boolean) -> Unit = { on ->
+                    com.music.violence.share.UniversalLinks.setEnabled(linkContext, on)
+                    linksOn = on
+                    // Turning it on is only half of it on Android 12+: the addresses still have to be approved.
+                    if (on) com.music.violence.share.UniversalLinks.approvalSettingsIntent(linkContext)?.let {
+                        if ((approval?.first ?: 0) == 0) runCatching { linkContext.startActivity(it) }
+                    }
+                }
+                SettingsRow(
+                    icon = SfIcons.Share,
+                    title = universalLinksTitle,
+                    subtitle = stringResource(R.string.universal_links_subtitle),
+                    trailing = { IosSwitch(checked = linksOn, onCheckedChange = setLinks) },
+                    onClick = { setLinks(!linksOn) },
+                )
+                val allowIntent = com.music.violence.share.UniversalLinks.approvalSettingsIntent(linkContext)
+                if (linksOn && allowIntent != null) {
+                    SettingsRow(
+                        icon = SfIcons.Check,
+                        title = stringResource(R.string.universal_links_allow_title),
+                        subtitle = approval?.let { (done, all) -> stringResource(R.string.universal_links_allowed, done, all) }
+                            ?: stringResource(R.string.universal_links_allow_subtitle),
+                        onClick = { runCatching { linkContext.startActivity(allowIntent) } },
+                    )
+                }
+            }
             val unslopTitle = stringResource(R.string.unslop_title)
             row(unslopTitle, "unslop", "experimental", "glow", "flat", "clean", "ai", "gradient", "battery") {
                 SettingsRow(
