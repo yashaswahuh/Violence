@@ -1,6 +1,6 @@
 # Violence Web
 
-The web player and its companion browser extension. The plan, and the decisions behind it, are in [`docs/web-app-build-prompt.md`](../docs/web-app-build-prompt.md).
+The web player and its companion browser extension.
 
 | Package | What it is |
 |---|---|
