@@ -2,6 +2,7 @@ import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { PageHeader } from '@/components/PageHeader';
+import { appLink, tryAppOnce } from '@/share/openApp';
 import { PLAYLIST_WEB_PREFIX, parsePlaylistLink, playlistToAppUrl } from '@/share/playlistLinks';
 import { settingsUi } from './settingsStyles';
 
@@ -30,6 +31,16 @@ export default function PlaylistLandingPage() {
     return () => clearTimeout(t);
   }, [copied]);
 
+  // On Android, try the app once, falling back to the browser (YouTube Music for a YouTube playlist, this
+  // page for a list of songs that has no home elsewhere).
+  const fallback = parsed.ok && parsed.ref.kind === 'yt' && parsed.ref.id
+    ? `https://music.youtube.com/playlist?list=${encodeURIComponent(parsed.ref.id)}`
+    : webUrl;
+  const autoOpen = parsed.ok ? appLink(playlistToAppUrl(webUrl), fallback) : null;
+  useEffect(() => {
+    if (autoOpen) tryAppOnce(location.pathname + location.search, autoOpen);
+  }, [autoOpen, location.pathname, location.search]);
+
   if (!parsed.ok) {
     return (
       <div className={settingsUi.centered}>
@@ -50,14 +61,14 @@ export default function PlaylistLandingPage() {
           <p className={settingsUi.footer}>Someone shared a playlist with you</p>
           <p className="type-title-1-emphasized">{ref.title}</p>
           {ref.kind === 'songs' && <p className="type-body text-secondary">{ref.videoIds.length} songs</p>}
-          <a className={primary} href={playlistToAppUrl(webUrl)}>
+          <a className={primary} href={autoOpen ?? playlistToAppUrl(webUrl)}>
             <ExternalLink size={18} />
             Open in Violence app
           </a>
           {ref.kind === 'yt' && ref.id && (
             <a className={secondary} href={`https://music.youtube.com/playlist?list=${encodeURIComponent(ref.id)}`} target="_blank" rel="noreferrer">
               <ExternalLink size={18} />
-              Open on YouTube Music
+              Open in browser (YouTube Music)
             </a>
           )}
           <button className={secondary} onClick={() => void navigator.clipboard.writeText(webUrl).then(() => setCopied(true))}>
@@ -66,7 +77,8 @@ export default function PlaylistLandingPage() {
           </button>
         </div>
         <p className={settingsUi.footer}>
-          The button opens the playlist in the Violence Android app. Nothing plays or is saved until you choose to.
+          On Android the playlist opens in the Violence app if you have it, and in the browser if you do not. Nothing plays or is saved
+          until you choose to.
         </p>
       </div>
     </div>

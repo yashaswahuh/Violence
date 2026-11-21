@@ -4,8 +4,6 @@ import android.app.SearchManager
 import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
-import com.music.violence.data.share.StreamingLink
-import com.music.violence.data.share.StreamingLinks
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,13 +25,6 @@ sealed interface LinkRequest {
      * show you.
      */
     data class Search(val query: String, val play: Boolean) : LinkRequest
-
-    /**
-     * A link from another music service (Apple Music, Spotify, Deezer, SoundCloud). The song is named by that
-     * service, so it has to be asked what it is called before Violence can find it: see
-     * [com.music.violence.share.UniversalLinks.resolve].
-     */
-    data class Streaming(val link: StreamingLink) : LinkRequest
 
     /** "Play music", with nothing said about what. */
     data object Resume : LinkRequest
@@ -86,12 +77,9 @@ object MusicLink {
             Intent.ACTION_VIEW -> intent.data?.let { uri ->
                 if (uri.scheme == "content" || uri.scheme == "file") LinkRequest.LocalFile(uri) else parse(uri)
             }
-            // Shared text: another service's link first (it may be a bare `spotify:track:` uri, which
-            // `firstUrl` would miss), then whatever YouTube link is in it.
-            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
-                StreamingLinks.extract(text)?.let(LinkRequest::Streaming)
-                    ?: firstUrl(text)?.let { parse(Uri.parse(it)) }
-            }
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+                ?.let(::firstUrl)
+                ?.let { parse(Uri.parse(it)) }
             // The assistant's "play <something>". An empty query is the whole
             // point of the Resume case: "play music" names nothing, and the
             // useful answer is to carry on with what was already on.
@@ -129,8 +117,6 @@ object MusicLink {
      * as through the browser.
      */
     fun parse(uri: Uri): LinkRequest? {
-        // Apple Music, Spotify, Deezer and SoundCloud first: none of them is a YouTube host.
-        StreamingLinks.parse(uri.toString())?.let { return LinkRequest.Streaming(it) }
         val host = uri.host?.lowercase()?.removePrefix("www.") ?: return null
         val segments = uri.pathSegments.orEmpty()
         if (host == "youtu.be") {
