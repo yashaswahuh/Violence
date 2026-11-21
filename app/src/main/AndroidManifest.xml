@@ -73,15 +73,6 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
-    <!-- Which app would open a web link: lets Settings > Open music links in Violence say which app is in the way. -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="https" />
-        </intent>
-    </queries>
-
     <application
         android:name=".ViolenceApplication"
         android:allowBackup="true"
@@ -329,72 +320,6 @@
                 <data android:mimeType="application/x-flac" />
             </intent-filter>
         </activity>
-
-        <!--
-          Universal links (experimental): song links from Apple Music, Spotify and Deezer, tapped anywhere on
-          the phone. On an alias so that they are declared, and Violence is offered for them, only while the
-          person has turned "Open music links in Violence" on (see UniversalLinks); it is switched off by
-          default. The intent is delivered to MainActivity and read by MusicLink.
-
-          No autoVerify: Violence does not own these domains. On Android 12+ a web address opens an app only
-          if the person has approved it under Settings > Apps > Violence > Open by default, which the
-          setting links to. One filter per service, so a path of one is never matched under another's host.
-        -->
-        <activity-alias
-            android:name=".MusicLinksAlias"
-            android:enabled="false"
-            android:exported="true"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" />
-                <data android:host="music.apple.com" />
-                <data android:pathPattern="/.*/song/.*" />
-                <data android:pathPattern="/.*/album/.*" />
-                <data android:pathPrefix="/song/" />
-                <data android:pathPrefix="/album/" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" />
-                <data android:host="open.spotify.com" />
-                <data android:pathPrefix="/track/" />
-                <data android:pathPrefix="/album/" />
-                <data android:pathPattern="/intl-.*/track/.*" />
-                <data android:pathPattern="/intl-.*/album/.*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" />
-                <data android:host="spotify.link" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" />
-                <data android:host="www.deezer.com" />
-                <data android:host="deezer.com" />
-                <data android:pathPrefix="/track/" />
-                <data android:pathPrefix="/album/" />
-                <data android:pathPattern="/.*/track/.*" />
-                <data android:pathPattern="/.*/album/.*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" />
-                <data android:host="link.deezer.com" />
-                <data android:host="deezer.page.link" />
-            </intent-filter>
-        </activity-alias>
 
         <!--
           The launcher entries live on aliases, not on MainActivity, so the user can

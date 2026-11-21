@@ -309,11 +309,11 @@ fun ShareSheet(item: ShareItem, onDismiss: () -> Unit, startWithQr: Boolean = fa
                     icon = Icons.Rounded.Link,
                     title = stringResource(R.string.share_via_apps),
                     onClick = {
-                        // The https link, which every chat app makes tappable: it opens Violence on a phone that
-                        // has it (once Android is told to open these links there), and a page that says what
-                        // the song is and offers it in the app on one that does not. The violence:// form is
-                        // not turned into a link by most chats, so it is left for NFC. A song goes with its
-                        // name above the link, so the message says what is being sent.
+                        // The https link, which every chat app makes tappable. Tapping it opens a page that, on
+                        // Android, opens the Violence app if the phone has it and the song in the browser if not,
+                        // with a button for each (see web/app SongLandingPage). The violence:// form is not
+                        // turned into a link by most chats, so it is left for NFC. A song goes with its name
+                        // above the link, so the message says what is being sent.
                         val name = (item as? ShareItem.SongItem)?.ref?.let { ref ->
                             listOfNotNull(ref.title, ref.artist).joinToString(" \u2014 ").ifBlank { null }
                         }
