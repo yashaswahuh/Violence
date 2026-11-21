@@ -156,8 +156,7 @@ private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
             StyleState(
                 enabled = true,
                 background = background,
-                // Unslop: nothing loops, so the background clock never starts and the rule never twinkles.
-                motion = if (unslop) StyleMotion.OFF else motion,
+                motion = motion,
                 intensity = intensity,
                 accentSource = source,
                 customColor = custom,
@@ -165,7 +164,7 @@ private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
                 // System high-contrast text also asks for solid surfaces (S6 accessibility fix).
                 reduceTransparency = StyleCapabilityRules.reduceTransparency(forcedTransparency, reduceDynamicBlur) ||
                     StyleSignals.isHighContrast(context),
-                detailGlow = detailGlow && !unslop,
+                detailGlow = detailGlow,
                 capability = StyleCapabilityRules.capability(lite),
                 liteReason = lite,
                 reduceMotion = reduceAnimation || StyleCapabilityRules.systemReducesMotion(StyleSignals.animatorScale(context)),
@@ -179,14 +178,7 @@ private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
         val tokens = remember(dayTokens, light) {
             if (light) dayTokens.copy(textAccent = dayTokens.textAccentOnLight) else dayTokens
         }
-        // Anton is a heavy display face, one of the signs Unslop looks for: while it is on, headings are set in
-        // Bodoni Moda instead, and the chosen font comes back when it is switched off.
-        val headingFamily = if (unslop && headingFont == StyleHeadingFont.ANTON) {
-            StyleHeadingFont.BODONI_MODA.family()
-        } else {
-            headingFont.family()
-        }
-        val headings = remember(headingFamily, unslop) { ViolenceHeadingStyles.build(headingFamily, unslop) }
+        val headings = remember(headingFont, unslop) { ViolenceHeadingStyles.build(headingFont.family(), unslop) }
         val shared = remember(tokens, headings, state.intensity, state.effectiveMotion, light, unslop) {
             ViolenceSharedStyle(
                 accent = Color(tokens.accent),
@@ -201,11 +193,7 @@ private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
                 label = headings.label,
                 motion = state.effectiveMotion != StyleMotion.OFF,
                 light = light,
-                ink = when {
-                    unslop -> Color(UnslopTokens.text(light))
-                    light -> LIGHT_INK
-                    else -> Color.White
-                },
+                ink = if (light) LIGHT_INK else Color.White,
                 unslop = unslop,
             )
         }

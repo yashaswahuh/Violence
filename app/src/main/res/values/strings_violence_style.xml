@@ -46,7 +46,7 @@
     <string name="vs_detail_glow">Glow on album and artist pages</string>
     <string name="vs_account_liquid_glass">Liquid Glass account menu</string>
     <string name="unslop_title">Unslop (experimental)</string>
-    <string name="unslop_subtitle">Takes the glow, the colour washes, the sparkle, the accent-tinted glass and everything that loops out of Violence Style. Pages sit on flat greys, headings are set in sentence case and rules are hairlines, and the song\'s colour is kept for the one thing that matters. Costs less battery. Needs Violence Style on.</string>
+    <string name="unslop_subtitle">A light polish over Violence Style: tidier copy (no exclamation marks, no stray full stops), lighter type weights, figures that line up, and spacing on a 4 dp grid. The glow, the glass and the headings stay exactly as they are. Needs Violence Style on.</string>
     <string name="vs_automix_cover">Automix cover animation</string>
     <string name="vs_automix_cover_subtitle">When Automix blends one song into the next, the cover art glides from the old song to the new one in time with the mix. Experimental.</string>
     <string name="vs_lyrics_quote">Quote design for lyrics and Replay cards (Test 1.0)</string>

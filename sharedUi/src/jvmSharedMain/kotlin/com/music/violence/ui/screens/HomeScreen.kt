@@ -87,7 +87,6 @@ import com.music.violence.ui.violencestyle.LocalViolenceShared
 import com.music.violence.ui.violencestyle.ViolenceCardScrim
 import com.music.violence.ui.violencestyle.ViolenceHeroCornerDp
 import com.music.violence.ui.violencestyle.ViolenceSectionHeader
-import com.music.violence.ui.violencestyle.heroCorner
 import com.music.violence.ui.violencestyle.violenceCardRim
 import com.music.violence.ui.components.RowMoreButton
 import com.music.violence.ui.components.PullToRefresh
@@ -509,15 +508,13 @@ fun CompactTrackRow(
 @Composable
 private fun HomeTitle(title: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp)) {
-        // The name as a wide-tracked wordmark in text (it was the ic_logo image). Under Unslop it is the plain
-        // name in the interface face: capitals with wide tracking are one of the signs of a template.
-        val unslop = LocalViolenceShared.current?.unslop == true
+        // The name as a wide-tracked wordmark in text (it was the ic_logo image).
         Text(
-            text = if (unslop) "Violence" else "VIOLENCE",
+            text = "VIOLENCE",
             style = MaterialTheme.typography.titleLarge.copy(
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Medium,
-                letterSpacing = if (unslop) 0.em else 0.42.em,
+                letterSpacing = 0.42.em,
             ),
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
@@ -804,7 +801,7 @@ private fun HeroCard(
     isPlaying: Boolean = false,
 ) {
     val violence = LocalViolenceShared.current
-    val cardShape = RoundedCornerShape(violence?.heroCorner() ?: 18.dp)
+    val cardShape = RoundedCornerShape(if (violence != null) ViolenceHeroCornerDp else 18.dp)
     Box(
         modifier = modifier
             .aspectRatio(HERO_CARD_RATIO)

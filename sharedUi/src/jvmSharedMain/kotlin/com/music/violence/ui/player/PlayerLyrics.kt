@@ -2082,12 +2082,11 @@ internal fun LyricsPanel(
                             .background(Color.White.copy(alpha = 0.14f))
                             .padding(horizontal = 11.dp, vertical = 4.dp),
                     ) {
-                        val calm = com.music.violence.ui.violencestyle.LocalViolenceShared.current?.unslop == true
                         Text(
-                            text = if (calm) sectionTitle else sectionTitle.uppercase(),
+                            text = sectionTitle.uppercase(),
                             style = MaterialTheme.typography.labelMedium.copy(
-                                letterSpacing = if (calm) 0.sp else 1.3.sp,
-                                fontWeight = if (calm) FontWeight.Medium else FontWeight.Bold,
+                                letterSpacing = 1.3.sp,
+                                fontWeight = FontWeight.Bold,
                                 fontSize = 11.5.sp,
                             ),
                             color = Color.White.copy(alpha = 0.9f),

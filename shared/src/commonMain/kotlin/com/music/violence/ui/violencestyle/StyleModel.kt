@@ -59,8 +59,8 @@ data class StyleState(
     /** System high-contrast text, where the device exposes it. */
     val highContrast: Boolean,
     /**
-     * Unslop (experimental): the style without its glow, washes, sparkle, accent-tinted glass and looping
-     * motion. Only ever true while [enabled]; see [UnslopTokens].
+     * Unslop (experimental), polish only: tidier copy, lighter weights, figures that line up, spacing on a
+     * 4 dp grid. The look of the style (glow, glass, headings) is untouched. See [UnslopCopy].
      */
     val unslop: Boolean = false,
 ) {

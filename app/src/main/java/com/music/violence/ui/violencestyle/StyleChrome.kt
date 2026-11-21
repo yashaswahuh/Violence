@@ -47,15 +47,13 @@ fun violenceGlassTint(): Color? {
     val accent = LocalViolenceAccent.current.accent
     val solid = LocalViolenceStyle.current.reduceTransparency
     val light = LocalViolenceLight.current
-    val unslop = LocalViolenceStyle.current.unslop
-    return remember(accent, solid, light, unslop) {
+    return remember(accent, solid, light) {
         val alpha = when {
             solid -> ViolenceGlassColors.SOLID_TINT_ALPHA
             light -> ViolenceChromeColors.TINT_ALPHA_LIGHT
             else -> ViolenceChromeColors.TINT_ALPHA
         }
-        // Unslop: the glass takes a surface step of the grey ramp, not a tint of the song's colour.
-        if (unslop) Color(AccentMath.withAlpha(UnslopTokens.card(light), alpha)) else Color(ViolenceChromeColors.tint(accent, alpha, light))
+        Color(ViolenceChromeColors.tint(accent, alpha, light))
     }
 }
 
@@ -69,10 +67,6 @@ fun Modifier.violenceGlassEdge(shape: Shape, width: Dp, color: Color): Modifier 
     if (!LocalViolenceStyle.current.enabled) return border(width, color, shape)
     val tokens = LocalViolenceAccent.current
     val light = LocalViolenceLight.current
-    if (LocalViolenceStyle.current.unslop) {
-        // A hairline in the text colour at 8 percent: no top light, no coloured bottom.
-        return border(0.5.dp, Color(UnslopTokens.text(light)).copy(alpha = UnslopTokens.HAIRLINE_ALPHA), shape)
-    }
     val brush = remember(tokens.accent, tokens.neutral, light) {
         if (light) {
             // On the light page a dark hairline reads; a white one would vanish.

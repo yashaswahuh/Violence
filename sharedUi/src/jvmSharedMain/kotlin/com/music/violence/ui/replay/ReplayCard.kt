@@ -105,13 +105,8 @@ fun ReplayCreditCard(
     // Violence Style: every card is lit by the app accent instead of its own cover, so the cards and the app
     // agree (the covers differ card to card). Style off: the cover's own palette, as before.
     val violence = LocalViolenceShared.current
-    // Under Unslop the cards keep their own cover colours: an accent mesh over every card is a wash, and the
-    // cover is the one bright thing on the card.
-    val accentCards = violence != null && !violence.unslop
-    // The small labels on a card are set in sentence case, at weight 500 and without tracking.
-    val calm = violence?.unslop == true
-    val artworkPalette = rememberArtworkColors(if (accentCards) null else artworkUrl)
-    val palette = if (accentCards && violence != null) MeshPalette(violenceReplayColors(violence)) else artworkPalette
+    val artworkPalette = rememberArtworkColors(if (violence != null) null else artworkUrl)
+    val palette = if (violence != null) MeshPalette(violenceReplayColors(violence)) else artworkPalette
     Box(
         modifier = modifier
             .aspectRatio(CARD_RATIO)
@@ -148,10 +143,10 @@ fun ReplayCreditCard(
             // a card and an advert.
             Row(verticalAlignment = Alignment.Top) {
                 Text(
-                    text = stringResource(Res.string.your_listening_experience).let { if (calm) it else it.uppercase(Locale.getDefault()) },
+                    text = stringResource(Res.string.your_listening_experience).uppercase(Locale.getDefault()),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (calm) FontWeight.W500 else FontWeight.W700,
-                    letterSpacing = if (calm) 0.sp else 1.4.sp,
+                    fontWeight = FontWeight.W700,
+                    letterSpacing = 1.4.sp,
                     lineHeight = 13.sp,
                     color = Color.White.copy(alpha = 0.72f),
                     modifier = Modifier.weight(1f),
@@ -180,10 +175,10 @@ fun ReplayCreditCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = if (calm) label else label.uppercase(Locale.ROOT),
+                text = label.uppercase(Locale.ROOT),
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = if (calm) FontWeight.W500 else FontWeight.W700,
-                letterSpacing = if (calm) 0.sp else 1.8.sp,
+                fontWeight = FontWeight.W700,
+                letterSpacing = 1.8.sp,
                 color = Color.White.copy(alpha = 0.65f),
             )
 
@@ -212,11 +207,11 @@ fun ReplayCreditCard(
                     Spacer(Modifier.width(10.dp))
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = stringResource(Res.string.member_since).let { if (calm) it else it.uppercase(Locale.getDefault()) },
+                            text = stringResource(Res.string.member_since).uppercase(Locale.getDefault()),
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 7.sp,
                             lineHeight = 8.sp,
-                            letterSpacing = if (calm) 0.sp else 0.8.sp,
+                            letterSpacing = 0.8.sp,
                             color = Color.White.copy(alpha = 0.55f),
                             // Both lines to the right edge, not just the block.
                             // Column alignment places the text *box*; inside it

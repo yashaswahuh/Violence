@@ -73,8 +73,6 @@ fun PillSegmentedControl(
     val trackColor = TRACK_FILL.copy(alpha = if (light) LIGHT_TRACK_ALPHA else DARK_TRACK_ALPHA)
     val violence = com.music.violence.ui.violencestyle.LocalViolenceShared.current
     val pillColor = when {
-        // Unslop: the selected segment is a step of the grey ramp, with no accent mixed into it.
-        violence != null && violence.unslop -> Color(com.music.violence.ui.violencestyle.UnslopTokens.raised(light))
         violence != null -> com.music.violence.ui.violencestyle.violencePillColor(DARK_PILL, violence.accent)
         light -> Color.White
         else -> DARK_PILL

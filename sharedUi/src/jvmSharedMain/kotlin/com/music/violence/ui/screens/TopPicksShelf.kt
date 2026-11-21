@@ -116,7 +116,6 @@ import com.music.violence.ui.violencestyle.LocalViolenceShared
 import com.music.violence.ui.violencestyle.ViolenceCardScrim
 import com.music.violence.ui.violencestyle.ViolenceHeroCornerDp
 import com.music.violence.ui.violencestyle.ViolenceSectionHeader
-import com.music.violence.ui.violencestyle.heroCorner
 import com.music.violence.ui.violencestyle.violenceCardRim
 import com.music.violence.ui.components.rememberBlurredBackdrop
 import com.music.violence.ui.components.ShelfRow
@@ -247,7 +246,7 @@ fun LazyListScope.topPicksSkeleton() {
                     items(2) {
                         ShimmerBox(
                             modifier = Modifier.width(cardWidth).aspectRatio(TOP_PICK_RATIO),
-                            shape = LocalViolenceShared.current?.let { RoundedCornerShape(it.heroCorner()) } ?: TopPickShape,
+                            shape = if (LocalViolenceShared.current != null) RoundedCornerShape(ViolenceHeroCornerDp) else TopPickShape,
                         )
                     }
                 }
@@ -319,7 +318,7 @@ private fun TopPickCard(
 ) {
     val text = cardText(pick, listenerName)
     val violence = LocalViolenceShared.current
-    val shape = if (violence != null) RoundedCornerShape(violence.heroCorner()) else TopPickShape
+    val shape = if (violence != null) RoundedCornerShape(ViolenceHeroCornerDp) else TopPickShape
     val longPress = onLongPress?.let { { it(pick) } }
     Box(
         modifier = modifier

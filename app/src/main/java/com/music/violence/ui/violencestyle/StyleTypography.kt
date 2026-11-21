@@ -99,21 +99,18 @@ class ViolenceHeadingStyles(
         const val headingFontScaleCap = 1.3f
 
         fun build(font: FontFamily, unslop: Boolean = false): ViolenceHeadingStyles {
-            // Unslop: no tracking on text under 40 sp (it is for large display type only), and the
-            // heading lines sit on the 4 dp grid.
             val display = TextStyle(
                 fontFamily = font,
                 fontWeight = FontWeight.W400,
                 fontSize = 36.sp,
                 lineHeight = 40.sp,
-                letterSpacing = if (unslop) 0.em else 0.01.em,
+                letterSpacing = 0.01.em,
             )
-            val smallTracking = if (unslop) 0.em else 0.02.em
             return ViolenceHeadingStyles(
                 displayCaps = display,
                 displayItalic = display.copy(fontStyle = FontStyle.Italic),
-                sectionCaps = display.copy(fontSize = 24.sp, lineHeight = 28.sp, letterSpacing = smallTracking),
-                cardTitleCaps = display.copy(fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = smallTracking),
+                sectionCaps = display.copy(fontSize = 24.sp, lineHeight = 28.sp, letterSpacing = 0.02.em),
+                cardTitleCaps = display.copy(fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = 0.02.em),
                 label = TextStyle(
                     fontFamily = ViolenceInter,
                     fontWeight = FontWeight.W400,
