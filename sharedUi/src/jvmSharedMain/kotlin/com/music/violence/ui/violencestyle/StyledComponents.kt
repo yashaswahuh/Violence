@@ -76,6 +76,11 @@ class ViolenceSharedStyle(
     val light: Boolean = false,
     /** The colour of type and lines on the page: white on the dark page, near-black on the light one. */
     val ink: Color = Color.White,
+    /**
+     * Unslop (experimental): no glow, no sparkle, no accent wash, no italic headings, a hairline rule, and
+     * nothing that loops. See [UnslopTokens].
+     */
+    val unslop: Boolean = false,
 )
 
 /** Null while the style is off. */
@@ -115,6 +120,10 @@ object ViolenceStyleText {
 /** Corner radius of a hero card under the style (STYLE_SPEC.md: about 26 dp). */
 val ViolenceHeroCornerDp = 26.dp
 
+/** A hero card's corner: the style's 26 dp, or 16 dp under Unslop (cards 12 to 16, not everything round). */
+fun ViolenceSharedStyle.heroCorner(): androidx.compose.ui.unit.Dp =
+    if (unslop) UnslopTokens.RADIUS_CARD.dp else ViolenceHeroCornerDp
+
 /**
  * The mockups' section header: a display-serif title, a thin hairline running to the right, and for the
  * hero heading a glowing dot at its end; the original "Show all" kept, with a 48 dp target. The
@@ -133,9 +142,14 @@ fun ViolenceSectionHeader(
 ) {
     val density = LocalDensity.current
     val capped = Density(density.density, ViolenceStyleText.cappedFontScale(density.fontScale))
-    val heading = ViolenceStyleText.split(title)
+    // Unslop sets a heading as one line in the case it came in: no upper-casing, no italic second line.
+    val heading = if (style.unslop) {
+        ViolenceStyleText.Heading(UnslopCopy.sentenceCase(UnslopCopy.clean(title)), null)
+    } else {
+        ViolenceStyleText.split(title)
+    }
     // One ping every few seconds from the hero rule's end, only while the style may move. Read while drawing.
-    val ping: androidx.compose.runtime.State<Float>? = if (hero && style.motion) {
+    val ping: androidx.compose.runtime.State<Float>? = if (hero && style.motion && !style.unslop) {
         androidx.compose.animation.core.rememberInfiniteTransition(label = "rulePing").animateFloat(
             initialValue = 0f,
             targetValue = 1f,
@@ -149,7 +163,13 @@ fun ViolenceSectionHeader(
     }
     Column(
         Modifier
-            .padding(start = PAGE_GUTTER + 8.dp, end = PAGE_GUTTER + 8.dp, top = 10.dp, bottom = 10.dp)
+            .padding(
+                start = PAGE_GUTTER + 8.dp,
+                end = PAGE_GUTTER + 8.dp,
+                // Unslop sits on the 4 dp grid, with the heading closer to its own list than to what is above.
+                top = if (style.unslop) 12.dp else 10.dp,
+                bottom = if (style.unslop) 8.dp else 10.dp,
+            )
             .fillMaxWidth(),
     ) {
         val gap = 12.dp
@@ -192,7 +212,8 @@ fun ViolenceSectionHeader(
                         Text(
                             text = showAllLabel,
                             style = MaterialTheme.typography.titleSmall,
-                            color = style.textAccent,
+                            // The accent is for the primary action and the selection; a link to more is a quiet one.
+                            color = if (style.unslop) style.ink.copy(alpha = 0.6f) else style.textAccent,
                         )
                     }
                 }
@@ -220,7 +241,7 @@ fun ViolenceSectionHeader(
         }
         if (subtitle.isNotBlank()) {
             Text(
-                text = subtitle,
+                text = if (style.unslop) UnslopCopy.clean(subtitle) else subtitle,
                 style = style.label.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize),
                 color = style.ink.copy(alpha = 0.6f),
                 maxLines = 1,
@@ -239,6 +260,16 @@ fun ViolenceSectionHeader(
  */
 private fun DrawScope.drawRule(style: ViolenceSharedStyle, hero: Boolean, pulse: Float?) {
     val y = size.height / 2f
+    if (style.unslop) {
+        // The same rule, as a plain hairline in the ink at 10 percent: no beam, no star, nothing that glows.
+        drawLine(
+            color = style.ink.copy(alpha = 0.10f),
+            start = Offset(0f, y),
+            end = Offset(size.width, y),
+            strokeWidth = 1.dp.toPx(),
+        )
+        return
+    }
     val accent = if (style.neutral) style.ink else style.accent
     val reach = if (hero) 11.dp.toPx() else 6.dp.toPx()
     val endX = size.width - reach * 2f - 4.dp.toPx()
@@ -310,6 +341,18 @@ fun Modifier.violenceCardRim(
     shape: Shape,
 ): Modifier {
     if (style == null) return this
+    if (style.unslop) {
+        // A hairline in the text colour at 8 percent, and nothing else: no rim light, no bloom, no coloured edge.
+        return drawWithCache {
+            val outline = shape.createOutline(size, layoutDirection, this)
+            val hairline = Stroke(1.dp.toPx())
+            val color = style.ink.copy(alpha = UnslopTokens.HAIRLINE_ALPHA)
+            onDrawWithContent {
+                drawContent()
+                strokeOutline(outline, color, style = hairline)
+            }
+        }
+    }
     return drawWithCache {
         val outline = shape.createOutline(size, layoutDirection, this)
         val thin = Stroke(1.dp.toPx())
@@ -419,7 +462,7 @@ fun violencePlayerGlowAlpha(strength: Float): Float = (0.26f * strength / 0.62f)
  * scaled by the canvas, nothing allocated per frame. Returns the receiver unchanged when [style] is null.
  */
 fun Modifier.violencePlayerGlowFor(style: ViolenceSharedStyle?, drift: () -> Float): Modifier {
-    if (style == null) return this
+    if (style == null || style.unslop) return this
     val peak = violencePlayerGlowAlpha(style.strength)
     return drawWithCache {
         val unit = Brush.radialGradient(
@@ -451,6 +494,7 @@ fun Modifier.violencePlayerGlowFor(style: ViolenceSharedStyle?, drift: () -> Flo
 @Composable
 fun Modifier.violencePlayerGlow(): Modifier {
     val style = LocalViolenceShared.current ?: return this
+    if (style.unslop) return this
     if (!style.motion) return violencePlayerGlowFor(style) { 0f }
     val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "playerGlow")
     val phase: androidx.compose.runtime.State<Float> = transition.animateFloat(

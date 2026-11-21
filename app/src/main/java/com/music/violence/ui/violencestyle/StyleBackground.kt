@@ -82,7 +82,8 @@ fun ViolenceBackground() {
     val visualsSuspended by com.music.violence.ui.performance.BackgroundVisualsController.isSuspended.collectAsStateWithLifecycle()
     val playerOpen by ViolenceStyleSong.playerOpen.collectAsStateWithLifecycle()
     val light = LocalViolenceLight.current
-    val running = StyleCapabilityRules.backgroundClockMayRun(style, foreground, playerOpen) && !visualsSuspended
+    // Unslop draws a flat page once and never ticks: no clock, no glow, nothing to redraw.
+    val running = StyleCapabilityRules.backgroundClockMayRun(style, foreground, playerOpen) && !visualsSuspended && !style.unslop
     val time = rememberBackgroundClock(running)
 
     val glow = tokens.glowColor
@@ -107,9 +108,17 @@ fun ViolenceBackground() {
         intensity = style.intensity,
         flat = style.reduceTransparency,
         glow = glowColor,
-        base = Color(if (light) BackgroundGeometry.baseColorLight(glow) else BackgroundGeometry.baseColor(glow)),
+        // Unslop: the page is a grey from the ramp, not a tint of the song's colour.
+        base = Color(
+            when {
+                style.unslop -> UnslopTokens.page(light)
+                light -> BackgroundGeometry.baseColorLight(glow)
+                else -> BackgroundGeometry.baseColor(glow)
+            },
+        ),
         scales = scales,
         unit = unit,
+        plain = style.unslop,
     )
     val blobs = remember { FloatArray(BackgroundGeometry.MAX_BLOBS * BackgroundGeometry.STRIDE) }
 
@@ -143,6 +152,8 @@ internal class BackgroundConfig(
     val base: Color,
     val scales: FloatArray,
     val unit: Brush,
+    /** Unslop: the flat page and nothing on it. */
+    val plain: Boolean = false,
 )
 
 /** Brushes that are rebuilt only when their inputs change, never per frame. */
@@ -212,6 +223,7 @@ internal fun DrawScope.drawViolenceGlow(
     brushes: BackgroundBrushes,
 ) {
     drawRect(config.base)
+    if (config.plain) return
     if (config.flat) {
         drawRect(brushes.flat(size.height, config.glow), size = Size(size.width, size.height * 0.6f))
         return

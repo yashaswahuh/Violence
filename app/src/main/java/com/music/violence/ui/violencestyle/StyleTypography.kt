@@ -98,24 +98,29 @@ class ViolenceHeadingStyles(
     companion object {
         const val headingFontScaleCap = 1.3f
 
-        fun build(font: FontFamily): ViolenceHeadingStyles {
+        fun build(font: FontFamily, unslop: Boolean = false): ViolenceHeadingStyles {
+            // Unslop: no tracking on text under 40 sp (it is for large display type only), and the
+            // heading lines sit on the 4 dp grid.
             val display = TextStyle(
                 fontFamily = font,
                 fontWeight = FontWeight.W400,
                 fontSize = 36.sp,
                 lineHeight = 40.sp,
-                letterSpacing = 0.01.em,
+                letterSpacing = if (unslop) 0.em else 0.01.em,
             )
+            val smallTracking = if (unslop) 0.em else 0.02.em
             return ViolenceHeadingStyles(
                 displayCaps = display,
                 displayItalic = display.copy(fontStyle = FontStyle.Italic),
-                sectionCaps = display.copy(fontSize = 24.sp, lineHeight = 28.sp, letterSpacing = 0.02.em),
-                cardTitleCaps = display.copy(fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = 0.02.em),
+                sectionCaps = display.copy(fontSize = 24.sp, lineHeight = 28.sp, letterSpacing = smallTracking),
+                cardTitleCaps = display.copy(fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = smallTracking),
                 label = TextStyle(
                     fontFamily = ViolenceInter,
                     fontWeight = FontWeight.W400,
                     fontSize = 13.sp,
                     lineHeight = 16.sp,
+                    // Figures line up in a column when they are tabular.
+                    fontFeatureSettings = if (unslop) "tnum" else null,
                 ),
                 labelCaps = TextStyle(
                     fontFamily = ViolenceInter,
@@ -139,16 +144,18 @@ private fun TextStyle.inter(weight: FontWeight): TextStyle = copy(fontFamily = V
  * The Material typography under the style: Inter everywhere, sizes and tracking as they are today.
  * Returns [base] itself (the very same object) when [enabled] is false.
  */
-fun violenceTypography(base: Typography, enabled: Boolean): Typography {
+fun violenceTypography(base: Typography, enabled: Boolean, unslop: Boolean = false): Typography {
     if (!enabled) return base
+    // Two weights, 400 and 500: hierarchy comes from size and colour, not from weight. 600 is for rare emphasis.
+    val heavy = if (unslop) FontWeight.W500 else FontWeight.W600
     return base.copy(
-        displayLarge = base.displayLarge.inter(FontWeight.W600),
-        displayMedium = base.displayMedium.inter(FontWeight.W600),
-        displaySmall = base.displaySmall.inter(FontWeight.W600),
-        headlineLarge = base.headlineLarge.inter(FontWeight.W600),
-        headlineMedium = base.headlineMedium.inter(FontWeight.W600),
-        headlineSmall = base.headlineSmall.inter(FontWeight.W600),
-        titleLarge = base.titleLarge.inter(FontWeight.W600),
+        displayLarge = base.displayLarge.inter(heavy),
+        displayMedium = base.displayMedium.inter(heavy),
+        displaySmall = base.displaySmall.inter(heavy),
+        headlineLarge = base.headlineLarge.inter(heavy),
+        headlineMedium = base.headlineMedium.inter(heavy),
+        headlineSmall = base.headlineSmall.inter(heavy),
+        titleLarge = base.titleLarge.inter(heavy),
         titleMedium = base.titleMedium.inter(FontWeight.W500),
         titleSmall = base.titleSmall.inter(FontWeight.W500),
         bodyLarge = base.bodyLarge.inter(FontWeight.W400),
@@ -162,7 +169,7 @@ fun violenceTypography(base: Typography, enabled: Boolean): Typography {
 
 /** Wraps the Material typography with [violenceTypography]; with the style off it adds nothing. */
 @Composable
-internal fun ViolenceTypographyScope(enabled: Boolean, content: @Composable () -> Unit) {
+internal fun ViolenceTypographyScope(enabled: Boolean, unslop: Boolean = false, content: @Composable () -> Unit) {
     if (!enabled) {
         content()
         return
@@ -171,7 +178,7 @@ internal fun ViolenceTypographyScope(enabled: Boolean, content: @Composable () -
     androidx.compose.material3.MaterialTheme(
         colorScheme = m.colorScheme,
         shapes = m.shapes,
-        typography = violenceTypography(m.typography, enabled = true),
+        typography = violenceTypography(m.typography, enabled = true, unslop = unslop),
         content = content,
     )
 }

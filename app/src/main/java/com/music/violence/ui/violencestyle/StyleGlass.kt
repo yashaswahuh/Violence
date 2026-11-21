@@ -113,6 +113,11 @@ object ViolenceGlassColors {
 @Composable
 fun violenceIndicatorColor(): Color? {
     if (!LocalViolenceStyle.current.enabled) return null
+    // Unslop: the selected tab is a step up the grey ramp, with no accent in it.
+    if (LocalViolenceStyle.current.unslop) {
+        val light = LocalViolenceLight.current
+        return remember(light) { Color(UnslopTokens.raised(light)) }
+    }
     val tokens = LocalViolenceAccent.current
     if (tokens.neutral) return null
     return remember(tokens.accent) { Color(ViolenceGlassColors.capsuleFill(tokens.accent)) }
@@ -131,7 +136,7 @@ fun Modifier.violenceGlassRim(shape: Shape): Modifier {
  * the receiver unchanged when the style is off, or for the neutral (White) accent whose capsule stays gray.
  */
 fun Modifier.violenceCapsuleGlowFor(style: StyleState, tokens: AccentTokens): Modifier {
-    if (!style.enabled || tokens.neutral) return this
+    if (!style.enabled || tokens.neutral || style.unslop) return this
     val strength = ViolenceGlassColors.glowStrength(style.intensity)
     val line = Color(ViolenceGlassColors.glowLine(tokens.accent))
     val accent = Color(tokens.accent)
@@ -212,7 +217,10 @@ fun violencePanelTint(): Color? {
     if (!LocalViolenceStyle.current.enabled) return null
     val accent = LocalViolenceAccent.current.accent
     val light = LocalViolenceLight.current
-    return remember(accent, light) { Color(ViolenceGlassColors.panelTint(accent, light)) }
+    val unslop = LocalViolenceStyle.current.unslop
+    return remember(accent, light, unslop) {
+        Color(if (unslop) UnslopTokens.card(light) else ViolenceGlassColors.panelTint(accent, light))
+    }
 }
 
 /** True while the style is on and transparency is reduced: panels use their near-solid alpha. */
@@ -236,7 +244,7 @@ fun violenceButtonColor(): Color? {
  * brush. Returns the receiver unchanged when the style or the switch is off.
  */
 fun Modifier.violenceDetailGlowFor(style: StyleState, tokens: AccentTokens): Modifier {
-    if (!style.enabled || !style.detailGlow) return this
+    if (!style.enabled || !style.detailGlow || style.unslop) return this
     val alpha = ViolenceGlassColors.detailGlowAlpha(style.intensity)
     val glow = Color(tokens.glowColor)
     return drawWithCache {
@@ -267,5 +275,9 @@ fun violenceGroupFill(): Color? {
     val accent = LocalViolenceAccent.current.accent
     val alpha = ViolenceGlassColors.groupFillAlpha(style.reduceTransparency)
     val light = LocalViolenceLight.current
-    return remember(accent, alpha, light) { Color(AccentMath.withAlpha(ViolenceGlassColors.panelTint(accent, light), alpha)) }
+    val unslop = style.unslop
+    return remember(accent, alpha, light, unslop) {
+        // Unslop: a plain card from the grey ramp, solid, because there is no glow behind it to show through.
+        if (unslop) Color(UnslopTokens.card(light)) else Color(AccentMath.withAlpha(ViolenceGlassColors.panelTint(accent, light), alpha))
+    }
 }

@@ -295,6 +295,7 @@ fun SettingsScreen(
     val syncDownloadedPlaylists by AppSettings.syncDownloadedPlaylists.collectAsStateWithLifecycle()
     val saveSyncedLyricsWithDownloads by AppSettings.saveSyncedLyricsWithDownloads.collectAsStateWithLifecycle()
     val pauseBackgroundVisualsWhenHidden by AppSettings.pauseBackgroundVisualsWhenHidden.collectAsStateWithLifecycle()
+    val unslop by com.music.violence.ui.violencestyle.ViolenceStyleSettings.unslop.collectAsStateWithLifecycle()
     val constrainImageCacheMemory by AppSettings.constrainImageCacheMemory.collectAsStateWithLifecycle()
     val stopOnTaskRemoved by AppSettings.stopOnTaskRemoved.collectAsStateWithLifecycle()
     val hideVolumeBar by AppSettings.hideVolumeBar.collectAsStateWithLifecycle()
@@ -1801,6 +1802,21 @@ fun SettingsScreen(
                         )
                     },
                     onClick = { AppSettings.setShowNerdStats(!nerdStats) },
+                )
+            }
+            val unslopTitle = stringResource(R.string.unslop_title)
+            row(unslopTitle, "unslop", "experimental", "glow", "flat", "clean", "ai", "gradient", "battery") {
+                SettingsRow(
+                    icon = SfIcons.Appearance,
+                    title = unslopTitle,
+                    subtitle = stringResource(R.string.unslop_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = unslop,
+                            onCheckedChange = com.music.violence.ui.violencestyle.ViolenceStyleSettings::setUnslop,
+                        )
+                    },
+                    onClick = { com.music.violence.ui.violencestyle.ViolenceStyleSettings.setUnslop(!unslop) },
                 )
             }
             val pauseVisualsTitle = stringResource(R.string.pause_background_visuals)

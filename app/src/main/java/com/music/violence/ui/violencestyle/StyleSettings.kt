@@ -33,6 +33,7 @@ object ViolenceStyleSettings {
     private const val KEY_FULL_COVER = P + "full_cover_pages"
     private const val KEY_AUTOMIX_COVER = P + "automix_cover_animation"
     private const val KEY_LYRICS_QUOTE = P + "lyrics_quote_card"
+    private const val KEY_UNSLOP = P + "unslop"
     internal const val KEY_PENDING = P + "startup_pending"
     internal const val KEY_NOTICE = P + "safe_mode_notice"
     private const val KEY_GLASS_PROMPT_SHOWN = P + "glass_recommendation_shown"
@@ -64,6 +65,13 @@ object ViolenceStyleSettings {
     /** Test 1.0: the Quote design for lyrics share cards. Off by default. */
     val lyricsQuoteCard = MutableStateFlow(false)
 
+    /**
+     * Unslop (experimental): the style without its glow, washes, sparkle and looping motion, on a flat grey
+     * ramp with the song's colour kept for the one thing that matters. Off by default; has no effect while
+     * Violence Style itself is off.
+     */
+    val unslop = MutableStateFlow(false)
+
     /** True after safe mode switched the style off; cleared when the user turns it on again. */
     val safeModeTriggered = MutableStateFlow(false)
 
@@ -83,6 +91,7 @@ object ViolenceStyleSettings {
         fullCoverPages.value = p.getBoolean(KEY_FULL_COVER, false)
         automixCoverAnimation.value = p.getBoolean(KEY_AUTOMIX_COVER, false)
         lyricsQuoteCard.value = p.getBoolean(KEY_LYRICS_QUOTE, false)
+        unslop.value = p.getBoolean(KEY_UNSLOP, false)
         safeModeTriggered.value = p.getBoolean(KEY_NOTICE, false)
     }
 
@@ -143,6 +152,11 @@ object ViolenceStyleSettings {
     fun setLyricsQuoteCard(value: Boolean) {
         lyricsQuoteCard.value = value
         prefs?.edit()?.putBoolean(KEY_LYRICS_QUOTE, value)?.apply()
+    }
+
+    fun setUnslop(value: Boolean) {
+        unslop.value = value
+        prefs?.edit()?.putBoolean(KEY_UNSLOP, value)?.apply()
     }
 
     private fun put(key: String, value: String) {

@@ -58,6 +58,11 @@ data class StyleState(
     val reduceMotion: Boolean,
     /** System high-contrast text, where the device exposes it. */
     val highContrast: Boolean,
+    /**
+     * Unslop (experimental): the style without its glow, washes, sparkle, accent-tinted glass and looping
+     * motion. Only ever true while [enabled]; see [UnslopTokens].
+     */
+    val unslop: Boolean = false,
 ) {
     /** The motion that actually runs: none in LITE, none under reduce motion. */
     val effectiveMotion: StyleMotion

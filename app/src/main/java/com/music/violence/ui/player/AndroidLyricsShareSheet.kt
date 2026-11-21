@@ -190,7 +190,9 @@ internal fun AndroidLyricsShareSheet(
                     // itself — a check and "Saved!" — so the line under the
                     // card does not have to.
                     saved = saved,
-                    savedLabel = stringResource(R.string.saved_bang),
+                    savedLabel = stringResource(R.string.saved_bang).let {
+                        if (com.music.violence.ui.violencestyle.LocalViolenceStyle.current.unslop) com.music.violence.ui.violencestyle.UnslopCopy.clean(it) else it
+                    },
                     onClick = {
                         val drawn = image
                         if (drawn != null) {
