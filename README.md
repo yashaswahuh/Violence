@@ -7,11 +7,11 @@
 
 # Violence
 
-### Private Music Streaming Client
+### Open-Source Music Streaming Client
 
 <br/>
 
-[**About This Fork**](#about-this-fork) · [**Features**](#features) · [**Disclaimer**](#disclaimer) · [**License**](#license)
+[**About This Fork**](#about-this-fork) · [**Screenshots**](#screenshots) · [**Features**](#features) · [**Disclaimer**](#disclaimer) · [**License**](#license)
 
 </div>
 
@@ -39,6 +39,18 @@ Violence is not affiliated with or endorsed by YouTube, Google, Spotify, Last.fm
 <div align="center">
 
 <img src="Banner.png" alt="Violence banner" width="100%" />
+
+<br/>
+
+<h1><a id="screenshots"></a>Screenshots</h1>
+
+<p align="center">
+  <img src="screenshots/violence-style.png" alt="Violence Style Dynamic Theming" width="280" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="screenshots/nfc-sharing.png" alt="NFC Sharing and Quick Receive" width="280" />
+</p>
+
+<br/>
 
 <h1><a id="features"></a>Features</h1>
 
@@ -107,7 +119,7 @@ Violence is not affiliated with or endorsed by YouTube, Google, Spotify, Last.fm
 
 <h1><a id="disclaimer"></a>Disclaimer & Legal Notice</h1>
 
-Violence is an independent, private third-party audio player and client. It is **not** associated with Google LLC, YouTube Music, Deezer, Telegram, or any of their parent companies.
+Violence is an independent, open-source third-party audio player and client. It is **not** associated with Google LLC, YouTube Music, Deezer, Telegram, or any of their parent companies.
 
 * **No Media Hosting:** Violence does not host, upload, or store copyrighted music files. It operates strictly as an interface to scan local device storage or stream media directly from public, public-facing, or user-authenticated APIs.
 * **Fair Use & API Usage:** This software is created solely for personal research, educational, and fair-use purposes. The user is entirely responsible for ensuring their usage aligns with their local copyright laws and YouTube Terms of Service.
