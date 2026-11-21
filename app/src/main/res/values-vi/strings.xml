@@ -1555,4 +1555,14 @@
     <string name="pause_background_visuals_subtitle">Halts Skia animations, canvas video and shaders when the screen is off or app is in background</string>
     <string name="constrain_image_cache_memory">Constrain image cache memory</string>
     <string name="constrain_image_cache_memory_subtitle">Downsamples decoded album art strictly to widget dimensions and caps memory allocation</string>
+    <string name="custom_api_credentials_optional">Custom API credentials (optional)</string>
+    <string name="discord_activity_privacy_notice">Make sure \"Display current activity as a status message\" is enabled in Discord Settings > Activity Privacy. If your Discord status is Invisible, rich presence will not appear on your profile.</string>
+    <string name="lastfm_api_key">API key</string>
+    <string name="lastfm_api_key_optional">API key (optional)</string>
+    <string name="lastfm_custom_api_key">Custom API key</string>
+    <string name="lastfm_custom_api_key_description">Enter your own Last.fm API key and shared secret from last.fm/api. If left blank, Violence\'s built-in key will be used.</string>
+    <string name="lastfm_shared_secret">Shared secret</string>
+    <string name="lastfm_shared_secret_optional">Shared secret (optional)</string>
+    <string name="using_custom_api_key">Using custom API key</string>
+    <string name="using_default_api_key">Using default API key</string>
 </resources>
