@@ -1809,12 +1809,14 @@ fun SettingsScreen(
                 val linkContext = LocalContext.current
                 var linksOn by remember { mutableStateOf(com.music.violence.share.UniversalLinks.isEnabled(linkContext)) }
                 var approval by remember { mutableStateOf(com.music.violence.share.UniversalLinks.approval(linkContext)) }
+                var blockers by remember { mutableStateOf(com.music.violence.share.UniversalLinks.blockers(linkContext)) }
                 // Coming back from the system page: count the approved addresses again.
                 val linkLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
                 androidx.compose.runtime.DisposableEffect(linkLifecycle) {
                     val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
                         if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                             approval = com.music.violence.share.UniversalLinks.approval(linkContext)
+                            blockers = com.music.violence.share.UniversalLinks.blockers(linkContext)
                         }
                     }
                     linkLifecycle.addObserver(observer)
@@ -1824,7 +1826,9 @@ fun SettingsScreen(
                     com.music.violence.share.UniversalLinks.setEnabled(linkContext, on)
                     linksOn = on
                     // Turning it on is only half of it on Android 12+: the addresses still have to be approved.
-                    if (on) com.music.violence.share.UniversalLinks.approvalSettingsIntent(linkContext)?.let {
+                    // Not while another app owns the addresses: their boxes are grey there, so the rows below
+                    // say what to do first.
+                    if (on && blockers.isEmpty()) com.music.violence.share.UniversalLinks.approvalSettingsIntent(linkContext)?.let {
                         if ((approval?.first ?: 0) == 0) runCatching { linkContext.startActivity(it) }
                     }
                 }
@@ -1844,6 +1848,17 @@ fun SettingsScreen(
                             ?: stringResource(R.string.universal_links_allow_subtitle),
                         onClick = { runCatching { linkContext.startActivity(allowIntent) } },
                     )
+                    // The apps Android opens these addresses in first. Each row goes to that app's own link
+                    // settings, where "Open supported links" is turned off.
+                    for (blocker in blockers) {
+                        val blockerIntent = com.music.violence.share.UniversalLinks.linkSettingsOf(linkContext, blocker.packageName)
+                        SettingsRow(
+                            icon = SfIcons.Open,
+                            title = stringResource(R.string.universal_links_blocked_title, blocker.label),
+                            subtitle = stringResource(R.string.universal_links_blocked_subtitle, blocker.label),
+                            onClick = { blockerIntent?.let { runCatching { linkContext.startActivity(it) } } },
+                        )
+                    }
                 }
             }
             val unslopTitle = stringResource(R.string.unslop_title)

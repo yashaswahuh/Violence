@@ -36,6 +36,16 @@ class MusicLinkStreamingTest {
         assertTrue(MusicLink.parse(Uri.parse("https://youtu.be/dQw4w9WgXcQ")) is LinkRequest.Track)
     }
 
+    @Test fun everyAddressTheSettingsAsksAboutIsALinkViolenceReads() {
+        // The sample for each declared address has to be a link Violence would act on, or "who opens this?"
+        // asks about the wrong thing.
+        for ((host, sample) in com.music.violence.share.UniversalLinks.SAMPLES) {
+            val request = MusicLink.parse(Uri.parse(sample))
+            assertTrue("$host: $sample", request != null)
+            assertEquals(host, Uri.parse(sample).host)
+        }
+    }
+
     @Test fun otherAddressesAreNotRequests() {
         assertNull(MusicLink.parse(Uri.parse("https://example.com/track/1")))
     }
