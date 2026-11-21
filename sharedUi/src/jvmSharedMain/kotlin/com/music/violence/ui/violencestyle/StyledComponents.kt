@@ -76,6 +76,12 @@ class ViolenceSharedStyle(
     val light: Boolean = false,
     /** The colour of type and lines on the page: white on the dark page, near-black on the light one. */
     val ink: Color = Color.White,
+    /**
+     * Unslop (experimental), polish only: the copy is tidied (no exclamation marks, no trailing period on a
+     * label) and spacing sits on the 4 dp grid. Nothing about how the style looks changes: the glow, the
+     * glass, the rule and its star, and the headings are all as they were.
+     */
+    val unslop: Boolean = false,
 )
 
 /** Null while the style is off. */
@@ -133,7 +139,7 @@ fun ViolenceSectionHeader(
 ) {
     val density = LocalDensity.current
     val capped = Density(density.density, ViolenceStyleText.cappedFontScale(density.fontScale))
-    val heading = ViolenceStyleText.split(title)
+    val heading = ViolenceStyleText.split(if (style.unslop) UnslopCopy.clean(title) else title)
     // One ping every few seconds from the hero rule's end, only while the style may move. Read while drawing.
     val ping: androidx.compose.runtime.State<Float>? = if (hero && style.motion) {
         androidx.compose.animation.core.rememberInfiniteTransition(label = "rulePing").animateFloat(
@@ -149,7 +155,13 @@ fun ViolenceSectionHeader(
     }
     Column(
         Modifier
-            .padding(start = PAGE_GUTTER + 8.dp, end = PAGE_GUTTER + 8.dp, top = 10.dp, bottom = 10.dp)
+            .padding(
+                start = PAGE_GUTTER + 8.dp,
+                end = PAGE_GUTTER + 8.dp,
+                // Under Unslop the spacing is on the 4 dp grid, the heading nearer its own list than what is above.
+                top = if (style.unslop) 12.dp else 10.dp,
+                bottom = if (style.unslop) 8.dp else 10.dp,
+            )
             .fillMaxWidth(),
     ) {
         val gap = 12.dp
@@ -220,7 +232,7 @@ fun ViolenceSectionHeader(
         }
         if (subtitle.isNotBlank()) {
             Text(
-                text = subtitle,
+                text = if (style.unslop) UnslopCopy.clean(subtitle) else subtitle,
                 style = style.label.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize),
                 color = style.ink.copy(alpha = 0.6f),
                 maxLines = 1,

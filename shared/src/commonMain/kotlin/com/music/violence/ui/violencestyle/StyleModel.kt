@@ -58,6 +58,11 @@ data class StyleState(
     val reduceMotion: Boolean,
     /** System high-contrast text, where the device exposes it. */
     val highContrast: Boolean,
+    /**
+     * Unslop (experimental), polish only: tidier copy, lighter weights, figures that line up, spacing on a
+     * 4 dp grid. The look of the style (glow, glass, headings) is untouched. See [UnslopCopy].
+     */
+    val unslop: Boolean = false,
 ) {
     /** The motion that actually runs: none in LITE, none under reduce motion. */
     val effectiveMotion: StyleMotion

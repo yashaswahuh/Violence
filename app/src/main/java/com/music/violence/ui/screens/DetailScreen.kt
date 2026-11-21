@@ -1418,12 +1418,29 @@ private fun PageBackground(
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val art = heroUrl ?: page.thumbnailUrl.artworkAt(HEADER_ART_PX)
 
+    // The foot of the artwork is made transparent, so what it fades into is the page itself: its colour and
+    // the accent glow that sits on it. It used to fade to a solid copy of the page colour, which has no glow
+    // in it, so wherever the glow tints the page there was a straight edge across the screen where the two
+    // met. Not under a canvas clip: a video is a view of its own and cannot be masked like a picture.
+    val fadeToPage = canvas == null
     Box(modifier.clipToBounds()) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(artHeight)
-                .offset { IntOffset(0, listState.headerTop(artHeight.toPx()).roundToInt()) },
+                .offset { IntOffset(0, listState.headerTop(artHeight.toPx()).roundToInt()) }
+                .then(
+                    if (fadeToPage) {
+                        Modifier
+                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(PAGE_FOOT_FADE, blendMode = BlendMode.DstIn)
+                            }
+                    } else {
+                        Modifier
+                    },
+                ),
         ) {
             AsyncImage(
                 model = art,
@@ -1473,23 +1490,39 @@ private fun PageBackground(
             // Ends on the page colour at full strength, so there is no edge
             // left where the artwork stops. Eased rather than run straight: a
             // gradient that changes slope at a stop shows a line at that stop,
-            // however close the colours either side of it are.
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0.45f to Color.Transparent,
-                            0.65f to palette.wash.copy(alpha = 0.30f),
-                            0.82f to palette.wash.copy(alpha = 0.72f),
-                            0.94f to palette.wash.copy(alpha = 0.95f),
-                            1.00f to palette.wash,
+            // however close the colours either side of it are. (Only under a
+            // clip: a picture is faded into the page itself, see [fadeToPage].)
+            if (!fadeToPage) {
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.45f to Color.Transparent,
+                                0.65f to palette.wash.copy(alpha = 0.30f),
+                                0.82f to palette.wash.copy(alpha = 0.72f),
+                                0.94f to palette.wash.copy(alpha = 0.95f),
+                                1.00f to palette.wash,
+                            ),
                         ),
-                    ),
-            )
+                )
+            }
         }
     }
 }
+
+/**
+ * How much of the artwork is kept down its height (the alpha of a mask, drawn with DstIn): all of it down
+ * to just under half, then eased to nothing at the foot. The same curve the solid fade used, so the
+ * picture loses its colour at the same pace, only into the page and not into a flat copy of it.
+ */
+private val PAGE_FOOT_FADE = Brush.verticalGradient(
+    0.45f to Color.Black,
+    0.65f to Color.Black.copy(alpha = 0.70f),
+    0.82f to Color.Black.copy(alpha = 0.28f),
+    0.94f to Color.Black.copy(alpha = 0.05f),
+    1.00f to Color.Transparent,
+)
 
 /**
  * Where the top of the artwork currently is.

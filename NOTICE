@@ -28,3 +28,8 @@ Violence Style fonts (bundled in app/src/main/res/font, all licensed under the S
 - Bodoni Moda, Copyright 2020 The Bodoni Moda Project Authors (https://github.com/indestructible-type/Bodoni)
 - Anton, Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont.git)
 - Cormorant Garamond, Copyright 2015 the Cormorant Project Authors (https://github.com/CatharsisFonts/Cormorant)
+
+Unslop (experimental mode in Settings > Advanced & experimental options):
+- The copy, type-weight and spacing rules are adapted from "unslop" by Damir Sokolovsky (@heydamir),
+  https://github.com/heydamir/unslop, licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
+  Changes were made: the rules were translated to Compose and applied to Violence Style in polish mode.

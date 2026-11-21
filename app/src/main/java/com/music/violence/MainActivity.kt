@@ -2078,6 +2078,37 @@ private fun ViolenceApp(
                     )
                 }
             }
+            is LinkRequest.Streaming -> {
+                // Another service's link. The song is asked of that service, found on YouTube Music and
+                // played the way a YouTube link is: one song named on purpose, with AutoPlay after it.
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.universal_link_finding, request.link.service.label),
+                    Toast.LENGTH_SHORT,
+                ).show()
+                when (val found = com.music.violence.share.UniversalLinks.resolve(request.link)) {
+                    is com.music.violence.share.UniversalLinks.Found.Song -> playRadio(
+                        found.song,
+                        QueueSource(sharedLinkLabel, PlaybackSourceType.SHARED_LINK, found.song.videoId),
+                    )
+                    is com.music.violence.share.UniversalLinks.Found.Search -> {
+                        dismissPlayer()
+                        navigator.clear()
+                        selectedTab = TAB_SEARCH
+                        viewModel.searchFor(found.query)
+                    }
+                    com.music.violence.share.UniversalLinks.Found.Unsupported -> Toast.makeText(
+                        context,
+                        context.getString(R.string.universal_link_unsupported, request.link.service.label),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                    com.music.violence.share.UniversalLinks.Found.Nothing -> Toast.makeText(
+                        context,
+                        context.getString(R.string.couldnt_open_link),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
             is LinkRequest.Page -> {
                 dismissPlayer()
                 // Titled by the page itself once it lands — a link carries a

@@ -126,7 +126,8 @@ fun ViolenceStyledTheme(
 @Composable
 private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
     val context = LocalContext.current
-    ViolenceTypographyScope(enabled = true) {
+    val unslop by ViolenceStyleSettings.unslop.collectAsStateWithLifecycle()
+    ViolenceTypographyScope(enabled = true, unslop = unslop) {
         val background by ViolenceStyleSettings.background.collectAsStateWithLifecycle()
         val motion by ViolenceStyleSettings.motion.collectAsStateWithLifecycle()
         val intensity by ViolenceStyleSettings.intensity.collectAsStateWithLifecycle()
@@ -142,7 +143,7 @@ private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
         val sdk = Build.VERSION.SDK_INT
         val state = remember(
             background, motion, intensity, source, custom, headingFont, forcedTransparency,
-            detailGlow, reduceDynamicBlur, reduceAnimation, signalVersion,
+            detailGlow, reduceDynamicBlur, reduceAnimation, signalVersion, unslop,
         ) {
             val lite = StyleCapabilityRules.liteReason(
                 sdkInt = sdk,
@@ -168,6 +169,7 @@ private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
                 liteReason = lite,
                 reduceMotion = reduceAnimation || StyleCapabilityRules.systemReducesMotion(StyleSignals.animatorScale(context)),
                 highContrast = StyleSignals.isHighContrast(context),
+                unslop = unslop,
             )
         }
 
@@ -176,8 +178,8 @@ private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
         val tokens = remember(dayTokens, light) {
             if (light) dayTokens.copy(textAccent = dayTokens.textAccentOnLight) else dayTokens
         }
-        val headings = remember(headingFont) { ViolenceHeadingStyles.build(headingFont.family()) }
-        val shared = remember(tokens, headings, state.intensity, state.effectiveMotion, light) {
+        val headings = remember(headingFont, unslop) { ViolenceHeadingStyles.build(headingFont.family(), unslop) }
+        val shared = remember(tokens, headings, state.intensity, state.effectiveMotion, light, unslop) {
             ViolenceSharedStyle(
                 accent = Color(tokens.accent),
                 accentSoft = Color(tokens.accentSoft),
@@ -192,6 +194,7 @@ private fun ViolenceStyleHost(light: Boolean, content: @Composable () -> Unit) {
                 motion = state.effectiveMotion != StyleMotion.OFF,
                 light = light,
                 ink = if (light) LIGHT_INK else Color.White,
+                unslop = unslop,
             )
         }
         val backgroundLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()

@@ -78,6 +78,7 @@ private val CREDITS = listOf(
             Credit("Apple Music", "The interface is inspired by it. Violence is not affiliated with Apple."),
             Credit("Kyant0 (backdrop)", "The Liquid Glass effect used by the bars and menus."),
             Credit("Haze (Chris Banes)", "The frosted-glass fallback."),
+            Credit("Damir Sokolovsky (@heydamir)", "The rules behind Unslop, the experimental polish mode that tidies the details that read as machine-made. github.com/heydamir/unslop, CC BY 4.0."),
         ),
     ),
     CreditGroup(
