@@ -279,6 +279,7 @@ import com.music.violence.ui.components.FloatingBottomBar
 import com.music.violence.ui.components.GlassNavBar
 import com.music.violence.ui.components.floatingtabbar.rememberFloatingTabBarScrollConnection
 import com.music.violence.ui.components.FrostedTopBar
+import com.music.violence.ui.components.LastfmApiKeyAlert
 import com.music.violence.ui.components.LastfmLoginAlert
 import com.music.violence.ui.components.LocalAppBackdrop
 import com.music.violence.ui.components.LocalLiquidGlassEnabled
@@ -728,6 +729,7 @@ private fun ViolenceApp(
     var showAccountSelector by remember { mutableStateOf(false) }
     var showListenBrainzLogin by remember { mutableStateOf(false) }
     var showLastfmLogin by remember { mutableStateOf(false) }
+    var showLastfmApiKeyDialog by remember { mutableStateOf(false) }
     var showWebDavEditor by remember { mutableStateOf(false) }
     var showSmbEditor by remember { mutableStateOf(false) }
     // Discord Rich Presence: its own page under Account & integrations (a
@@ -2885,6 +2887,7 @@ private fun ViolenceApp(
         BackHandler(enabled = showUpdateDialog) { showUpdateDialog = false }
         BackHandler(enabled = showListenBrainzLogin) { showListenBrainzLogin = false }
         BackHandler(enabled = showLastfmLogin) { showLastfmLogin = false }
+        BackHandler(enabled = showLastfmApiKeyDialog) { showLastfmApiKeyDialog = false }
         BackHandler(enabled = discordDialog != null) { discordDialog = null }
         BackHandler(enabled = editingSource != null) { editingSource = null }
         BackHandler(enabled = editingPartyServer) { editingPartyServer = false }
@@ -3115,6 +3118,7 @@ private fun ViolenceApp(
                                 onSignOut = { viewModel.signOut() },
                                 onOpenListenBrainzLogin = { showListenBrainzLogin = true },
                                 onOpenLastfmLogin = { showLastfmLogin = true },
+                                onOpenLastfmApiKey = { showLastfmApiKeyDialog = true },
                                 onOpenDiscord = { navigator.push(AppRoute.Discord) },
                                 onOpenSpotify = { navigator.push(AppRoute.Spotify) },
                                 contentPadding = listPadding,
@@ -5839,62 +5843,16 @@ private fun ViolenceApp(
             )
         }
 
-        if (showListenBrainzLogin) {
-            var tokenInput by remember { mutableStateOf(listenBrainzToken) }
-            ListenBrainzTokenAlert(
-                hazeState = hazeState,
-                tokenInput = tokenInput,
-                onTokenInputChange = { tokenInput = it },
-                onSave = {
-                    AppSettings.setListenBrainzToken(tokenInput.trim())
-                    showListenBrainzLogin = false
-                },
-                onDismiss = { showListenBrainzLogin = false },
-            )
-        }
-
-        if (showLastfmLogin) {
-            var usernameInput by remember { mutableStateOf("") }
-            var passwordInput by remember { mutableStateOf("") }
-            var lastfmError by remember { mutableStateOf<String?>(null) }
-            var lastfmLoading by remember { mutableStateOf(false) }
-            LastfmLoginAlert(
-                hazeState = hazeState,
-                usernameInput = usernameInput,
-                onUsernameInputChange = { usernameInput = it },
-                passwordInput = passwordInput,
-                onPasswordInputChange = { passwordInput = it },
-                error = lastfmError,
-                loading = lastfmLoading,
-                onSignIn = {
-                    lastfmLoading = true
-                    lastfmError = null
-                    scope.launch {
-                        try {
-                            LastFM.initialize(
-                                apiKey = AppSettings.lastfmApiKey.value,
-                                secret = AppSettings.lastfmSecret.value,
-                            )
-                            LastFM.getMobileSession(usernameInput.trim(), passwordInput)
-                                .onSuccess { auth ->
-                                    AppSettings.setLastfmSessionKey(auth.session.key)
-                                    AppSettings.setLastfmUsername(auth.session.name)
-                                    AppSettings.setLastfmEnabled(true)
-                                    showLastfmLogin = false
-                                }
-                                .onFailure { e ->
-                                    lastfmError = e.message ?: context.getString(R.string.login_failed)
-                                }
-                        } catch (e: Exception) {
-                            lastfmError = e.message ?: context.getString(R.string.login_failed)
-                        } finally {
-                            lastfmLoading = false
-                        }
-                    }
-                },
-                onDismiss = { if (!lastfmLoading) showLastfmLogin = false },
-            )
-        }
+        ScrobblerDialogsHost(
+            hazeState = hazeState,
+            listenBrainzToken = listenBrainzToken,
+            showListenBrainzLogin = showListenBrainzLogin,
+            onDismissListenBrainz = { showListenBrainzLogin = false },
+            showLastfmLogin = showLastfmLogin,
+            onDismissLastfmLogin = { showLastfmLogin = false },
+            showLastfmApiKeyDialog = showLastfmApiKeyDialog,
+            onDismissLastfmApiKeyDialog = { showLastfmApiKeyDialog = false },
+        )
 
         if (showWebDavEditor) {
             BackHandler { showWebDavEditor = false }
@@ -6045,7 +6003,8 @@ private fun ViolenceApp(
                     }
                     DiscordLoginScreen(
                         onTokenCaptured = { token ->
-                            AppSettings.setDiscordToken(token)
+                            val clean = token.trim().trim('"', '\'')
+                            AppSettings.setDiscordToken(clean)
                             showDiscordLogin = false
                         },
                     )
@@ -6210,6 +6169,119 @@ private fun ViolenceApp(
             )
         }
 
+    }
+}
+
+@Composable
+private fun ScrobblerDialogsHost(
+    hazeState: HazeState,
+    listenBrainzToken: String,
+    showListenBrainzLogin: Boolean,
+    onDismissListenBrainz: () -> Unit,
+    showLastfmLogin: Boolean,
+    onDismissLastfmLogin: () -> Unit,
+    showLastfmApiKeyDialog: Boolean,
+    onDismissLastfmApiKeyDialog: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    if (showListenBrainzLogin) {
+        var tokenInput by remember { mutableStateOf(listenBrainzToken) }
+        ListenBrainzTokenAlert(
+            hazeState = hazeState,
+            tokenInput = tokenInput,
+            onTokenInputChange = { tokenInput = it },
+            onSave = {
+                AppSettings.setListenBrainzToken(tokenInput.trim())
+                onDismissListenBrainz()
+            },
+            onDismiss = onDismissListenBrainz,
+        )
+    }
+
+    if (showLastfmLogin) {
+        var usernameInput by remember { mutableStateOf("") }
+        var passwordInput by remember { mutableStateOf("") }
+        var apiKeyInput by remember { mutableStateOf(AppSettings.customLastfmApiKey()) }
+        var apiSecretInput by remember { mutableStateOf(AppSettings.customLastfmSecret()) }
+        var lastfmError by remember { mutableStateOf<String?>(null) }
+        var lastfmLoading by remember { mutableStateOf(false) }
+        LastfmLoginAlert(
+            hazeState = hazeState,
+            usernameInput = usernameInput,
+            onUsernameInputChange = { usernameInput = it },
+            passwordInput = passwordInput,
+            onPasswordInputChange = { passwordInput = it },
+            apiKeyInput = apiKeyInput,
+            onApiKeyInputChange = { apiKeyInput = it },
+            apiSecretInput = apiSecretInput,
+            onApiSecretInputChange = { apiSecretInput = it },
+            error = lastfmError,
+            loading = lastfmLoading,
+            onSignIn = {
+                lastfmLoading = true
+                lastfmError = null
+                scope.launch {
+                    try {
+                        val keyToUse = apiKeyInput.trim().ifBlank { AppSettings.lastfmApiKey.value }
+                        val secretToUse = apiSecretInput.trim().ifBlank { AppSettings.lastfmSecret.value }
+                        LastFM.initialize(
+                            apiKey = keyToUse,
+                            secret = secretToUse,
+                        )
+                        LastFM.getMobileSession(usernameInput.trim(), passwordInput)
+                            .onSuccess { auth ->
+                                AppSettings.setLastfmApiKey(apiKeyInput.trim())
+                                AppSettings.setLastfmSecret(apiSecretInput.trim())
+                                AppSettings.setLastfmSessionKey(auth.session.key)
+                                AppSettings.setLastfmUsername(auth.session.name)
+                                AppSettings.setLastfmEnabled(true)
+                                onDismissLastfmLogin()
+                            }
+                            .onFailure { e ->
+                                lastfmError = e.message ?: context.getString(R.string.login_failed)
+                            }
+                    } catch (e: Exception) {
+                        lastfmError = e.message ?: context.getString(R.string.login_failed)
+                    } finally {
+                        lastfmLoading = false
+                    }
+                }
+            },
+            onDismiss = { if (!lastfmLoading) onDismissLastfmLogin() },
+        )
+    }
+
+    if (showLastfmApiKeyDialog) {
+        var apiKeyInput by remember { mutableStateOf(AppSettings.customLastfmApiKey()) }
+        var apiSecretInput by remember { mutableStateOf(AppSettings.customLastfmSecret()) }
+        LastfmApiKeyAlert(
+            hazeState = hazeState,
+            apiKeyInput = apiKeyInput,
+            onApiKeyInputChange = { apiKeyInput = it },
+            apiSecretInput = apiSecretInput,
+            onApiSecretInputChange = { apiSecretInput = it },
+            onSave = {
+                AppSettings.setLastfmApiKey(apiKeyInput.trim())
+                AppSettings.setLastfmSecret(apiSecretInput.trim())
+                LastFM.initialize(
+                    apiKey = AppSettings.lastfmApiKey.value,
+                    secret = AppSettings.lastfmSecret.value,
+                )
+                onDismissLastfmApiKeyDialog()
+            },
+            onClear = {
+                AppSettings.setLastfmApiKey("")
+                AppSettings.setLastfmSecret("")
+                LastFM.initialize(
+                    apiKey = AppSettings.lastfmApiKey.value,
+                    secret = AppSettings.lastfmSecret.value,
+                )
+                onDismissLastfmApiKeyDialog()
+            },
+            onDismiss = onDismissLastfmApiKeyDialog,
+        )
     }
 }
 

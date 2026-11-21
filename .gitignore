@@ -64,12 +64,14 @@ AGENTS.md
 # Output of scripts/release.ps1 (signed APKs + update.json)
 /release-out/
 
-# Fork documentation
+# Fork and internal documentation
 /fork-docs/
+/docs/
+TO-CHANGE.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+DESKTOP.md
 
 # Distribution outputs (installers, packages)
 /dist/
 /desktopApp/dist/
-
-# Local runner guide
-/docs/SELF_HOSTED_RUNNER.md

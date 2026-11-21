@@ -1728,14 +1728,23 @@ object AppSettings {
         prefs.edit().putString(KEY_LASTFM_SESSION_KEY, value).apply()
     }
 
+    fun customLastfmApiKey(): String = prefs.getString(KEY_LASTFM_API_KEY, "").orEmpty()
+
+    fun customLastfmSecret(): String = prefs.getString(KEY_LASTFM_SECRET, "").orEmpty()
+
+    val hasCustomLastfmKey: Boolean
+        get() = customLastfmApiKey().isNotBlank()
+
     fun setLastfmApiKey(value: String) {
-        lastfmApiKey.value = value
-        prefs.edit().putString(KEY_LASTFM_API_KEY, value).apply()
+        val trimmed = value.trim()
+        lastfmApiKey.value = trimmed.ifBlank { BuildConfig.LASTFM_API_KEY }
+        prefs.edit().putString(KEY_LASTFM_API_KEY, trimmed).apply()
     }
 
     fun setLastfmSecret(value: String) {
-        lastfmSecret.value = value
-        prefs.edit().putString(KEY_LASTFM_SECRET, value).apply()
+        val trimmed = value.trim()
+        lastfmSecret.value = trimmed.ifBlank { BuildConfig.LASTFM_SECRET }
+        prefs.edit().putString(KEY_LASTFM_SECRET, trimmed).apply()
     }
 
     fun setLastfmEndpoint(value: String) {
@@ -1861,8 +1870,9 @@ object AppSettings {
 
     /** Writes through to the encrypted store; pass "" to disconnect. */
     fun setDiscordToken(value: String) {
-        discordToken.value = value
-        authStore.discordToken = value.ifEmpty { null }
+        val clean = value.trim().trim('"', '\'')
+        discordToken.value = clean
+        authStore.discordToken = clean.ifEmpty { null }
     }
 
     fun setDiscordAccount(username: String, name: String, avatar: String?) {

@@ -39,7 +39,16 @@ private const val TOKEN_SNIPPET = """
         document.body.appendChild(frame);
         var token = frame.contentWindow.localStorage.token;
         document.body.removeChild(frame);
-        alert(token ? token.slice(1, -1) : '');
+        if (token) {
+          try {
+            token = JSON.parse(token);
+          } catch (e) {
+            if (token.startsWith('"') && token.endsWith('"')) {
+              token = token.slice(1, -1);
+            }
+          }
+        }
+        alert(token || '');
       } catch (e) {
         alert('');
       }
