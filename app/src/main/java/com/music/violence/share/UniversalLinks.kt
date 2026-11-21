@@ -10,8 +10,10 @@ import android.provider.Settings
 import com.music.violence.data.model.Song
 import com.music.violence.data.share.StreamingLink
 import com.music.violence.data.share.StreamingTracks
-import com.music.violence.data.spotify.SpotifyImporter
-import com.music.violence.data.spotify.SpotifyTrack
+import com.music.violence.data.YtMusicRepository
+import com.music.violence.data.model.SearchFilter
+import com.music.violence.data.model.SearchResult
+import com.music.violence.data.sources.TrackMatcher
 
 /**
  * Universal links (experimental): a song link from Apple Music, Spotify or Deezer, tapped anywhere on the
@@ -138,23 +140,35 @@ object UniversalLinks {
         data object Nothing : Found
     }
 
+    /**
+     * The song among [candidates] that is [title] by [artist], or null when none is confidently it: the same song
+     * at about the same length, by the same artist, not a different version of it. Violence's own matcher
+     * does the judging.
+     */
+    internal fun pickSong(candidates: List<Song>, title: String, artist: String, album: String?, durationMs: Long?): Song? =
+        TrackMatcher.best(
+            candidates,
+            TrackMatcher.Target(
+                title = title,
+                artist = artist,
+                durationSec = durationMs?.takeIf { it > 0 }?.div(1000)?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt(),
+                album = album,
+            ),
+        )
+
     /** Works out what [link] points at and finds it on YouTube Music. Network, so off the main thread. */
     suspend fun resolve(link: StreamingLink): Found {
         val target = if (link is StreamingLink.Short) StreamingTracks.follow(link) ?: return Found.Nothing else link
         return when (target) {
             is StreamingLink.Track -> {
                 val info = StreamingTracks.track(target) ?: return Found.Nothing
-                val song: Song? = SpotifyImporter.matchTrack(
-                    SpotifyTrack(
-                        id = target.id,
-                        title = info.title,
-                        artist = info.artist,
-                        album = info.album,
-                        durationMs = (info.durationMs ?: 0L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
-                        imageUrl = null,
-                    ),
-                )
-                song?.let { Found.Song(it) } ?: Found.Search("${info.title} ${info.artist}".trim())
+                val query = "${info.title} ${info.artist}".trim()
+                val candidates = YtMusicRepository.search(query, SearchFilter.SONGS).getOrNull()
+                    ?.filterIsInstance<SearchResult.Track>()?.map { it.song }.orEmpty()
+                // Only a confident match is played. The search's first hit is often a remix, a live take or a
+                // cover, and playing that when the link named the original is worse than showing the results.
+                val song: Song? = pickSong(candidates, info.title, info.artist, info.album, info.durationMs)
+                song?.let { Found.Song(it) } ?: Found.Search(query)
             }
             is StreamingLink.Album -> StreamingTracks.album(target)
                 ?.let { Found.Search("${it.title} ${it.artist}".trim()) } ?: Found.Nothing
